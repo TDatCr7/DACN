@@ -1,0 +1,173 @@
+﻿@model CinemaS.Models.Movies
+
+@{
+    ViewData["Title"] = "Edit";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Edit</h1>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="MoviesId" />
+
+            <div class="form-group">
+                <label asp-for="Title"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Duration"></label>
+                <input asp-for="Duration" class="form-control" />
+                <span asp-validation-for="Duration" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ReleaseDate"></label>
+                <input asp-for="ReleaseDate" type="date" class="form-control" />
+                <span asp-validation-for="ReleaseDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="StatusId">Trạng thái</label>
+                <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-control"></select>
+                <span asp-validation-for="StatusId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Hình Poster hiện tại</label><br />
+                @if (!string.IsNullOrEmpty(Model.PosterImage))
+                {
+                    <img src="@(Model.PosterImage.StartsWith('/') ? Model.PosterImage : ("/" + Model.PosterImage))"
+                         style="max-height:120px;" alt="Poster hiện tại" />
+                }
+                else
+                {
+                    <span>Chưa có hình poster</span>
+                }
+            </div>
+
+            <div class="form-group">
+                <label for="posterFile">Hình Poster mới</label>
+                <input type="file" name="posterFile" id="posterFile" accept="image/*" class="form-control" />
+                <div class="mt-2">
+                    <label>Xem trước Poster</label><br />
+                    <img id="posterPreview" style="max-height:120px; display:none;" alt="Xem trước Poster" />
+                </div>
+            </div>
+
+            <div class="form-group mt-2">
+                <label>Banner hiện tại</label><br />
+                @if (!string.IsNullOrEmpty(Model.BannerImage))
+                {
+                    <img src="@(Model.BannerImage.StartsWith('/') ? Model.BannerImage : ("/" + Model.BannerImage))"
+                         style="max-height:120px;" alt="Banner hiện tại" />
+                }
+                else
+                {
+                    <span>Chưa có banner</span>
+                }
+            </div>
+
+            <div class="form-group">
+                <label for="bannerFile">Banner mới</label>
+                <input type="file" name="bannerFile" id="bannerFile" accept="image/*" class="form-control" />
+                <div class="mt-2">
+                    <label>Xem trước Banner</label><br />
+                    <img id="bannerPreview" style="max-height:120px; display:none;" alt="Xem trước Banner" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Summary"></label>
+                <textarea asp-for="Summary" class="form-control"></textarea>
+                <span asp-validation-for="Summary" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DetailDescription"></label>
+                <textarea asp-for="DetailDescription" class="form-control"></textarea>
+                <span asp-validation-for="DetailDescription" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Language"></label>
+                <input asp-for="Language" class="form-control" />
+                <span asp-validation-for="Language" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Rating"></label>
+                <input asp-for="Rating"
+                       type="number"
+                       step="0.1"
+                       min="0"
+                       max="10"
+                       inputmode="decimal"
+                       class="form-control" />
+                <span asp-validation-for="Rating" class="text-danger"></span>
+            </div>
+
+
+            <div class="form-group">
+                <label asp-for="Age"></label>
+                <input asp-for="Age" class="form-control" />
+                <span asp-validation-for="Age" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="TrailerLink"></label>
+                <input asp-for="TrailerLink" class="form-control" />
+                <span asp-validation-for="TrailerLink" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-3">
+                <input type="submit" value="Lưu" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        function bindPreview(inputId, imgId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(imgId);
+            input.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (!file) { preview.style.display = 'none'; return; }
+
+                const valid = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!valid.includes(file.type)) {
+                    alert('Vui lòng chọn ảnh JPG/PNG/GIF/WEBP.');
+                    e.target.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Ảnh không vượt quá 10MB.');
+                    e.target.value = '';
+                    preview.style.display = 'none';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    preview.src = ev.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        bindPreview('posterFile', 'posterPreview');
+        bindPreview('bannerFile', 'bannerPreview');
+    </script>
+}

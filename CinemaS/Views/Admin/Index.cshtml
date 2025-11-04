@@ -1,0 +1,81 @@
+﻿@{
+    ViewData["Title"] = "Quản Lý Hệ Thống";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5" style="font-weight:800;color:#cfd6ff;">
+            <i class="fas fa-cogs me-2" style="color:#7c3aed;"></i> Quản Lý Hệ Thống
+        </h1>
+        <p class="lead" style="color:#9aa5c6;">Dashboard quản trị cho Admin</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Quản lý Phòng Chiếu -->
+        <div class="col-md-4">
+            <div class="card shadow-lg border-0 h-100 hover-card"
+                 style="background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.10);">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-door-open fa-3x" style="color:#3b5ccc;"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-white">Quản Lý Phòng Chiếu</h4>
+                    <p class="text-muted small">Tạo và quản lý các phòng chiếu phim</p>
+                    <a href="/CinemaTheaters" class="btn btn-primary btn-lg w-100"
+                       style="background:linear-gradient(90deg,#3b5ccc,#7c3aed);border:0;">
+                        <i class="fas fa-arrow-right"></i> Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý Suất Chiếu -->
+        <div class="col-md-4">
+            <div class="card shadow-lg border-0 h-100 hover-card"
+                 style="background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.10);">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-alt fa-3x" style="color:#22c55e;"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-white">Quản Lý Suất Chiếu</h4>
+                    <p class="text-muted small">Tạo lịch chiếu cho các bộ phim</p>
+                    <a href="/ShowTimes" class="btn btn-success btn-lg w-100" style="border:0;">
+                        <i class="fas fa-arrow-right"></i> Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quản lý Phim -->
+        <div class="col-md-4">
+            <div class="card shadow-lg border-0 h-100 hover-card"
+                 style="background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.10);">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fas fa-film fa-3x" style="color:#a21caf;"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-white">Quản Lý Phim</h4>
+                    <p class="text-muted small">Thêm mới và chỉnh sửa thông tin phim</p>
+                    <a href="/Movies" class="btn btn-warning btn-lg w-100" style="border:0;color:#111;font-weight:800;">
+                        <i class="fas fa-arrow-right"></i> Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-card {
+        transition: transform .3s ease, box-shadow .3s ease;
+    }
+
+        .hover-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 32px rgba(0,0,0,.35) !important;
+        }
+</style>

@@ -1,0 +1,267 @@
+﻿@{
+    var title = ViewData["Title"] ?? "CinemaS";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - CinemaS</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/CinemaS.styles.css" asp-append-version="true" />
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+          crossorigin="anonymous" />
+
+    <style>
+        /* ======= PALETTE: chỉ xanh biển & đỏ tím ======= */
+        :root {
+            --blue-1: #0b1026; /* nền xanh đậm */
+            --blue-2: #15214e; /* xanh đậm hơn */
+            --indigo: #3b5ccc; /* xanh biển sáng */
+            --purple: #7c3aed; /* tím */
+            --magenta: #a21caf; /* đỏ tím */
+            --text: #e9ecf6;
+            --muted: #9aa5c6;
+            --line: rgba(255,255,255,.10);
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text);
+            background: var(--blue-1);
+            overflow-x: hidden;
+        }
+
+        /* ======= LỚP NỀN GLOW CỐ ĐỊNH (KHÔNG ĐÈ FOOTER) ======= */
+        #bg-glow {
+            position: fixed;
+            inset: 0;
+            z-index: 0; /* nằm sau mọi thứ */
+            pointer-events: none;
+            background-image: radial-gradient(1200px 720px at 18% -12%, rgba(59, 92, 204, 0.35) 0%, rgba(59, 92, 204, 0) 60%), radial-gradient(1000px 600px at 82% 10%, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0) 60%), radial-gradient(900px 600px at 70% 92%, rgba(162, 28, 175, 0.20) 0%, rgba(162, 28, 175, 0) 55%), radial-gradient(1400px 900px at 50% 40%, rgba(21, 33, 78, 0.45) 0%, rgba(21, 33, 78, 0) 70%);
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-blend-mode: screen;
+        }
+
+        /* ======= NAVBAR ======= */
+        .navbar {
+            background: linear-gradient(180deg, #12183f 0%, #0f1440 100%);
+            border-bottom: 1px solid var(--line);
+            box-shadow: 0 4px 20px rgba(0,0,0,.35);
+            position: relative;
+            z-index: 2; /* cao hơn glow */
+        }
+
+        .navbar-brand img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .nav-link {
+            color: #cfd6ff !important;
+            font-weight: 600;
+            letter-spacing: .3px;
+            padding: 10px 14px !important;
+            border-radius: 10px;
+            transition: all .2s ease;
+        }
+
+            .nav-link.active {
+                color: #cfd6ff !important;
+                background: transparent !important;
+            }
+
+            .nav-link:hover, .nav-link:focus {
+                color: #fff !important;
+                background: linear-gradient(90deg, var(--indigo) 0%, var(--purple) 100%);
+                box-shadow: 0 0 0 2px rgba(124,58,237,.25) inset;
+            }
+
+        /* ======= MAIN ======= */
+        main {
+            flex: 1 0 auto;
+            padding: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ======= FOOTER (nền riêng, không bị ảnh hưởng) ======= */
+        footer {
+            position: relative;
+            z-index: 2; /* cao hơn glow */
+            background-color: #0a0d25; /* nền đặc, không trong suốt */
+            border-top: 1px solid var(--line);
+            color: var(--text);
+            padding: 48px 0 18px;
+        }
+
+            footer .footer-title {
+                font-weight: 800;
+                text-transform: uppercase;
+                margin-bottom: 14px;
+            }
+
+        .footer-link {
+            color: var(--muted);
+        }
+
+            .footer-link:hover {
+                color: #fff;
+                text-decoration: none;
+            }
+
+        .footer-bottom {
+            border-top: 1px solid var(--line);
+            margin-top: 20px;
+            padding-top: 10px;
+            color: var(--muted);
+        }
+
+        /* ======= Form / Button ======= */
+        .btn-primary {
+            background: linear-gradient(90deg, var(--indigo) 0%, var(--purple) 100%);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+        }
+
+            .btn-primary:hover {
+                filter: brightness(1.05);
+            }
+
+        .form-control, .form-select, textarea {
+            background: #0a1133;
+            color: #e6ebff;
+            border: 1px solid var(--line);
+        }
+
+            .form-control:focus, .form-select:focus, textarea:focus {
+                border-color: var(--indigo);
+                box-shadow: 0 0 0 .2rem rgba(59,92,204,.25);
+            }
+
+        /* Back to Top */
+        #backToTop {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 3;
+            display: none;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(180deg, var(--indigo) 0%, var(--magenta) 100%);
+            color: #fff;
+            padding: 10px 12px;
+            box-shadow: 0 0 18px rgba(124,58,237,.35);
+        }
+
+            #backToTop:hover {
+                filter: brightness(1.05);
+            }
+    </style>
+</head>
+
+<body>
+    <!-- lớp nền glow cố định -->
+    <div id="bg-glow"></div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/logo/Logo.jpg" alt="CinemaS" />
+            </a>
+
+            <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav ms-3 me-auto">
+                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    @if (User?.IsInRole("Admin") == true)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Admin" asp-action="Index">
+                                <i class="fa-solid fa-screwdriver-wrench me-1"></i> Quản lý hệ thống
+                            </a>
+                        </li>
+                    }
+                </ul>
+                <partial name="_LoginPartial" />
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main role="main">
+        <div class="container">
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <h6 class="footer-title">Thông tin liên hệ</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="fa-solid fa-location-dot me-2"></i> New Ohara Island, Tân Thế Giới</li>
+                        <li><i class="fa-solid fa-phone me-2"></i> 0345 974 119</li>
+                        <li><i class="fa-regular fa-envelope me-2"></i> tiendatcr712@gmail.com</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="footer-title">Liên kết nhanh</h6>
+                    <ul class="list-unstyled small">
+                        <li><a class="footer-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                        <li><a class="footer-link" asp-controller="Movies" asp-action="Index">Phim</a></li>
+                        <li><a class="footer-link" href="#">Thành viên</a></li>
+                        <li><a class="footer-link" href="#">Khuyến mãi</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="footer-title">Kết nối với chúng tôi</h6>
+                    <div class="d-flex gap-3 fs-4 mb-3">
+                        <a href="#" class="footer-link"><i class="fab fa-youtube"></i></a>
+                        <a href="#" class="footer-link"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="footer-link"><i class="fab fa-tiktok"></i></a>
+                        <a href="#" class="footer-link"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom d-flex justify-content-between align-items-center">
+                <div>© @DateTime.Now.Year - <strong>CinemaS</strong>. All rights reserved.</div>
+                <div><a class="footer-link" asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a></div>
+            </div>
+        </div>
+    </footer>
+
+    <button id="backToTop"><i class="fa-solid fa-arrow-up"></i></button>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Back to Top
+        const btnTop = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            btnTop.style.display = window.scrollY > 420 ? 'block' : 'none';
+        });
+        btnTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

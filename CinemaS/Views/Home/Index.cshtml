@@ -1,0 +1,554 @@
+﻿@model CinemaS.Models.ViewModels.HomeVM
+@{
+    ViewData["Title"] = "Trang chủ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+
+<style>
+    :root {
+        --bg: #0b0f27;
+        --panel: #0e1333;
+        --accent: #ffd54d; /* vàng cho nút/nhãn (đặc trưng Cinestar) */
+        --muted: #99a2b0;
+        --indigo: #3b5ccc;
+        --purple: #7c3aed;
+        --magenta: #a21caf;
+        --text: #e9ecf6;
+        --line: rgba(255,255,255,.12);
+    }
+
+    body {
+        background: radial-gradient(1200px 600px at 30% 0%, #1a1f47 0%, #0b0f27 50%, #0b0f27 100%);
+    }
+
+    .section {
+        padding: 32px 0;
+    }
+
+    .section-title {
+        text-align: center;
+        color: #fff;
+        margin-bottom: 18px;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+        font-weight: 800;
+        text-shadow: 0 3px 14px rgba(0,0,0,.35);
+    }
+
+    .btn-cine {
+        background: var(--accent);
+        border: 0;
+        color: #111;
+        font-weight: 800;
+    }
+
+    .badge-cine {
+        background: var(--accent);
+        color: #111;
+        font-weight: 800;
+        font-size: 12px;
+        border-radius: 6px;
+        padding: 4px 8px;
+        line-height: 1;
+        box-shadow: 0 4px 10px rgba(0,0,0,.25);
+    }
+
+    /* ================== HERO (Banner) ================== */
+    .hero .swiper {
+        height: 420px;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .hero .slide-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .hero-caption {
+        position: absolute;
+        left: 24px;
+        bottom: 24px;
+        max-width: 720px;
+        background: rgba(5,6,20,.55);
+        backdrop-filter: blur(6px);
+        padding: 16px 18px;
+        border-radius: 10px;
+        color: #fff;
+    }
+
+        .hero-caption h2 {
+            margin: 0 0 6px 0;
+            font-weight: 900;
+        }
+
+    .hero .swiper-button-prev, .hero .swiper-button-next {
+        color: #fff;
+    }
+
+    .swiper .swiper-pagination-bullet {
+        background: #fff;
+        opacity: .5;
+    }
+
+    .swiper .swiper-pagination-bullet-active {
+        background: var(--accent);
+        opacity: 1;
+    }
+
+    /* ================== RAIL (Đang chiếu / Sắp chiếu) ================== */
+    .rail {
+        padding: 36px 0 10px;
+    }
+
+        .rail .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .rail .swiper {
+            overflow: hidden; /* để Swiper tự quản lý chiều ngang -> không tràn */
+            padding-bottom: 16px;
+        }
+
+        /* Nút next/prev riêng của từng rail */
+        .rail .swiper-button-prev, .rail .swiper-button-next {
+            color: #fff;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.12);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255,255,255,.25);
+        }
+
+            .rail .swiper-button-prev::after, .rail .swiper-button-next::after {
+                font-size: 20px;
+            }
+
+        .rail .swiper-pagination {
+            position: static;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .rail .swiper-pagination-bullet {
+            background: #cfd6ff;
+            opacity: .35;
+        }
+
+        .rail .swiper-pagination-bullet-active {
+            background: linear-gradient(90deg,var(--indigo),var(--magenta));
+            opacity: 1;
+        }
+
+    /* Card poster */
+    .poster {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+        .poster .card {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            flex: 1 1 auto;
+            border: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+            box-shadow: 0 18px 36px rgba(0,0,0,.35);
+        }
+
+        .poster .thumb {
+            width: 100%;
+            aspect-ratio: 27/40;
+            object-fit: cover;
+            display: block;
+        }
+
+    /* badge góc trên (2D, T13/T16) */
+    .badge-corner {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        display: flex;
+        gap: 6px;
+        z-index: 2;
+    }
+
+    .badge-chip {
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1;
+        padding: 6px 8px;
+        border-radius: 6px;
+        color: #111;
+        background: #ffca28;
+    }
+
+        .badge-chip.dark {
+            background: #e57373;
+        }
+
+    /* hover info */
+    .poster .hover {
+        position: absolute;
+        inset: 0;
+        padding: 12px;
+        color: #e9ecf6;
+        background: linear-gradient(180deg, rgba(15,20,64,.0), rgba(15,20,64,.92));
+        display: flex;
+        align-items: flex-end;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: .25s ease;
+    }
+
+    .poster .card:hover .hover {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .hover .lines {
+        font-size: 13px;
+        color: #a4a8c9;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+        .hover .lines .chip {
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 16px;
+            padding: 2px 8px;
+        }
+
+    .poster .caption {
+        text-align: center;
+        margin-top: 10px;
+        color: #fff;
+        min-height: 44px;
+    }
+
+        .poster .caption a {
+            color: #fff;
+            font-weight: 800;
+        }
+
+            .poster .caption a:hover {
+                text-decoration: underline;
+            }
+
+    .poster .btns {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    .poster .btn-ghost {
+        border: 1px solid rgba(255,255,255,.35);
+        color: #cfd6ff;
+        background: transparent;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 13px;
+    }
+
+    .poster .btn-primary {
+        border: none;
+        color: #111;
+        background: var(--accent);
+        font-weight: 900;
+        font-size: 13px;
+        padding: 6px 16px;
+        border-radius: 8px;
+    }
+
+    /* Responsive nhỏ hơn: hạ chiều cao banner */
+    @@media (max-width:575.98px) {
+        .hero .swiper
+
+    {
+        height: 320px;
+    }
+
+    }
+</style>
+
+<!-- ================= HERO (Banner) ================= -->
+<div class="container hero section">
+    @if (Model.Carousel.Any())
+    {
+        <div class="swiper" id="swiper-hero">
+            <div class="swiper-wrapper">
+                @foreach (var item in Model.Carousel)
+                {
+                    var img = !string.IsNullOrWhiteSpace(item.BannerImage)
+                    ? item.BannerImage
+                    : (string.IsNullOrWhiteSpace(item.PosterImage) ? "/images/no-poster.png" : item.PosterImage);
+
+                    <div class="swiper-slide" style="position:relative;">
+                        <img class="slide-img" src="@img" alt="@item.Title" />
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Home" asp-action="EditBanner" asp-route-id="@item.MoviesId"
+                               class="btn btn-sm btn-light"
+                               style="position:absolute; right:12px; top:12px; z-index:3;">
+                                <i class="fa-solid fa-pen"></i> Sửa banner
+                            </a>
+                        }
+                        <div class="hero-caption">
+                            <h2>@item.Title</h2>
+                            @if (!string.IsNullOrWhiteSpace(item.Summary))
+                            {
+                                <div class="mb-2">@item.Summary</div>
+                            }
+                            <a asp-controller="Movies" asp-action="Details" asp-route-id="@item.MoviesId" class="btn btn-cine">
+                                <i class="fa-solid fa-ticket"></i> Đặt vé
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-pagination"></div>
+        </div>
+    }
+</div>
+
+<!-- ================= PHIM ĐANG CHIẾU ================= -->
+<section class="rail">
+    <h3 class="section-title">Phim đang chiếu</h3>
+    @if (Model.NowShowing.Any())
+    {
+        <div class="wrap">
+            <div class="swiper" id="rail-now">
+                <div class="swiper-wrapper">
+                    @foreach (var mv in Model.NowShowing)
+                    {
+                        var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
+                        <div class="swiper-slide">
+                            <article class="poster">
+                                <div class="card">
+                                    <div class="badge-corner">
+                                        <span class="badge-chip">2D</span>
+                                        <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T16")</span>
+                                    </div>
+                                    <img class="thumb" src="@poster" alt="@mv.Title" />
+                                    <!-- hover info -->
+                                    <div class="hover">
+                                        <div>
+                                            <div class="lines">
+                                                @if (!string.IsNullOrWhiteSpace(mv.GenreName))
+                                                {
+                                                    <span class="chip">@mv.GenreName</span>
+                                                }
+                                                @if (mv.ReleaseDate.HasValue)
+                                                {
+                                                    <span class="chip"><i class="fa-regular fa-calendar-days me-1"></i>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(mv.StatusName))
+                                                {
+                                                    <span class="chip">@mv.StatusName</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                            {
+                                                <div style="margin-top:6px; font-size:13px; color:#d7dcff; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+                                                    @mv.Summary
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="caption">
+                                    <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
+                                </div>
+                                <div class="btns">
+                                    <a class="btn-ghost" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                        <i class="fa-regular fa-circle-play me-1"></i>Xem trailer
+                                    </a>
+                                    <a class="btn-primary" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                        <i class="fa-solid fa-ticket me-1"></i>Đặt vé
+                                    </a>
+                                </div>
+                            </article>
+                        </div>
+                    }
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    }
+</section>
+
+<!-- ================= PHIM SẮP CHIẾU ================= -->
+<section class="rail" style="padding-top:0">
+    <h3 class="section-title">Phim sắp chiếu</h3>
+    @if (Model.ComingSoon.Any())
+    {
+        <div class="wrap">
+            <div class="swiper" id="rail-coming">
+                <div class="swiper-wrapper">
+                    @foreach (var mv in Model.ComingSoon)
+                    {
+                        var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
+                        <div class="swiper-slide">
+                            <article class="poster">
+                                <div class="card">
+                                    <div class="badge-corner">
+                                        <span class="badge-chip">2D</span>
+                                        <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T13")</span>
+                                    </div>
+                                    <img class="thumb" src="@poster" alt="@mv.Title" />
+                                    <div class="hover">
+                                        <div>
+                                            <div class="lines">
+                                                @if (!string.IsNullOrWhiteSpace(mv.GenreName))
+                                                {
+                                                    <span class="chip">@mv.GenreName</span>
+                                                }
+                                                @if (mv.ReleaseDate.HasValue)
+                                                {
+                                                    <span class="chip"><i class="fa-regular fa-calendar-days me-1"></i>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(mv.StatusName))
+                                                {
+                                                    <span class="chip">@mv.StatusName</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                            {
+                                                <div style="margin-top:6px; font-size:13px; color:#d7dcff; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+                                                    @mv.Summary
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="caption">
+                                    <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
+                                </div>
+                                <div class="btns">
+                                    <a class="btn-ghost" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                        <i class="fa-regular fa-circle-play me-1"></i>Xem trailer
+                                    </a>
+                                    <a class="btn-primary" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                        <i class="fa-solid fa-circle-info me-1"></i>Tìm hiểu thêm
+                                    </a>
+                                </div>
+                            </article>
+                        </div>
+                    }
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    }
+</section>
+
+<!-- ================= TRAILER HOT ================= -->
+@if (Model.Trailers.Any())
+{
+    <section class="section" style="padding-top: 0;">
+        <h3 class="section-title">Trailer hot</h3>
+        <div class="container">
+            <div class="swiper" id="swiper-trailer">
+                <div class="swiper-wrapper">
+                    @foreach (var t in Model.Trailers)
+                    {
+                        string? embed = null;
+                        if (!string.IsNullOrEmpty(t.TrailerLink))
+                        {
+                            var link = t.TrailerLink;
+                            if (link.Contains("youtu.be/")) { var id = link.Split("youtu.be/").Last().Split('?')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
+                            else if (link.Contains("watch?v=")) { var id = link.Split("watch?v=").Last().Split('&')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
+                            else if (link.Contains("/shorts/")) { var id = link.Split("/shorts/").Last().Split('?')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
+                        }
+                        <div class="swiper-slide" style="width:360px;">
+                            <div class="movie-card" style="overflow:hidden;">
+                                @if (embed != null)
+                                {
+                                    <iframe width="100%" height="200" src="@embed" title="@t.Title" frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen></iframe>
+                                }
+                                else
+                                {
+                                    var poster = string.IsNullOrWhiteSpace(t.PosterImage) ? "/images/no-poster.png" : t.PosterImage;
+                                    <img class="movie-thumb" src="@poster" alt="@t.Title" style="aspect-ratio:16/9;" />
+                                }
+                                <div class="movie-body">
+                                    <div class="movie-title" style="height:auto;">@t.Title</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+            </div>
+        </div>
+    </section>
+}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+
+<script>
+    // Khởi tạo 1 lần/element
+    function initSwiperOnce(id, opts) {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.inited === "1") return;
+        new Swiper(el, opts);
+        el.dataset.inited = "1";
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        /* HERO (Banner dùng BannerImage) */
+        initSwiperOnce('swiper-hero', {
+            loop: true,
+            speed: 600,
+            autoplay: { delay: 3500, disableOnInteraction:false },
+            pagination: { el: '#swiper-hero .swiper-pagination', clickable: true },
+            navigation: { nextEl: '#swiper-hero .swiper-button-next', prevEl: '#swiper-hero .swiper-button-prev' }
+        });
+
+        /* RAIL: để Swiper tự tính chiều rộng -> KHÔNG tràn */
+        const railOpts = (id) => ({
+            spaceBetween: 24,
+            speed: 600,
+            watchOverflow: true,
+            slidesPerView: 1.1,            // mobile base
+            navigation: { nextEl: `${id} .swiper-button-next`, prevEl: `${id} .swiper-button-prev` },
+            pagination:  { el: `${id} .swiper-pagination`, clickable: true },
+            breakpoints: {
+                576:  { slidesPerView: 2 },
+                768:  { slidesPerView: 3 },
+                1200: { slidesPerView: 4 }  // Desktop 4 poster/khung
+            }
+        });
+
+        initSwiperOnce('rail-now', railOpts('#rail-now'));
+        initSwiperOnce('rail-coming', railOpts('#rail-coming'));
+
+        /* TRAILER HOT */
+        initSwiperOnce('swiper-trailer', {
+            slidesPerView: 1,
+            spaceBetween: 16,
+            breakpoints: { 768:{slidesPerView:2}, 1200:{slidesPerView:3} },
+            navigation: { nextEl: '#swiper-trailer .swiper-button-next', prevEl: '#swiper-trailer .swiper-button-prev' }
+        });
+    });
+</script>

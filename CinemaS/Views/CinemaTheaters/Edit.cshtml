@@ -1,0 +1,75 @@
+﻿@model CinemaS.Models.CinemaTheaters
+
+@{
+    ViewData["Title"] = "Edit";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Edit</h1>
+
+<h4>CinemaTheaters</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="CinemaTheaterId" />
+            <div class="form-group">
+                <label asp-for="CinemaTypeId" class="control-label"></label>
+                <select asp-for="CinemaTypeId" class="form-control" asp-items="ViewBag.CinemaTypeId"></select>
+                <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MovieTheaterId" class="control-label"></label>
+                <select asp-for="MovieTheaterId" class="form-control" asp-items="ViewBag.MovieTheaterId"></select>
+                <span asp-validation-for="MovieTheaterId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="NumOfRows" class="control-label"></label>
+                <input asp-for="NumOfRows" class="form-control" />
+                <span asp-validation-for="NumOfRows" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="NumOfColumns" class="control-label"></label>
+                <input asp-for="NumOfColumns" class="form-control" />
+                <span asp-validation-for="NumOfColumns" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="RegularSeatRow" class="control-label"></label>
+                <input asp-for="RegularSeatRow" class="form-control" />
+                <span asp-validation-for="RegularSeatRow" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="DoubleSeatRow" class="control-label"></label>
+                <input asp-for="DoubleSeatRow" class="form-control" />
+                <span asp-validation-for="DoubleSeatRow" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="VIPSeatRow" class="control-label"></label>
+                <input asp-for="VIPSeatRow" class="form-control" />
+                <span asp-validation-for="VIPSeatRow" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Status" class="control-label"></label>
+                <input asp-for="Status" class="form-control" />
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,0 +1,38 @@
+﻿@model CinemaS.Models.Movies
+@{
+    ViewData["Title"] = "Chỉnh sửa ảnh Banner";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4 text-light">Chỉnh sửa ảnh Banner</h2>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success text-center">@TempData["Message"]</div>
+    }
+
+    <div class="card bg-dark text-light p-4" style="max-width: 700px; margin: auto;">
+        <h4 class="mb-3">@Model.Title</h4>
+
+        <div class="mb-3 text-center">
+            <p>Ảnh hiện tại:</p>
+            <img src="@(string.IsNullOrWhiteSpace(Model.BannerImage) ? (string.IsNullOrWhiteSpace(Model.PosterImage) ? "/images/no-poster.png" : Model.PosterImage) : Model.BannerImage)"
+                 alt="@Model.Title" class="img-fluid rounded" style="max-height: 300px; object-fit: cover;" />
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="id" value="@Model.MoviesId" />
+
+            <div class="mb-3">
+                <label for="file" class="form-label">Chọn ảnh mới (tỷ lệ khuyến nghị 16:4 ~ 1920x480)</label>
+                <input type="file" class="form-control" name="file" id="file" accept="image/*" required />
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Về trang chủ</a>
+                <button type="submit" class="btn btn-warning">Cập nhật ảnh</button>
+            </div>
+        </form>
+    </div>
+</div>
