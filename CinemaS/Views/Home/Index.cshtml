@@ -3,14 +3,13 @@
     ViewData["Title"] = "Trang chủ";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
 
 <style>
     :root {
         --bg: #0b0f27;
         --panel: #0e1333;
-        --accent: #ffd54d; /* vàng cho nút/nhãn (đặc trưng Cinestar) */
+        --accent: #ffd54d;
         --muted: #99a2b0;
         --indigo: #3b5ccc;
         --purple: #7c3aed;
@@ -37,12 +36,19 @@
         text-shadow: 0 3px 14px rgba(0,0,0,.35);
     }
 
+    /* CTA cơ bản */
     .btn-cine {
         background: var(--accent);
         border: 0;
         color: #111;
         font-weight: 800;
+        text-decoration: none; /* [CHANGED] bỏ gạch dưới */
     }
+
+        .btn-cine:hover {
+            text-decoration: none;
+            filter: brightness(1.05);
+        }
 
     .badge-cine {
         background: var(--accent);
@@ -55,7 +61,7 @@
         box-shadow: 0 4px 10px rgba(0,0,0,.25);
     }
 
-    /* ================== HERO (Banner) ================== */
+    /* ===== HERO ===== */
     .hero .swiper {
         height: 420px;
         border-radius: 12px;
@@ -99,7 +105,7 @@
         opacity: 1;
     }
 
-    /* ================== RAIL (Đang chiếu / Sắp chiếu) ================== */
+    /* ===== RAIL ===== */
     .rail {
         padding: 36px 0 10px;
     }
@@ -110,23 +116,31 @@
         }
 
         .rail .swiper {
-            overflow: hidden; /* để Swiper tự quản lý chiều ngang -> không tràn */
+            overflow: hidden;
             padding-bottom: 16px;
         }
 
-        /* Nút next/prev riêng của từng rail */
+        /* Nav buttons rõ và nổi bật */
         .rail .swiper-button-prev, .rail .swiper-button-next {
-            color: #fff;
-            width: 46px;
-            height: 46px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            background: rgba(255,255,255,.12);
-            backdrop-filter: blur(2px);
-            border: 1px solid rgba(255,255,255,.25);
+            color: #fff;
+            background: linear-gradient(145deg, #3b5ccc, #7c3aed);
+            border: 2px solid rgba(255,255,255,.55);
+            box-shadow: 0 0 14px rgba(0,0,0,.55);
+            transition: transform .2s ease, filter .2s ease, box-shadow .2s;
         }
 
+            .rail .swiper-button-prev:hover, .rail .swiper-button-next:hover {
+                transform: scale(1.08);
+                filter: brightness(1.08);
+                box-shadow: 0 0 22px rgba(255,213,77,.55);
+            }
+
             .rail .swiper-button-prev::after, .rail .swiper-button-next::after {
-                font-size: 20px;
+                font-size: 22px;
+                font-weight: 700;
             }
 
         .rail .swiper-pagination {
@@ -137,15 +151,15 @@
 
         .rail .swiper-pagination-bullet {
             background: #cfd6ff;
-            opacity: .35;
+            opacity: .4;
         }
 
         .rail .swiper-pagination-bullet-active {
-            background: linear-gradient(90deg,var(--indigo),var(--magenta));
+            background: linear-gradient(90deg, var(--indigo), var(--magenta));
             opacity: 1;
         }
 
-    /* Card poster */
+    /* ===== POSTER CARD ===== */
     .poster {
         height: 100%;
         display: flex;
@@ -160,17 +174,15 @@
             flex: 1 1 auto;
             border: 1px solid var(--line);
             background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-            box-shadow: 0 18px 36px rgba(0,0,0,.35);
+            box-shadow: 0 8px 24px rgba(0,0,0,.45);
+            transition: box-shadow .3s ease;
         }
 
-        .poster .thumb {
-            width: 100%;
-            aspect-ratio: 27/40;
-            object-fit: cover;
-            display: block;
+        .poster:hover .card {
+            box-shadow: 0 18px 40px rgba(0,0,0,.6), 0 0 18px rgba(124,58,237,.25);
         }
 
-    /* badge góc trên (2D, T13/T16) */
+    /* Badge */
     .badge-corner {
         position: absolute;
         left: 10px;
@@ -194,21 +206,96 @@
             background: #e57373;
         }
 
-    /* hover info */
-    .poster .hover {
-        position: absolute;
-        inset: 0;
-        padding: 12px;
-        color: #e9ecf6;
-        background: linear-gradient(180deg, rgba(15,20,64,.0), rgba(15,20,64,.92));
-        display: flex;
-        align-items: flex-end;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: .25s ease;
+    /* Ảnh + hiệu ứng hover (trái->phải) – hover chỉ trên ảnh */
+    .poster .img-wrap {
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
     }
 
-    .poster .card:hover .hover {
+    .poster .thumb {
+        width: 100%;
+        aspect-ratio: 27/40;
+        object-fit: cover;
+        transform: translateX(0) scale(1);
+        transition: transform .6s ease;
+    }
+
+    .poster .img-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity .35s ease, background-position .6s ease;
+        background: linear-gradient(90deg, rgba(124,58,237,0) 0%, rgba(124,58,237,.28) 28%, rgba(162,28,175,.35) 60%, rgba(124,58,237,0) 100%);
+        background-size: 200% 100%;
+        background-position: 0% 50%;
+    }
+
+    .poster .img-wrap:hover .thumb {
+        transform: translateX(8px) scale(1.06);
+    }
+
+    .poster .img-wrap:hover::after {
+        opacity: 1;
+        background-position: 100% 50%;
+    }
+
+    /* Info cơ bản – chỉ hiện khi hover ảnh */
+    /* ================== HOVER INFO (centered, dark bg, purple icons) ================== */
+    /* [CHANGED] căn giữa + nền đen mờ */
+    .poster .hover{
+        position:absolute; 
+        inset:0;
+        padding:16px; 
+        color:#e9ecf6;
+        background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%); 
+        display:flex; 
+        align-items:center; 
+        justify-content:center; 
+        opacity:0;
+        transform:translateY(12px);
+        transition:opacity .35s ease, transform .35s ease;
+        pointer-events:none;
+    }
+    /* chỉ hiện khi hover ảnh */
+    .poster .img-wrap:hover + .hover{ opacity:1; transform:translateY(0); }
+
+    /* khung nội dung ở giữa */
+    .hover-inner{
+        max-width:85%;
+        text-align:center;
+    }
+
+    /* tiêu đề trong overlay */
+    .hover-title{
+        font-size:18px; font-weight:900; margin:0 0 12px 0; color:#fff;
+        text-shadow:0 3px 12px rgba(0,0,0,.45);
+    }
+
+    /* danh sách meta theo cột, từng dòng riêng */
+    .hover-meta{
+        list-style:none; margin:0; padding:0;
+        display:flex; flex-direction:column; gap:10px; align-items:center;
+    }
+
+    /* item có viền nhẹ + icon tím */
+    .hover-meta li{
+        display:flex; align-items:center; gap:10px;
+        border:1px solid rgba(255,255,255,.18);
+        border-radius:16px; padding:6px 12px; font-size:13px; color:#dbe1ff;
+        backdrop-filter:blur(2px);
+    }
+    .hover-meta li i{ color: var(--purple); } /* [ADDED] icon tím */
+
+    /* mô tả ngắn, 2-3 dòng */
+    .hover-desc{
+        margin-top:12px; font-size:13px; color:#d7dcff;
+        display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+    }
+
+
+    .poster .img-wrap:hover + .hover {
         opacity: 1;
         transform: translateY(0);
     }
@@ -227,6 +314,7 @@
             padding: 2px 8px;
         }
 
+    /* Caption – bỏ gạch dưới */
     .poster .caption {
         text-align: center;
         margin-top: 10px;
@@ -237,12 +325,16 @@
         .poster .caption a {
             color: #fff;
             font-weight: 800;
+            text-decoration: none !important;
+            transition: color .25s ease;
         }
 
             .poster .caption a:hover {
-                text-decoration: underline;
+                color: #ffd54d;
+                text-decoration: none !important;
             }
 
+    /* Buttons – không kích hoạt overlay */
     .poster .btns {
         display: flex;
         gap: 10px;
@@ -250,38 +342,132 @@
         margin-top: 8px;
     }
 
+        .poster .btns a {
+            text-decoration: none !important;
+        }
+
+    .poster .btn-ghost, .poster .btn-primary {
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 13px;
+        padding: 6px 14px;
+        transition: all .25s ease;
+    }
+
     .poster .btn-ghost {
         border: 1px solid rgba(255,255,255,.35);
         color: #cfd6ff;
         background: transparent;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-weight: 800;
-        font-size: 13px;
     }
+
+        .poster .btn-ghost:hover {
+            border-color: var(--accent);
+            color: #fff;
+            background: rgba(255,213,77,.15);
+            box-shadow: 0 0 10px rgba(255,213,77,.35);
+        }
 
     .poster .btn-primary {
         border: none;
         color: #111;
         background: var(--accent);
+    }
+
+        .poster .btn-primary:hover {
+            background: linear-gradient(90deg, var(--indigo), var(--magenta));
+            color: #fff;
+            box-shadow: 0 0 12px rgba(124,58,237,.5);
+        }
+
+    /* ==== Sweep L→R cho tất cả CTA ==== */
+    .btn-sweep {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        text-decoration: none !important;
+    }
+
+        .btn-sweep::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, var(--indigo), var(--magenta));
+            transform: translateX(-110%);
+            transition: transform .45s ease;
+            z-index: -1;
+        }
+
+        .btn-sweep:hover::before {
+            transform: translateX(0);
+        }
+
+    .btn-cine.btn-sweep, .poster .btn-primary.btn-sweep, .btn-more.btn-sweep {
+        background: var(--accent);
+        color: #111;
+    }
+
+        .btn-cine.btn-sweep:hover, .poster .btn-primary.btn-sweep:hover, .btn-more.btn-sweep:hover {
+            color: #fff;
+            box-shadow: 0 0 12px rgba(124,58,237,.5);
+        }
+
+    .poster .btn-ghost.btn-sweep {
+        background: transparent;
+        border: 1px solid rgba(255,255,255,.35);
+        color: #cfd6ff;
+    }
+
+        .poster .btn-ghost.btn-sweep:hover {
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(124,58,237,.45);
+        }
+
+    /* CTA Xem thêm – căn giữa + khoảng cách dưới rộng */
+    .rail .more-row { /* [ADDED] căn giữa và khoảng cách lớn */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        margin-top: 28px;
+        margin-bottom: 90px;
+        width: 100%;
+    }
+
+    .btn-more {
+        position: relative; /* [ADDED] để overlay hoạt động */
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 26px;
+        border-radius: 10px;
+        border: 2px solid var(--accent);
+        color: #fff;
         font-weight: 900;
-        font-size: 13px;
-        padding: 6px 16px;
-        border-radius: 8px;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        background: transparent;
+        text-decoration: none;
+        transition: all .25s ease;
     }
 
-    /* Responsive nhỏ hơn: hạ chiều cao banner */
+        .btn-more:hover {
+            /* khi overlay chạy vào, border sẽ mờ đi */
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 0 18px rgba(124,58,237,.5);
+            text-decoration: none;
+        }
+
+    /* Mobile hero height */
     @@media (max-width:575.98px) {
-        .hero .swiper
-
-    {
-        height: 320px;
-    }
-
+        .hero .swiper {
+            height: 320px;
+        }
     }
 </style>
 
-<!-- ================= HERO (Banner) ================= -->
+<!-- ===== HERO ===== -->
 <div class="container hero section">
     @if (Model.Carousel.Any())
     {
@@ -289,17 +475,14 @@
             <div class="swiper-wrapper">
                 @foreach (var item in Model.Carousel)
                 {
-                    var img = !string.IsNullOrWhiteSpace(item.BannerImage)
-                    ? item.BannerImage
+                    var img = !string.IsNullOrWhiteSpace(item.BannerImage) ? item.BannerImage
                     : (string.IsNullOrWhiteSpace(item.PosterImage) ? "/images/no-poster.png" : item.PosterImage);
-
                     <div class="swiper-slide" style="position:relative;">
                         <img class="slide-img" src="@img" alt="@item.Title" />
                         @if (User.IsInRole("Admin"))
                         {
                             <a asp-controller="Home" asp-action="EditBanner" asp-route-id="@item.MoviesId"
-                               class="btn btn-sm btn-light"
-                               style="position:absolute; right:12px; top:12px; z-index:3;">
+                               class="btn btn-sm btn-light" style="position:absolute; right:12px; top:12px; z-index:3; text-decoration:none;">
                                 <i class="fa-solid fa-pen"></i> Sửa banner
                             </a>
                         }
@@ -309,7 +492,9 @@
                             {
                                 <div class="mb-2">@item.Summary</div>
                             }
-                            <a asp-controller="Movies" asp-action="Details" asp-route-id="@item.MoviesId" class="btn btn-cine">
+                            <!-- [CHANGED] thêm btn-sweep để có hiệu ứng quét tím -->
+                            <a asp-controller="Movies" asp-action="Details" asp-route-id="@item.MoviesId"
+                               class="btn btn-cine btn-sweep">
                                 <i class="fa-solid fa-ticket"></i> Đặt vé
                             </a>
                         </div>
@@ -323,7 +508,7 @@
     }
 </div>
 
-<!-- ================= PHIM ĐANG CHIẾU ================= -->
+<!-- ===== PHIM ĐANG CHIẾU ===== -->
 <section class="rail">
     <h3 class="section-title">Phim đang chiếu</h3>
     @if (Model.NowShowing.Any())
@@ -341,41 +526,46 @@
                                         <span class="badge-chip">2D</span>
                                         <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T16")</span>
                                     </div>
-                                    <img class="thumb" src="@poster" alt="@mv.Title" />
-                                    <!-- hover info -->
-                                    <div class="hover">
-                                        <div>
-                                            <div class="lines">
-                                                @if (!string.IsNullOrWhiteSpace(mv.GenreName))
-                                                {
-                                                    <span class="chip">@mv.GenreName</span>
-                                                }
-                                                @if (mv.ReleaseDate.HasValue)
-                                                {
-                                                    <span class="chip"><i class="fa-regular fa-calendar-days me-1"></i>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span>
-                                                }
-                                                @if (!string.IsNullOrWhiteSpace(mv.StatusName))
-                                                {
-                                                    <span class="chip">@mv.StatusName</span>
-                                                }
-                                            </div>
-                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
-                                            {
-                                                <div style="margin-top:6px; font-size:13px; color:#d7dcff; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
-                                                    @mv.Summary
-                                                </div>
-                                            }
-                                        </div>
+                                    <div class="img-wrap">
+                                        <img class="thumb" src="@poster" alt="@mv.Title" />
                                     </div>
+                                    <!-- overlay: căn giữa + background đen mờ + icon tím -->
+                                    <div class="hover">
+                                      <div class="hover-inner"> 
+                                        <h4 class="hover-title">@mv.Title</h4> 
+
+                                        <ul class="hover-meta"> 
+                                          @if (!string.IsNullOrWhiteSpace(mv.GenreName))
+                                          {
+                                            <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
+                                          }
+
+                                          @if (mv.ReleaseDate.HasValue)
+                                          {
+                                            <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
+                                          }
+                                          @if (!string.IsNullOrWhiteSpace(mv.StatusName))
+                                          {
+                                            <li><i class="fa-solid fa-circle-info"></i><span>@mv.StatusName</span></li>
+                                          }
+                                        </ul>
+
+                                        @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                        {
+                                          <div class="hover-desc">@mv.Summary</div> 
+                                        }
+                                      </div>
+                                    </div>
+
                                 </div>
                                 <div class="caption">
                                     <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
                                 </div>
                                 <div class="btns">
-                                    <a class="btn-ghost" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                    <a class="btn-ghost btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
                                         <i class="fa-regular fa-circle-play me-1"></i>Xem trailer
                                     </a>
-                                    <a class="btn-primary" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                    <a class="btn-primary btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
                                         <i class="fa-solid fa-ticket me-1"></i>Đặt vé
                                     </a>
                                 </div>
@@ -387,11 +577,19 @@
                 <div class="swiper-button-next"></div>
                 <div class="swiper-pagination"></div>
             </div>
+
+            <!--  Bọc bằng .more-row để căn giữa và khoảng cách -->
+            <div class="more-row">
+                <!-- status đúng cho ĐANG CHIẾU là RELEASED -->
+                <a class="btn-more btn-sweep" asp-controller="Home" asp-action="ListByStatus" asp-route-status="RELEASED">
+                    Xem thêm
+                </a>
+            </div>
         </div>
     }
 </section>
 
-<!-- ================= PHIM SẮP CHIẾU ================= -->
+<!-- ===== PHIM SẮP CHIẾU ===== -->
 <section class="rail" style="padding-top:0">
     <h3 class="section-title">Phim sắp chiếu</h3>
     @if (Model.ComingSoon.Any())
@@ -409,41 +607,49 @@
                                         <span class="badge-chip">2D</span>
                                         <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T13")</span>
                                     </div>
-                                    <img class="thumb" src="@poster" alt="@mv.Title" />
-                                    <div class="hover">
-                                        <div>
-                                            <div class="lines">
-                                                @if (!string.IsNullOrWhiteSpace(mv.GenreName))
-                                                {
-                                                    <span class="chip">@mv.GenreName</span>
-                                                }
-                                                @if (mv.ReleaseDate.HasValue)
-                                                {
-                                                    <span class="chip"><i class="fa-regular fa-calendar-days me-1"></i>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span>
-                                                }
-                                                @if (!string.IsNullOrWhiteSpace(mv.StatusName))
-                                                {
-                                                    <span class="chip">@mv.StatusName</span>
-                                                }
-                                            </div>
-                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
-                                            {
-                                                <div style="margin-top:6px; font-size:13px; color:#d7dcff; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
-                                                    @mv.Summary
-                                                </div>
-                                            }
-                                        </div>
+                                    <div class="img-wrap">
+                                        <img class="thumb" src="@poster" alt="@mv.Title" />
                                     </div>
+                                    <!--  overlay: căn giữa + background đen mờ + icon tím -->
+                                    <div class="hover">
+                                      <div class="hover-inner"> 
+                                        <h4 class="hover-title">@mv.Title</h4> 
+
+                                        <ul class="hover-meta"> 
+
+                                          @if (!string.IsNullOrWhiteSpace(mv.GenreName))
+                                          {
+                                            <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
+                                          }
+
+                                          @if (mv.ReleaseDate.HasValue)
+                                          {
+                                            <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
+                                          }
+                                          @if (!string.IsNullOrWhiteSpace(mv.StatusName))
+                                          {
+                                            <li><i class="fa-solid fa-circle-info"></i><span>@mv.StatusName</span></li>
+                                          }
+                                        </ul>
+
+                                        @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                        {
+                                          <div class="hover-desc">@mv.Summary</div> 
+                                        }
+                                      </div>
+                                    </div>
+
+
                                 </div>
                                 <div class="caption">
                                     <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
                                 </div>
                                 <div class="btns">
-                                    <a class="btn-ghost" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                    <a class="btn-ghost btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
                                         <i class="fa-regular fa-circle-play me-1"></i>Xem trailer
                                     </a>
-                                    <a class="btn-primary" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
-                                        <i class="fa-solid fa-circle-info me-1"></i>Tìm hiểu thêm
+                                    <a class="btn-primary btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                        <i class="fa-solid fa-ticket me-1"></i>Đặt vé
                                     </a>
                                 </div>
                             </article>
@@ -454,14 +660,22 @@
                 <div class="swiper-button-next"></div>
                 <div class="swiper-pagination"></div>
             </div>
+
+            <!--  Bọc bằng .more-row để căn giữa và khoảng cách -->
+            <div class="more-row">
+                <!--  status đúng cho SẮP CHIẾU là COMING (không phải COMMING) -->
+                <a class="btn-more btn-sweep" asp-controller="Home" asp-action="ListByStatus" asp-route-status="COMING">
+                    Xem thêm
+                </a>
+            </div>
         </div>
     }
 </section>
 
-<!-- ================= TRAILER HOT ================= -->
+<!-- ===== TRAILER HOT ===== -->
 @if (Model.Trailers.Any())
 {
-    <section class="section" style="padding-top: 0;">
+    <section class="section" style="padding-top:0;">
         <h3 class="section-title">Trailer hot</h3>
         <div class="container">
             <div class="swiper" id="swiper-trailer">
@@ -505,7 +719,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
-
 <script>
     // Khởi tạo 1 lần/element
     function initSwiperOnce(id, opts) {
@@ -516,38 +729,31 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        /* HERO (Banner dùng BannerImage) */
         initSwiperOnce('swiper-hero', {
             loop: true,
             speed: 600,
-            autoplay: { delay: 3500, disableOnInteraction:false },
+            autoplay: { delay: 3500, disableOnInteraction: false },
             pagination: { el: '#swiper-hero .swiper-pagination', clickable: true },
             navigation: { nextEl: '#swiper-hero .swiper-button-next', prevEl: '#swiper-hero .swiper-button-prev' }
         });
 
-        /* RAIL: để Swiper tự tính chiều rộng -> KHÔNG tràn */
         const railOpts = (id) => ({
             spaceBetween: 24,
             speed: 600,
             watchOverflow: true,
-            slidesPerView: 1.1,            // mobile base
+            slidesPerView: 1.1,
             navigation: { nextEl: `${id} .swiper-button-next`, prevEl: `${id} .swiper-button-prev` },
-            pagination:  { el: `${id} .swiper-pagination`, clickable: true },
-            breakpoints: {
-                576:  { slidesPerView: 2 },
-                768:  { slidesPerView: 3 },
-                1200: { slidesPerView: 4 }  // Desktop 4 poster/khung
-            }
+            pagination: { el: `${id} .swiper-pagination`, clickable: true },
+            breakpoints: { 576: { slidesPerView: 2 }, 768: { slidesPerView: 3 }, 1200: { slidesPerView: 4 } }
         });
 
         initSwiperOnce('rail-now', railOpts('#rail-now'));
         initSwiperOnce('rail-coming', railOpts('#rail-coming'));
 
-        /* TRAILER HOT */
         initSwiperOnce('swiper-trailer', {
             slidesPerView: 1,
             spaceBetween: 16,
-            breakpoints: { 768:{slidesPerView:2}, 1200:{slidesPerView:3} },
+            breakpoints: { 768: { slidesPerView: 2 }, 1200: { slidesPerView: 3 } },
             navigation: { nextEl: '#swiper-trailer .swiper-button-next', prevEl: '#swiper-trailer .swiper-button-prev' }
         });
     });

@@ -22,7 +22,8 @@ namespace CinemaS.Controllers
             _context = context;
             _env = env;
         }
-        // [Dòng 15]
+
+        /* ===================== Admin: Cập nhật banner ===================== */
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> UpdateBanner(string id, IFormFile file)
@@ -33,17 +34,14 @@ namespace CinemaS.Controllers
             var movie = await _context.Movies.FindAsync(id);
             if (movie == null) return NotFound();
 
-            // Tạo thư mục lưu ảnh
             var folder = Path.Combine(_env.WebRootPath, "images", "banners");
             Directory.CreateDirectory(folder);
 
             var fileName = $"{id}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(file.FileName)}";
             var savePath = Path.Combine(folder, fileName);
-
             using (var stream = new FileStream(savePath, FileMode.Create))
                 await file.CopyToAsync(stream);
 
-            // Cập nhật DB
             movie.BannerImage = $"/images/banners/{fileName}";
             movie.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
@@ -51,7 +49,6 @@ namespace CinemaS.Controllers
             TempData["Message"] = "Đã cập nhật ảnh banner!";
             return RedirectToAction("Index", "Home");
         }
-
 
         /* ===================== Helpers ===================== */
         private void LoadStatuses(object? selected = null)
@@ -70,7 +67,6 @@ namespace CinemaS.Controllers
             var valid = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!valid.Contains(ext)) throw new InvalidOperationException("Định dạng ảnh không hợp lệ (JPG/PNG/GIF/WEBP).");
-
             if (file.Length > 10 * 1024 * 1024) throw new InvalidOperationException("Ảnh quá lớn (>10MB).");
 
             var imagesRoot = Path.Combine(_env.WebRootPath, "images", subFolder);
@@ -78,13 +74,10 @@ namespace CinemaS.Controllers
 
             var fileName = $"{Guid.NewGuid():N}{ext}";
             var fullPath = Path.Combine(imagesRoot, fileName);
-
             using (var stream = new FileStream(fullPath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
-
-            // Trả về đường dẫn web lưu trong DB
             return $"/images/{subFolder}/{fileName}";
         }
 
@@ -98,7 +91,7 @@ namespace CinemaS.Controllers
                 if (System.IO.File.Exists(full))
                     System.IO.File.Delete(full);
             }
-            catch { /* bỏ qua lỗi xoá file */ }
+            catch { }
         }
 
         private static string RemoveVietnameseTones(string? input)
@@ -109,8 +102,7 @@ namespace CinemaS.Controllers
             return new string(chars).Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
         }
 
-        /* ===================== Index (card + filter) ===================== */
-        public async Task<IActionResult> Index(string? genre = null, string? q = null, string? status = null, string? message = null, string? error = null)
+        private async Task<List<MovieCardVM>> GetMovieCardsAsync()
         {
             var raw = await (from m in _context.Movies
                              join st in _context.Statuses on m.StatusId equals st.StatusId
@@ -137,18 +129,21 @@ namespace CinemaS.Controllers
                                };
                            })
                            .ToList();
+            return cards;
+        }
 
+        /* ===================== Index (card + filter) ===================== */
+        public async Task<IActionResult> Index(string? genre = null, string? q = null, string? status = null, string? message = null, string? error = null)
+        {
+            var cards = await GetMovieCardsAsync();
             var genres = cards.Select(c => c.GenreName ?? "Khác").Distinct().OrderBy(s => s).ToList();
 
-            // Lọc server theo trạng thái (RELEASED/COMING)
             if (!string.IsNullOrWhiteSpace(status) && status != "all")
                 cards = cards.Where(c => string.Equals(c.StatusId, status, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            // Lọc server theo thể loại
             if (!string.IsNullOrWhiteSpace(genre) && genre != "all")
                 cards = cards.Where(c => string.Equals(c.GenreName, genre, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            // Tìm kiếm bỏ dấu
             if (!string.IsNullOrWhiteSpace(q))
             {
                 var qLower = RemoveVietnameseTones(q).ToLowerInvariant();
@@ -167,6 +162,31 @@ namespace CinemaS.Controllers
             if (movie == null) return NotFound();
             return View(movie);
         }
+
+        /* ===================== “XEM THÊM” views ===================== */
+
+        [HttpGet]
+        public async Task<IActionResult> Showing()
+        {
+            var cards = await GetMovieCardsAsync();
+            var filtered = cards.Where(c => string.Equals(c.StatusId, "RELEASED", StringComparison.OrdinalIgnoreCase)).ToList();
+            ViewData["Title"] = "Phim đang chiếu";
+            var vm = new MovieListVM { Movies = filtered, Genres = filtered.Select(x => x.GenreName ?? "Khác").Distinct().OrderBy(x => x).ToList() };
+
+            return View("~/Views/Home/ListByStatus.cshtml", vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Upcoming()
+        {
+            var cards = await GetMovieCardsAsync();
+            var filtered = cards.Where(c => string.Equals(c.StatusId, "COMING", StringComparison.OrdinalIgnoreCase)).ToList();
+            ViewData["Title"] = "Phim sắp chiếu";
+            var vm = new MovieListVM { Movies = filtered, Genres = filtered.Select(x => x.GenreName ?? "Khác").Distinct().OrderBy(x => x).ToList() };
+
+            return View("~/Views/Home/ListByStatus.cshtml", vm);
+        }
+
 
         /* ===================== Create ===================== */
         [Authorize(Roles = "Admin")]
@@ -244,7 +264,6 @@ namespace CinemaS.Controllers
 
             try
             {
-                // cập nhật fields
                 movie.StatusId = formModel.StatusId;
                 movie.Title = formModel.Title;
                 movie.Summary = formModel.Summary;
@@ -257,7 +276,6 @@ namespace CinemaS.Controllers
                 movie.TrailerLink = formModel.TrailerLink;
                 movie.UpdatedAt = DateTime.UtcNow;
 
-                // xử lý ảnh
                 if (posterFile != null)
                 {
                     var newPath = await SaveImageAsync(posterFile, "movies");
@@ -289,7 +307,7 @@ namespace CinemaS.Controllers
             }
         }
 
-        /* ===================== Delete (single/multiple) ===================== */
+        /* ===================== Delete ===================== */
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id)
         {

@@ -1,0 +1,133 @@
+﻿@model CinemaS.Models.ViewModels.MovieListVM
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var title = (ViewData["Title"] as string) ?? "Danh sách phim";
+}
+<style>
+    .grid-page {
+        padding: 32px 0
+    }
+
+    .page-title {
+        text-align: center;
+        color: #fff;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+        margin-bottom: 20px
+    }
+
+    .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 22px
+    }
+    @@media (max-width:1199.98px) {
+        .movie-grid
+
+    {
+        grid-template-columns: repeat(3,1fr)
+    }
+
+    }
+    @@media (max-width:767.98px) {
+        .movie-grid
+
+    {
+        grid-template-columns: repeat(2,1fr)
+    }
+
+    }
+    @@media (max-width:575.98px) {
+        .movie-grid
+
+    {
+        grid-template-columns: 1fr
+    }
+
+    }
+
+    .cardx {
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 16px;
+        overflow: hidden;
+        background: linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03))
+    }
+
+        .cardx img {
+            width: 100%;
+            aspect-ratio: 27/40;
+            object-fit: cover;
+            display: block
+        }
+
+        .cardx .cap {
+            padding: 10px;
+            color: #fff
+        }
+
+            .cardx .cap a {
+                color: #fff;
+                font-weight: 800;
+                text-decoration: none
+            }
+        /* ✅ không gạch dưới */
+        .cardx .btns {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding: 0 10px 12px
+        }
+
+    .btn-ghost {
+        border: 1px solid rgba(255,255,255,.35);
+        color: #cfd6ff;
+        background: transparent;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 13px
+    }
+
+    .btn-primary {
+        border: none;
+        color: #111;
+        background: #ffd54d;
+        font-weight: 900;
+        font-size: 13px;
+        padding: 6px 16px;
+        border-radius: 8px
+    }
+</style>
+
+<div class="container grid-page">
+    <h2 class="page-title">@title</h2>
+
+    @if (Model?.Movies != null && Model.Movies.Any())
+    {
+        <div class="movie-grid">
+            @foreach (var mv in Model.Movies)
+            {
+                var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
+                <article class="cardx">
+                    <img src="@poster" alt="@mv.Title" />
+                    <div class="cap">
+                        <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
+                    </div>
+                    <div class="btns">
+                        <a class="btn-ghost" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                            <i class="fa-regular fa-circle-play me-1"></i> Xem trailer
+                        </a>
+                        <a class="btn-primary" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                            <i class="fa-solid fa-ticket me-1"></i> Đặt vé
+                        </a>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center text-light-50">Chưa có dữ liệu.</div>
+    }
+</div>
