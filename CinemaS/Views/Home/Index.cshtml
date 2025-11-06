@@ -493,7 +493,7 @@
                                 <div class="mb-2">@item.Summary</div>
                             }
                             <!-- [CHANGED] thêm btn-sweep để có hiệu ứng quét tím -->
-                            <a asp-controller="Movies" asp-action="Details" asp-route-id="@item.MoviesId"
+                            <a asp-controller="Booking" asp-action="Create" asp-route-movieId="@item.MoviesId"
                                class="btn btn-cine btn-sweep">
                                 <i class="fa-solid fa-ticket"></i> Đặt vé
                             </a>
@@ -565,7 +565,7 @@
                                     <a class="btn-ghost btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
                                         <i class="fa-regular fa-circle-play me-1"></i>Xem trailer
                                     </a>
-                                    <a class="btn-primary btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                    <a class="btn-primary btn-sweep" asp-controller="Booking" asp-action="Create" asp-route-movieId="@mv.MoviesId">
                                         <i class="fa-solid fa-ticket me-1"></i>Đặt vé
                                     </a>
                                 </div>
@@ -648,7 +648,7 @@
                                     <a class="btn-ghost btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
                                         <i class="fa-regular fa-circle-play me-1"></i>Xem trailer
                                     </a>
-                                    <a class="btn-primary btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
+                                    <a class="btn-primary btn-sweep" asp-controller="Booking" asp-action="Create" asp-route-movieId="@mv.MoviesId">
                                         <i class="fa-solid fa-ticket me-1"></i>Đặt vé
                                     </a>
                                 </div>
