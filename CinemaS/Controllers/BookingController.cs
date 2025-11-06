@@ -305,7 +305,6 @@ namespace CinemaS.Controllers
             if (!showTimes.Any())
             {
                 TempData["Message"] = "Phim này hiện không có suất chiếu nào!";
-                return RedirectToAction("Details", "Movies", new { id = movieId });
             }
 
 
