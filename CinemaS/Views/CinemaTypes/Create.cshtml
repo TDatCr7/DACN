@@ -1,49 +1,117 @@
 ﻿@model CinemaS.Models.CinemaTypes
 
 @{
-    ViewData["Title"] = "Create";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Tạo Loại Phòng Chiếu";
+  Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
+<style>
+    .form-container {
+  background: rgba(255, 255, 255, 0.05);
+     border-radius: 15px;
+      padding: 30px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        max-width: 600px;
+    margin: 0 auto;
+    }
 
-<h4>CinemaTypes</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="CinemaTypeId" class="control-label"></label>
-                <input asp-for="CinemaTypeId" class="form-control" />
-                <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Code" class="control-label"></label>
-                <input asp-for="Code" class="form-control" />
-                <span asp-validation-for="Code" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+    .form-label {
+   color: #e9ecf6;
+        font-weight: 600;
+    margin-bottom: 8px;
+    }
+
+    .form-control, .form-select, textarea {
+        background: rgba(10, 17, 51, 0.6);
+    color: #e6ebff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+     padding: 10px 15px;
+    }
+
+   .form-control:focus, .form-select:focus, textarea:focus {
+        border-color: var(--indigo);
+        box-shadow: 0 0 0 0.2rem rgba(59,92,204,0.25);
+        background: rgba(10, 17, 51, 0.8);
+    }
+
+    .btn-primary {
+  background: linear-gradient(90deg, var(--indigo), var(--purple));
+    border: none;
+  padding: 10px 30px;
+  font-weight: 700;
+        border-radius: 8px;
+   }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(124,58,237,0.4);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #e9ecf6;
+    }
+
+    .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
+
+<h1 class="mb-4">
+    <i class="fa-solid fa-plus-circle"></i> Tạo Loại Phòng Chiếu
+</h1>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+}
+
+<div class="form-container">
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        @* ID auto-generated - không cần nhập *@
+
+<div class="mb-3">
+      <label asp-for="Name" class="form-label">
+   <i class="fa-solid fa-signature"></i> Tên loại phòng <span class="text-danger">*</span>
+        </label>
+    <input asp-for="Name" class="form-control" placeholder="VD: IMAX, 3D, 4DX..." required />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+     <label asp-for="Code" class="form-label">
+ <i class="fa-solid fa-barcode"></i> Mã Code
+            </label>
+    <input asp-for="Code" class="form-control" placeholder="VD: IMAX2D, 3D, 4DX..." />
+       <span asp-validation-for="Code" class="text-danger"></span>
+        </div>
+
+<div class="mb-3">
+    <label asp-for="Description" class="form-label">
+          <i class="fa-solid fa-file-lines"></i> Mô tả
+      </label>
+    <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+     <div class="d-flex justify-content-between mt-4">
+            <a asp-action="Index" class="btn btn-secondary">
+     <i class="fa-solid fa-arrow-left"></i> Quay lại
+       </a>
+        <button type="submit" class="btn btn-primary">
+           <i class="fa-solid fa-save"></i> Tạo mới
+         </button>
+     </div>
+    </form>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
-@section Scripts {
+@@section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }

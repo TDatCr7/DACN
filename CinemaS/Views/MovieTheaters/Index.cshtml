@@ -1,60 +1,196 @@
 ﻿@model IEnumerable<CinemaS.Models.MovieTheaters>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Rạp Chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+        cursor: pointer;
+    }
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
+    .badge-status-active {
+        background-color: #28a745;
+    }
+
+    .badge-status-inactive {
+  background-color: #dc3545;
+    }
+
+    .search-box {
+     max-width: 400px;
+    }
+
+    .action-buttons .btn {
+        margin-right: 5px;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-film"></i> Quản lý Rạp Chiếu</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Tạo mới
+   </a>
+  </div>
+
+    @* Thông báo *@
+    @if (TempData["Message"] != null)
+    {
+   <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle"></i> @TempData["Message"]
+         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+     <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+ <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* Tìm kiếm *@
+    <div class="card mb-4">
+<div class="card-body">
+      <form asp-action="Index" method="get">
+     <div class="row">
+         <div class="col-md-6">
+                <div class="input-group search-box">
+   <input type="text" 
+   name="searchString" 
+               value="@ViewData["CurrentFilter"]" 
+      class="form-control" 
+       placeholder="Tìm theo tên, địa chỉ hoặc mã rạp..." 
+          id="searchInput" />
+     <button type="submit" class="btn btn-outline-secondary">
+    <i class="fas fa-search"></i>
+            </button>
+             @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+    {
+           <a href="@Url.Action("Index")" class="btn btn-outline-danger">
+     <i class="fas fa-times"></i>
+          </a>
+  }
+    </div>
+    </div>
+            </div>
+</form>
+        </div>
+    </div>
+
+    @* Bảng danh sách *@
+    <div class="card">
+      <div class="card-body">
+    <div class="table-responsive">
+  <table class="table table-hover table-bordered">
+      <thead class="table-dark">
+       <tr>
+          <th style="width: 5%;">STT</th>
+  <th style="width: 10%;">Mã Rạp</th>
+ <th style="width: 20%;">Tên Rạp</th>
+  <th style="width: 25%;">Địa chỉ</th>
+  <th style="width: 10%;">Hotline</th>
+           <th style="width: 10%;">Trạng thái</th>
+ <th style="width: 20%;" class="text-center">Hành động</th>
+       </tr>
+  </thead>
+              <tbody id="tableBody">
+    @if (Model != null && Model.Any())
+             {
+             int index = 1;
+            foreach (var item in Model)
+    {
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Address)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Hotline)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IFrameCode)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Address)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Hotline)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IFrameCode)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.MovieTheaterId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.MovieTheaterId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.MovieTheaterId">Delete</a>
-            </td>
-        </tr>
+          <td class="text-center">@index</td>
+         <td><strong>@item.MovieTheaterId</strong></td>
+     <td>@item.Name</td>
+        <td>@item.Address</td>
+  <td>@item.Hotline</td>
+  <td class="text-center">
+      @if (item.Status == 1)
+   {
+        <span class="badge badge-status-active">
+   <i class="fas fa-check"></i> Hoạt động
+          </span>
+         }
+    else
+      {
+       <span class="badge badge-status-inactive">
+     <i class="fas fa-times"></i> Tạm ngưng
+        </span>
+ }
+      </td>
+       <td class="text-center action-buttons">
+        <a asp-action="Details" asp-route-id="@item.MovieTheaterId" 
+  class="btn btn-sm btn-info" 
+         title="Xem chi tiết">
+                <i class="fas fa-eye"></i>
+        </a>
+         <a asp-action="Edit" asp-route-id="@item.MovieTheaterId" 
+            class="btn btn-sm btn-warning" 
+                    title="Chỉnh sửa">
+        <i class="fas fa-edit"></i>
+     </a>
+          <a asp-action="Delete" asp-route-id="@item.MovieTheaterId" 
+            class="btn btn-sm btn-danger" 
+  title="Xóa">
+           <i class="fas fa-trash"></i>
+    </a>
+                </td>
+     </tr>
+        index++;
+      }
+          }
+ else
+            {
+  <tr>
+    <td colspan="7" class="text-center text-muted py-4">
+              <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+     <strong>Không tìm thấy rạp chiếu nào</strong>
+           @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+   {
+       <p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
+     }
+           </td>
+      </tr>
+        }
+      </tbody>
+         </table>
+      </div>
+     </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+      // Auto-hide alerts after 5 seconds
+        setTimeout(function () {
+            $('.alert').fadeOut('slow');
+        }, 5000);
+
+  // Optional: AJAX search (nếu muốn search realtime)
+     // $('#searchInput').on('keyup', function() {
+        //     var searchString = $(this).val();
+        //   $.ajax({
+  //         url: '@Url.Action("SearchMovieTheaters")',
+        //         type: 'GET',
+        //      data: { searchString: searchString },
+        //       success: function(data) {
+        //// Update table body với kết quả
+        //         }
+        //     });
+ // });
+    </script>
 }
-    </tbody>
-</table>

@@ -1,60 +1,135 @@
 ﻿@model CinemaS.Models.MovieTheaters
 
 @{
-    ViewData["Title"] = "Edit";
+  ViewData["Title"] = "Chỉnh Sửa Rạp Chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Edit</h1>
+<style>
+    .form-container {
+        background: #fff;
+        border-radius: 10px;
+  padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        max-width: 800px;
+ margin: 0 auto;
+    }
 
-<h4>MovieTheaters</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="MovieTheaterId" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+ .form-label {
+     font-weight: 600;
+  color: #333;
+    }
+
+.required-field::after {
+        content: " *";
+        color: red;
+    }
+
+    .id-display {
+  font-size: 0.9rem;
+        color: #666;
+        background-color: #f8f9fa;
+padding: 10px;
+        border-radius: 5px;
+        border-left: 4px solid #007bff;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="form-container">
+  <h1 class="mb-4">
+    <i class="fas fa-edit"></i> Chỉnh Sửa Rạp Chiếu
+  </h1>
+
+        @if (TempData["Error"] != null)
+        {
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+     <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-            <div class="form-group">
-                <label asp-for="Address" class="control-label"></label>
-                <input asp-for="Address" class="form-control" />
-                <span asp-validation-for="Address" class="text-danger"></span>
+        }
+
+    @if (TempData["Warning"] != null)
+     {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+        }
+
+        <div class="id-display mb-3">
+          <strong>Mã Rạp:</strong> @Model.MovieTheaterId
+</div>
+
+   <form asp-action="Edit" method="post">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+   <input type="hidden" asp-for="MovieTheaterId" />
+
+            <div class="mb-3">
+    <label asp-for="Name" class="form-label required-field">Tên Rạp</label>
+    <input asp-for="Name" class="form-control" placeholder="VD: CGV Vincom" required />
+        <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Hotline" class="control-label"></label>
-                <input asp-for="Hotline" class="form-control" />
-                <span asp-validation-for="Hotline" class="text-danger"></span>
+
+   <div class="mb-3">
+     <label asp-for="ProvinceId" class="form-label required-field">Tỉnh/Thành phố</label>
+     <select asp-for="ProvinceId" class="form-select" asp-items="ViewBag.ProvinceId" required>
+            <option value="">-- Chọn tỉnh/thành phố --</option>
+    </select>
+   <span asp-validation-for="ProvinceId" class="text-danger"></span>
+         </div>
+
+    <div class="mb-3">
+    <label asp-for="Address" class="form-label">Địa chỉ</label>
+      <textarea asp-for="Address" class="form-control" rows="3" placeholder="VD: Tầng 5, Vincom Center..."></textarea>
+     <span asp-validation-for="Address" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Status" class="control-label"></label>
-                <input asp-for="Status" class="form-control" />
-                <span asp-validation-for="Status" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="IFrameCode" class="control-label"></label>
-                <input asp-for="IFrameCode" class="form-control" />
+
+<div class="mb-3">
+    <label asp-for="Hotline" class="form-label">Hotline</label>
+          <input asp-for="Hotline" class="form-control" placeholder="VD: 1900 xxxx" />
+   <span asp-validation-for="Hotline" class="text-danger"></span>
+ </div>
+
+   <div class="mb-3">
+ <label asp-for="Status" class="form-label">Trạng thái</label>
+                <select asp-for="Status" class="form-select">
+         <option value="">-- Chọn trạng thái --</option>
+     <option value="1">Hoạt động</option>
+     <option value="0">Tạm ngưng</option>
+                </select>
+     <span asp-validation-for="Status" class="text-danger"></span>
+     </div>
+
+ <div class="mb-3">
+     <label asp-for="IFrameCode" class="form-label">IFrame Code (Google Maps)</label>
+    <textarea asp-for="IFrameCode" class="form-control" rows="2" placeholder="Nhập mã iframe từ Google Maps..."></textarea>
                 <span asp-validation-for="IFrameCode" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ProvinceId" class="control-label"></label>
-                <select asp-for="ProvinceId" class="form-control" asp-items="ViewBag.ProvinceId"></select>
-                <span asp-validation-for="ProvinceId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+ <small class="form-text text-muted">
+        Dùng để hiển thị bản đồ vị trí rạp
+    </small>
+      </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a asp-action="Index" class="btn btn-secondary">
+   <i class="fas fa-arrow-left"></i> Quay lại
+         </a>
+    <button type="submit" class="btn btn-warning">
+        <i class="fas fa-save"></i> Cập nhật
+    </button>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+   // Auto-hide alerts after 5 seconds
+      setTimeout(function () {
+        $('.alert').fadeOut('slow');
+        }, 5000);
+    </script>
 }
