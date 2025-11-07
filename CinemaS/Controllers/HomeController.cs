@@ -27,24 +27,28 @@ namespace CinemaS.Controllers
 
             // Project mạnh về MovieCardVM (Poster luôn là Poster; không trộn với Banner)
             IQueryable<MovieCardVM> Project(IQueryable<Movies> src) =>
-    src.Select(m => new MovieCardVM
-    {
-        MoviesId = m.MoviesId,
-        Title = m.Title ?? string.Empty,
-        PosterImage = m.PosterImage,       // ✅ poster là poster
-        BannerImage = m.BannerImage,       // ✅ banner riêng cho hero
-        Summary = m.Summary,
-        GenreName = (from mg in _db.MoviesGenres
-                     join g in _db.Genres on mg.GenresId equals g.GenresId
-                     where mg.MoviesId == m.MoviesId
-                     select g.Name).FirstOrDefault(),
-        ReleaseDate = m.ReleaseDate,
-        StatusId = m.StatusId,
-        StatusName = _db.Statuses
-                        .Where(s => s.StatusId == m.StatusId)
-                        .Select(s => s.Name)
-                        .FirstOrDefault()
-    });
+                src.Select(m => new MovieCardVM
+                {
+                    MoviesId = m.MoviesId,
+                    Title = m.Title ?? string.Empty,
+                    PosterImage = m.PosterImage,
+                    BannerImage = m.BannerImage,
+                    Summary = m.Summary,
+                    GenreName = (from mg in _db.MoviesGenres
+                                 join g in _db.Genres on mg.GenresId equals g.GenresId
+                                 where mg.MoviesId == m.MoviesId
+                                 select g.Name).FirstOrDefault(),
+                    ReleaseDate = m.ReleaseDate,
+                    StatusId = m.StatusId,
+                    StatusName = _db.Statuses
+                                    .Where(s => s.StatusId == m.StatusId)
+                                    .Select(s => s.Name)
+                                    .FirstOrDefault(),
+                    // NEW
+                    Duration = m.Duration,
+                    Country = m.Country,
+                    AudioOption = m.AudioOption
+                });
 
             // HERO (đang/sắp chiếu)
             var carousel = await Project(
@@ -137,5 +141,25 @@ namespace CinemaS.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        public async Task<IActionResult> Detail(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return NotFound();
+
+            var movie = await _db.Movies.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MoviesId == id);
+            if (movie == null) return NotFound();
+
+            // Lấy danh sách thể loại của phim
+            var genres = await (from mg in _db.MoviesGenres
+                                join g in _db.Genres on mg.GenresId equals g.GenresId
+                                where mg.MoviesId == id
+                                select g.Name).ToListAsync();
+            ViewBag.GenreText = genres.Any() ? string.Join(", ", genres) : "Khác";
+
+            return View("~/Views/Home/Detail.cshtml", movie);
+        }
+
+
     }
 }

@@ -521,45 +521,63 @@
                         var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
                         <div class="swiper-slide">
                             <article class="poster">
-                                <div class="card">
+                                <a class="card" style="display:block; text-decoration:none;"
+                                   asp-controller="Home" asp-action="Detail" asp-route-id="@mv.MoviesId">
                                     <div class="badge-corner">
                                         <span class="badge-chip">2D</span>
-                                        <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T16")</span>
+                                        <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T13")</span>
                                     </div>
+
                                     <div class="img-wrap">
                                         <img class="thumb" src="@poster" alt="@mv.Title" />
                                     </div>
-                                    <!-- overlay: căn giữa + background đen mờ + icon tím -->
+
+                                    <!-- overlay giữa màn hình -->
                                     <div class="hover">
-                                      <div class="hover-inner"> 
-                                        <h4 class="hover-title">@mv.Title</h4> 
+                                        <div class="hover-inner">
+                                            <h4 class="hover-title">@mv.Title</h4>
+                                            <ul class="hover-meta">
+                                                @* Thể loại *@
+                                                @if (!string.IsNullOrWhiteSpace(mv.GenreName))
+                                                {
+                                                    <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
+                                                }
 
-                                        <ul class="hover-meta"> 
-                                          @if (!string.IsNullOrWhiteSpace(mv.GenreName))
-                                          {
-                                            <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
-                                          }
+                                                @* Độ dài *@
+                                                @if (mv.Duration.HasValue)
+                                                {
+                                                    <li><i class="fa-regular fa-clock"></i><span>@mv.Duration’</span></li>
+                                                }
 
-                                          @if (mv.ReleaseDate.HasValue)
-                                          {
-                                            <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
-                                          }
-                                          @if (!string.IsNullOrWhiteSpace(mv.StatusName))
-                                          {
-                                            <li><i class="fa-solid fa-circle-info"></i><span>@mv.StatusName</span></li>
-                                          }
-                                        </ul>
+                                                @* Quốc gia *@
+                                                @if (!string.IsNullOrWhiteSpace(mv.Country))
+                                                {
+                                                    <li><i class="fa-solid fa-globe"></i><span>@mv.Country</span></li>
+                                                }
 
-                                        @if (!string.IsNullOrWhiteSpace(mv.Summary))
-                                        {
-                                          <div class="hover-desc">@mv.Summary</div> 
-                                        }
-                                      </div>
+                                                @* Âm thanh/Phụ đề *@
+                                                @if (!string.IsNullOrWhiteSpace(mv.AudioOption))
+                                                {
+                                                    <li><i class="fa-solid fa-language"></i><span>@mv.AudioOption</span></li>
+                                                }
+
+                                                @* Khởi chiếu *@
+                                                @if (mv.ReleaseDate.HasValue)
+                                                {
+                                                    <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
+                                                }
+                                            </ul>
+
+                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                            {
+                                                <div class="hover-desc">@mv.Summary</div>
+                                            }
+                                        </div>
                                     </div>
+                                </a>
 
-                                </div>
                                 <div class="caption">
-                                    <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
+                                    <a asp-controller="Home" asp-action="Detail" asp-route-id="@mv.MoviesId">@mv.Title</a>
                                 </div>
                                 <div class="btns">
                                     <a class="btn-ghost btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
@@ -571,6 +589,7 @@
                                 </div>
                             </article>
                         </div>
+
                     }
                 </div>
                 <div class="swiper-button-prev"></div>
@@ -602,47 +621,63 @@
                         var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
                         <div class="swiper-slide">
                             <article class="poster">
-                                <div class="card">
+                                <a class="card" style="display:block; text-decoration:none;"
+                                   asp-controller="Home" asp-action="Detail" asp-route-id="@mv.MoviesId">
                                     <div class="badge-corner">
                                         <span class="badge-chip">2D</span>
                                         <span class="badge-chip dark">@(!string.IsNullOrWhiteSpace(mv.StatusName) ? mv.StatusName : "T13")</span>
                                     </div>
+
                                     <div class="img-wrap">
                                         <img class="thumb" src="@poster" alt="@mv.Title" />
                                     </div>
-                                    <!--  overlay: căn giữa + background đen mờ + icon tím -->
+
+                                    <!-- overlay giữa màn hình -->
                                     <div class="hover">
-                                      <div class="hover-inner"> 
-                                        <h4 class="hover-title">@mv.Title</h4> 
+                                        <div class="hover-inner">
+                                            <h4 class="hover-title">@mv.Title</h4>
+                                            <ul class="hover-meta">
+                                                @* Thể loại *@
+                                                @if (!string.IsNullOrWhiteSpace(mv.GenreName))
+                                                {
+                                                    <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
+                                                }
 
-                                        <ul class="hover-meta"> 
+                                                @* Độ dài *@
+                                                @if (mv.Duration.HasValue)
+                                                {
+                                                    <li><i class="fa-regular fa-clock"></i><span>@mv.Duration’</span></li>
+                                                }
 
-                                          @if (!string.IsNullOrWhiteSpace(mv.GenreName))
-                                          {
-                                            <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
-                                          }
+                                                @* Quốc gia *@
+                                                @if (!string.IsNullOrWhiteSpace(mv.Country))
+                                                {
+                                                    <li><i class="fa-solid fa-globe"></i><span>@mv.Country</span></li>
+                                                }
 
-                                          @if (mv.ReleaseDate.HasValue)
-                                          {
-                                            <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
-                                          }
-                                          @if (!string.IsNullOrWhiteSpace(mv.StatusName))
-                                          {
-                                            <li><i class="fa-solid fa-circle-info"></i><span>@mv.StatusName</span></li>
-                                          }
-                                        </ul>
+                                                @* Âm thanh/Phụ đề *@
+                                                @if (!string.IsNullOrWhiteSpace(mv.AudioOption))
+                                                {
+                                                    <li><i class="fa-solid fa-language"></i><span>@mv.AudioOption</span></li>
+                                                }
 
-                                        @if (!string.IsNullOrWhiteSpace(mv.Summary))
-                                        {
-                                          <div class="hover-desc">@mv.Summary</div> 
-                                        }
-                                      </div>
+                                                @* Khởi chiếu *@
+                                                @if (mv.ReleaseDate.HasValue)
+                                                {
+                                                    <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
+                                                }
+                                            </ul>
+
+                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                            {
+                                                <div class="hover-desc">@mv.Summary</div>
+                                            }
+                                        </div>
                                     </div>
+                                </a>
 
-
-                                </div>
                                 <div class="caption">
-                                    <a asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">@mv.Title</a>
+                                    <a asp-controller="Home" asp-action="Detail" asp-route-id="@mv.MoviesId">@mv.Title</a>
                                 </div>
                                 <div class="btns">
                                     <a class="btn-ghost btn-sweep" asp-controller="Movies" asp-action="Details" asp-route-id="@mv.MoviesId">
@@ -654,6 +689,7 @@
                                 </div>
                             </article>
                         </div>
+
                     }
                 </div>
                 <div class="swiper-button-prev"></div>

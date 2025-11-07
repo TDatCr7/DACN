@@ -25,5 +25,8 @@
         public DateTime? ReleaseDate { get; set; }
         public string? StatusId { get; set; }
         public string? StatusName { get; set; }
+
+        public string? Country { get; set; }
+        public string? AudioOption { get; set; }
     }
 }

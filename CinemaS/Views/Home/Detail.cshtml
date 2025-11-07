@@ -1,0 +1,249 @@
+﻿@model CinemaS.Models.Movies
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // YouTube -> embed
+    string? embed = null;
+    if (!string.IsNullOrWhiteSpace(Model.TrailerLink))
+    {
+        var link = Model.TrailerLink!;
+        if (link.Contains("youtu.be/")) { var id = link.Split("youtu.be/").Last().Split('?')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
+        else if (link.Contains("watch?v=")) { var id = link.Split("watch?v=").Last().Split('&')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
+        else if (link.Contains("/shorts/")) { var id = link.Split("/shorts/").Last().Split('?')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
+    }
+
+    // Fallback văn bản
+    var ageText = (Model.Age?.ToString()) ?? "13";
+    var genreText = (ViewBag.GenreText as string) ?? "Khác";
+    var durationText = Model.Duration.HasValue ? $"{Model.Duration}’" : "Chưa có thông tin";
+    var countryText = !string.IsNullOrWhiteSpace(Model.Country) ? Model.Country : "Chưa có thông tin";
+    var audioText = !string.IsNullOrWhiteSpace(Model.AudioOption) ? Model.AudioOption : "Chưa có thông tin";
+
+    // Mô tả & nội dung
+    var summaryText = !string.IsNullOrWhiteSpace(Model.Summary) ? Model.Summary : "Chưa có thông tin";
+    var contentText = !string.IsNullOrWhiteSpace(Model.DetailDescription) ? Model.DetailDescription
+                     : (!string.IsNullOrWhiteSpace(Model.Summary) ? Model.Summary : "Chưa có thông tin");
+
+    // (Model hiện chưa có 2 trường này)
+    var directorText = "Chưa có thông tin";
+    var castText = "Chưa có thông tin";
+
+    var releaseText = Model.ReleaseDate?.ToString("dddd, dd/MM/yyyy", new System.Globalization.CultureInfo("vi-VN")) ?? "Chưa có thông tin";
+}
+
+<style>
+    :root {
+        --bg: #0b0f27;
+        --panel: #10163c;
+        --text: #e9ecf6;
+        --muted: #a9b1c7;
+        --indigo: #3b5ccc; /* xanh */
+        --purple: #7c3aed; /* tím */
+        --red: #e53935; /* đỏ */
+        --accent: #ffd54d; /* vàng nhấn */
+        --line: rgba(255,255,255,.12);
+    }
+
+    body {
+        background: radial-gradient(1200px 600px at 30% 0%, #1a1f47 0%, var(--bg) 50%, var(--bg) 100%);
+        color: var(--text);
+    }
+
+    .movie-detail {
+        padding: 40px 0;
+    }
+
+    /* Poster */
+    .poster-wrap {
+        overflow: hidden;
+        border-radius: 14px;
+        background: #000;
+        box-shadow: 0 10px 28px rgba(0,0,0,.6);
+    }
+
+        .poster-wrap img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+        }
+
+    /* Info */
+    .movie-info h2 {
+        font-weight: 900;
+    }
+
+    .meta-lines {
+        margin: 12px 0 8px;
+    }
+
+        .meta-lines .line {
+            font-size: 15px;
+            color: var(--text);
+            margin: 6px 0;
+        }
+
+    .age-desc {
+        display: inline-block;
+        margin: 12px 0 6px;
+        background: var(--accent);
+        color: #111;
+        font-weight: 800;
+        padding: 6px 10px;
+        border-radius: 8px;
+    }
+
+    .section-title {
+        margin-top: 18px;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: var(--accent);
+        letter-spacing: .5px;
+    }
+
+    .kv {
+        color: var(--muted);
+        margin: 2px 0;
+    }
+
+    .movie-desc {
+        color: var(--muted);
+        line-height: 1.85;
+        text-align: justify;
+    }
+
+    .see-more {
+        color: #fff;
+        text-decoration: underline;
+    }
+
+    /* Nút ĐẶT VÉ đứng riêng (ngoài trailer, căn giữa) */
+    .book-standalone {
+        display: flex;
+        justify-content: center;
+        margin: 26px 0 8px;
+    }
+
+        .book-standalone .head-book {
+            background: var(--accent);
+            color: #111;
+            font-weight: 900;
+            padding: 10px 22px;
+            border-radius: 999px;
+            text-decoration: none;
+            border: none;
+            box-shadow: 0 6px 18px rgba(0,0,0,.45);
+            transition: .25s ease;
+        }
+
+            .book-standalone .head-book:hover {
+                background: linear-gradient(90deg,var(--indigo),var(--purple));
+                color: #fff;
+                box-shadow: 0 0 14px rgba(124,58,237,.55);
+            }
+
+    /* Trailer block */
+    .trailer-section {
+        background: #181b38;
+        border-radius: 14px;
+        padding: 28px 20px 56px;
+        box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    }
+
+    .trailer-head {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 12px;
+    }
+
+        .trailer-head .ribbon {
+            display: inline-block;
+            background: var(--red);
+            color: #fff;
+            font-weight: 900;
+            padding: 8px 18px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            box-shadow: 0 8px 18px rgba(0,0,0,.35);
+        }
+
+    .video-wrap {
+        display: flex;
+        justify-content: center;
+    }
+
+        .video-wrap iframe {
+            width: 100%;
+            max-width: 900px;
+            aspect-ratio: 16/9;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 28px rgba(0,0,0,.6);
+        }
+
+    @@media (max-width: 767.98px) {
+        .book-standalone .head-book
+
+    {
+        padding: 9px 18px;
+    }
+
+    }
+</style>
+
+<div class="container movie-detail">
+    <div class="row g-4">
+        <!-- Poster -->
+        <div class="col-md-4">
+            <div class="poster-wrap">
+                <img src="@(!string.IsNullOrWhiteSpace(Model.PosterImage) ? Model.PosterImage : "/images/no-poster.png")" alt="@Model.Title" />
+            </div>
+        </div>
+
+        <!-- Thông tin phim (CHỈ CHỮ) -->
+        <div class="col-md-8 movie-info">
+            <h2>@($"{Model.Title} (T{ageText})")</h2>
+
+            <div class="meta-lines">
+                <div class="line">@genreText</div>
+                <div class="line">@durationText</div>
+                <div class="line">@countryText</div>
+                <div class="line">@audioText</div>
+            </div>
+
+            <div class="age-desc">
+                @($"T{ageText}: Phim dành cho khán giả từ đủ {ageText} tuổi trở lên ({ageText}+)")
+            </div>
+
+            <h5 class="section-title">MÔ TẢ</h5>
+            <div class="kv"><strong>Đạo diễn:</strong> @directorText</div>
+            <div class="kv"><strong>Diễn viên:</strong> @castText</div>
+            <div class="kv"><strong>Khởi chiếu:</strong> @releaseText</div>
+
+            <h5 class="section-title">NỘI DUNG PHIM</h5>
+            <p class="movie-desc">@Html.Raw(contentText)</p>
+            <a class="see-more" href="#">Xem thêm</a>
+        </div>
+    </div>
+
+    <!-- Nút ĐẶT VÉ căn giữa, nằm ngoài khối trailer -->
+    <div class="book-standalone">
+        <a class="head-book" asp-controller="Booking" asp-action="Create" asp-route-movieId="@Model.MoviesId">ĐẶT VÉ</a>
+    </div>
+
+    @if (embed != null)
+    {
+        <div class="trailer-section mt-2">
+            <div class="trailer-head">
+                <div class="ribbon">TRAILER</div>
+            </div>
+            <div class="video-wrap">
+                <iframe src="@embed" title="@Model.Title trailer" allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share">
+                </iframe>
+            </div>
+        </div>
+    }
+</div>
