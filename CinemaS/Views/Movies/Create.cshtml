@@ -1,103 +1,159 @@
 ﻿@model CinemaS.Models.Movies
-
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Tạo phim";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var participants = (List<CinemaS.Models.Participants>)ViewBag.Participants ?? new();
 }
 
-<h1>Create</h1>
+<style>
+    :root {
+        --bg: #0b0f27;
+        --panel: #10163c;
+        --text: #e9ecf6;
+        --muted: #a9b1c7;
+        --blue: #3b5ccc;
+        --purple: #7c3aed;
+        --accent: #ffd54d;
+        --line: rgba(255,255,255,.12);
+    }
+    @@media (prefers-color-scheme: light) {
+        : root
 
-<h4>Movies</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="MoviesId" class="control-label"></label>
-                <input asp-for="MoviesId" class="form-control" />
-                <span asp-validation-for="MoviesId" class="text-danger"></span>
+    {
+        --bg: #f4f6ff;
+        --panel: #ffffff;
+        --text: #101327;
+        --muted: #4b5470;
+        --line: rgba(0,0,0,.08);
+    }
+
+    }
+
+    body {
+        background: radial-gradient(1200px 700px at 25% -10%, rgba(60,90,200,.3), transparent 60%), radial-gradient(1100px 650px at 90% 0%, rgba(124,58,237,.25), transparent 60%), linear-gradient(180deg,var(--bg),var(--bg));
+    }
+
+    .page {
+        padding: 34px 0 60px;
+    }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 10px 28px rgba(0,0,0,.25);
+        color: var(--text);
+    }
+
+        .card h3 {
+            font-weight: 900;
+            margin-bottom: 14px;
+        }
+
+    .btn-primary {
+        background: linear-gradient(90deg,var(--blue),var(--purple));
+        border: none;
+        font-weight: 800;
+    }
+
+    .form-label {
+        font-weight: 700;
+    }
+
+    .text-muted {
+        color: var(--muted) !important;
+    }
+</style>
+
+<div class="container page">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <h3>Tạo phim</h3>
+                <form asp-action="Create" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="MoviesId" class="form-label">Mã</label>
+                            <input asp-for="MoviesId" class="form-control" />
+                        </div>
+                        <div class="col-md-8 mb-2">
+                            <label asp-for="Title" class="form-label">Tên phim</label>
+                            <input asp-for="Title" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="StatusId" class="form-label">Trạng thái</label>
+                            <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-control"></select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="ReleaseDate" class="form-label">Khởi chiếu</label>
+                            <input asp-for="ReleaseDate" type="date" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-2"><label asp-for="Duration" class="form-label"></label><input asp-for="Duration" class="form-control" /></div>
+                        <div class="col-md-4 mb-2"><label asp-for="Age" class="form-label"></label><input asp-for="Age" class="form-control" /></div>
+                        <div class="col-md-4 mb-2"><label asp-for="Rating" class="form-label"></label><input asp-for="Rating" type="number" step="0.1" min="0" max="10" class="form-control" /></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-2"><label asp-for="Language" class="form-label"></label><input asp-for="Language" class="form-control" /></div>
+                        <div class="col-md-4 mb-2"><label asp-for="Country" class="form-label"></label><input asp-for="Country" class="form-control" /></div>
+                        <div class="col-md-4 mb-2"><label asp-for="AudioOption" class="form-label"></label><input asp-for="AudioOption" class="form-control" /></div>
+                    </div>
+
+                    <div class="mb-2"><label asp-for="TrailerLink" class="form-label">Trailer (YouTube)</label><input asp-for="TrailerLink" class="form-control" /></div>
+                    <div class="mb-2"><label asp-for="Summary" class="form-label">Mô tả ngắn</label><textarea asp-for="Summary" class="form-control" rows="2"></textarea></div>
+                    <div class="mb-2"><label asp-for="DetailDescription" class="form-label">Nội dung</label><textarea asp-for="DetailDescription" class="form-control" rows="5"></textarea></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2"><label for="posterFile" class="form-label">Poster</label><input type="file" name="posterFile" id="posterFile" accept="image/*" class="form-control" /></div>
+                        <div class="col-md-6 mb-2"><label for="bannerFile" class="form-label">Banner</label><input type="file" name="bannerFile" id="bannerFile" accept="image/*" class="form-control" /></div>
+                    </div>
+
+                    <hr />
+                    <h5 class="mb-2">Người tham gia</h5>
+                    <div class="mb-2">
+                        <label class="form-label">Đạo diễn</label>
+                        <select name="selectedDirectors" multiple class="form-control">
+                            @foreach (var p in participants)
+                            {
+                                var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
+                                <option value="@p.ParticipantsId">@name</option>
+                            }
+                        </select>
+                        <small class="text-muted">Giữ Ctrl/⌘ để chọn nhiều</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Diễn viên</label>
+                        <select name="selectedActors" multiple class="form-control">
+                            @foreach (var p in participants)
+                            {
+                                var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
+                                <option value="@p.ParticipantsId">@name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary">Tạo</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
+                </form>
             </div>
-            <div class="form-group">
-                <label asp-for="StatusId" class="control-label"></label>
-                <select asp-for="StatusId" class ="form-control" asp-items="ViewBag.StatusId"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Summary" class="control-label"></label>
-                <input asp-for="Summary" class="form-control" />
-                <span asp-validation-for="Summary" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DetailDescription" class="control-label"></label>
-                <input asp-for="DetailDescription" class="form-control" />
-                <span asp-validation-for="DetailDescription" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ReleaseDate" class="control-label"></label>
-                <input asp-for="ReleaseDate" class="form-control" />
-                <span asp-validation-for="ReleaseDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Language" class="control-label"></label>
-                <input asp-for="Language" class="form-control" />
-                <span asp-validation-for="Language" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Duration" class="control-label"></label>
-                <input asp-for="Duration" class="form-control" />
-                <span asp-validation-for="Duration" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Rating" class="control-label"></label>
-                <input asp-for="Rating" class="form-control" />
-                <span asp-validation-for="Rating" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Age" class="control-label"></label>
-                <input asp-for="Age" class="form-control" />
-                <span asp-validation-for="Age" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="TrailerLink" class="control-label"></label>
-                <input asp-for="TrailerLink" class="form-control" />
-                <span asp-validation-for="TrailerLink" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="PosterImage" class="control-label"></label>
-                <input asp-for="PosterImage" class="form-control" />
-                <span asp-validation-for="PosterImage" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="BannerImage" class="control-label"></label>
-                <input asp-for="BannerImage" class="form-control" />
-                <span asp-validation-for="BannerImage" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
-                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
 }

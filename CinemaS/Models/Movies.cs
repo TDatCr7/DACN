@@ -27,6 +27,8 @@ namespace CinemaS.Models
     public DateTime? ReleaseDate { get; set; }
     [MaxLength(100)]
     public string? Language { get; set; }
+    public string? Country { get; set; }
+    public string? AudioOption { get; set; }
     public int? Duration { get; set; }
     public double? Rating { get; set; }
     public int? Age { get; set; }
