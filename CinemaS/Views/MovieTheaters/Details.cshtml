@@ -1,49 +1,139 @@
 ﻿@model CinemaS.Models.MovieTheaters
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Chi Tiết Rạp Chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Details</h1>
+<style>
+ .details-container {
+        background: #fff;
+        border-radius: 10px;
+  padding: 30px;
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        max-width: 800px;
+        margin: 0 auto;
+    }
 
-<div>
-    <h4>MovieTheaters</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Address)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Address)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Hotline)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Hotline)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IFrameCode)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IFrameCode)
-        </dd>
-    </dl>
+    .info-grid {
+display: grid;
+        grid-template-columns: 200px 1fr;
+  gap: 15px;
+ margin-bottom: 20px;
+padding-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+    }
+
+.info-label {
+ font-weight: 600;
+        color: #666;
+    }
+
+    .info-value {
+  color: #333;
+    }
+
+    .section-title {
+  margin-top: 30px;
+ margin-bottom: 20px;
+        color: #007bff;
+font-weight: 600;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="details-container">
+   <h1 class="mb-4">
+    <i class="fas fa-film"></i> Chi Tiết Rạp Chiếu
+  </h1>
+
+    @if (TempData["Error"] != null)
+        {
+   <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+   </div>
+  }
+
+<h4 class="section-title">
+   <i class="fas fa-info-circle"></i> Thông Tin Cơ Bản
+  </h4>
+
+  <div class="info-grid">
+  <div class="info-label">Mã Rạp:</div>
+      <div class="info-value"><strong>@Model.MovieTheaterId</strong></div>
+
+  <div class="info-label">Tên Rạp:</div>
+      <div class="info-value"><strong class="text-primary">@Model.Name</strong></div>
+
+    <div class="info-label">Tỉnh/Thành phố:</div>
+      <div class="info-value">@ViewBag.ProvinceName</div>
+
+ <div class="info-label">Địa chỉ:</div>
+  <div class="info-value">@Model.Address</div>
+
+     <div class="info-label">Hotline:</div>
+      <div class="info-value">
+                @if (!string.IsNullOrEmpty(Model.Hotline))
+{
+  <a href="tel:@Model.Hotline" class="text-decoration-none">
+@Model.Hotline
+    </a>
+}
+  else
+   {
+  <span class="text-muted">Chưa cập nhật</span>
+    }
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.MovieTheaterId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+   <div class="info-label">Trạng thái:</div>
+ <div class="info-value">
+     @if (Model.Status == 1)
+    {
+        <span class="badge bg-success">
+    <i class="fas fa-check"></i> Hoạt động
+   </span>
+ }
+     else
+        {
+    <span class="badge bg-danger">
+              <i class="fas fa-times"></i> Tạm ngưng
+ </span>
+}
+ </div>
 </div>
+
+        @if (!string.IsNullOrEmpty(Model.IFrameCode))
+   {
+  <h4 class="section-title">
+    <i class="fas fa-map-marker-alt"></i> Vị Trí Trên Bản Đồ
+      </h4>
+    <div class="ratio ratio-16x9">
+     @Html.Raw(Model.IFrameCode)
+ </div>
+        }
+
+<div class="d-flex justify-content-between mt-4">
+   <a asp-action="Index" class="btn btn-secondary">
+     <i class="fas fa-arrow-left"></i> Quay lại
+     </a>
+   <div>
+     <a asp-action="Edit" asp-route-id="@Model.MovieTheaterId" class="btn btn-warning">
+    <i class="fas fa-edit"></i> Chỉnh sửa
+     </a>
+        <a asp-action="Delete" asp-route-id="@Model.MovieTheaterId" class="btn btn-danger">
+  <i class="fas fa-trash"></i> Xóa
+   </a>
+    </div>
+ </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+  // Auto-hide alerts after 5 seconds
+  setTimeout(function () {
+     $('.alert').fadeOut('slow');
+        }, 5000);
+</script>
+}

@@ -1,60 +1,209 @@
-﻿@model CinemaS.Models.Snacks
+@model CinemaS.Models.Snacks
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Chỉnh Sửa Đồ Ăn";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Edit</h1>
+<style>
+    .form-container {
+        background: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  max-width: 800px;
+        margin: 0 auto;
+    }
 
-<h4>Snacks</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="SnackId" />
-            <div class="form-group">
-                <label asp-for="SnackTypeId" class="control-label"></label>
-                <select asp-for="SnackTypeId" class="form-control" asp-items="ViewBag.SnackTypeId"></select>
-                <span asp-validation-for="SnackTypeId" class="text-danger"></span>
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .required-field::after {
+  content: " *";
+        color: red;
+    }
+
+    .image-preview-container {
+        margin-top: 10px;
+        text-align: center;
+}
+
+    .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        border-radius: 8px;
+        border: 2px solid #dee2e6;
+    }
+
+    .custom-file-upload {
+        display: inline-block;
+        padding: 10px 20px;
+     cursor: pointer;
+   background: linear-gradient(90deg, #007bff, #0056b3);
+   color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .custom-file-upload:hover {
+  transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+    }
+
+ input[type="file"] {
+        display: none;
+    }
+
+    .id-display {
+        font-size: 0.9rem;
+        color: #666;
+        background-color: #f8f9fa;
+      padding: 10px;
+        border-radius: 5px;
+    border-left: 4px solid #007bff;
+  }
+</style>
+
+<div class="container mt-4">
+    <div class="form-container">
+        <h1 class="mb-4">
+            <i class="fas fa-edit"></i> Chỉnh Sửa Đồ Ăn
+        </h1>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+ </div>
+        }
+
+        @if (TempData["Warning"] != null)
+ {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
+        }
+
+ <div class="id-display mb-3">
+            <strong>Mã Đồ Ăn:</strong> @Model.SnackId
+        </div>
+
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <input type="hidden" asp-for="SnackId" />
+   <input type="hidden" asp-for="Image" id="existingImage" />
+
+            <div class="mb-3">
+        <label asp-for="SnackTypeId" class="form-label required-field">Loại Đồ Ăn</label>
+     <select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId" required>
+         <option value="">-- Chọn loại đồ ăn --</option>
+         </select>
+ <span asp-validation-for="SnackTypeId" class="text-danger"></span>
+ </div>
+
+      <div class="mb-3">
+         <label asp-for="Name" class="form-label required-field">Tên Đồ Ăn</label>
+   <input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." required />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Image" class="control-label"></label>
-                <input asp-for="Image" class="form-control" />
-                <span asp-validation-for="Image" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="IsActive" class="control-label"></label>
-                <input asp-for="IsActive" class="form-control" />
-                <span asp-validation-for="IsActive" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
+         <div class="mb-3">
+         <label asp-for="Price" class="form-label required-field">Giá (VNĐ)</label>
+     <input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="VD: 50000" required />
+      <span asp-validation-for="Price" class="text-danger"></span>
+  </div>
+
+  <div class="mb-3">
+                <label class="form-label">Ảnh Sản Phẩm</label>
+    <br />
+  <label for="imageFile" class="custom-file-upload">
+          <i class="fas fa-upload"></i> Chọn ảnh mới
+    </label>
+     <input type="file" id="imageFile" name="imageFile" accept="image/*" onchange="previewImage(event)" />
+   
+     <div class="image-preview-container">
+     @if (!string.IsNullOrEmpty(Model.Image))
+      {
+        <p class="text-muted mb-2">Ảnh hiện tại:</p>
+      <img id="imagePreview" src="@Model.Image" alt="@Model.Name" class="image-preview" />
+}
+        else
+       {
+           <img id="imagePreview" src="/images/snacks/default-snack.png" alt="Default" class="image-preview" />
+         }
+              </div>
+     
+  <small class="form-text text-muted d-block mt-2">
+          Định dạng: JPG, PNG, GIF (tối đa 5MB). Để trống nếu không muốn thay đổi ảnh.
+   </small>
+     </div>
+
+            <div class="mb-3">
+   <label asp-for="Description" class="form-label">Mô Tả</label>
+       <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+<span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+  <div class="mb-3 form-check">
+     <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+         <label asp-for="IsActive" class="form-check-label">
+             <i class="fas fa-toggle-on"></i> Đang bán
+  </label>
+            </div>
+
+       <div class="d-flex justify-content-between mt-4">
+              <a asp-action="Index" class="btn btn-secondary">
+  <i class="fas fa-arrow-left"></i> Quay lại
+     </a>
+     <button type="submit" class="btn btn-warning">
+         <i class="fas fa-save"></i> Cập nhật
+       </button>
+      </div>
+ </form>
+    </div>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        function previewImage(event) {
+            const file = event.target.files[0];
+     if (file) {
+          // Kiểm tra kích thước file
+          if (file.size > 5 * 1024 * 1024) {
+           alert('Kích thước ảnh không được vượt quá 5MB!');
+          event.target.value = '';
+  return;
+    }
+
+             // Kiểm tra định dạng
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Chỉ chấp nhận file ảnh JPG, PNG, GIF!');
+     event.target.value = '';
+            return;
+ }
+
+const reader = new FileReader();
+reader.onload = function(e) {
+              const preview = document.getElementById('imagePreview');
+ preview.src = e.target.result;
+           preview.style.display = 'block';
+}
+    reader.readAsDataURL(file);
+            }
+        }
+
+        // Auto-hide alerts after 5 seconds
+    setTimeout(function () {
+    $('.alert').fadeOut('slow');
+        }, 5000);
+    </script>
 }

@@ -1,0 +1,116 @@
+@{
+    ViewData["Title"] = "Quản lý Rạp & Phòng Chiếu";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .management-container {
+        max-width: 900px;
+        margin: 50px auto;
+        text-align: center;
+    }
+
+    .nav-card-container {
+      display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-top: 40px;
+    }
+
+    .nav-card {
+        background: linear-gradient(135deg, rgba(59, 92, 204, 0.2), rgba(124, 58, 237, 0.2));
+        border-radius: 20px;
+        padding: 40px 30px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+ cursor: pointer;
+    }
+
+    .nav-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(124, 58, 237, 0.3);
+        border-color: var(--purple);
+    }
+
+    .nav-card-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        background: linear-gradient(90deg, var(--indigo), var(--magenta));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .nav-card-title {
+        font-size: 24px;
+        font-weight: 800;
+  color: #fff;
+        margin-bottom: 10px;
+    }
+
+    .nav-card-desc {
+  color: #9aa5c6;
+        font-size: 14px;
+    }
+
+    .nav-card-btn {
+        margin-top: 20px;
+        padding: 12px 30px;
+        background: linear-gradient(90deg, var(--indigo), var(--purple));
+        color: white;
+        border: none;
+      border-radius: 8px;
+      font-weight: 700;
+   text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+
+.nav-card-btn:hover {
+  transform: scale(1.05);
+ box-shadow: 0 8px 20px rgba(124,58,237,0.4);
+  color: white;
+    }
+</style>
+
+<div class="management-container">
+    <h1 class="mb-3">
+        <i class="fa-solid fa-building"></i> Quản lý Rạp & Phòng Chiếu
+  </h1>
+    <p class="text-muted mb-5">Chọn một mục để bắt đầu quản lý</p>
+
+ <div class="nav-card-container">
+        <!-- Card 1: Movie Theaters -->
+        <div class="nav-card">
+   <div class="nav-card-icon">
+    <i class="fa-solid fa-film"></i>
+            </div>
+            <div class="nav-card-title">Rạp Chiếu Phim</div>
+ <div class="nav-card-desc">
+         Quản lý các rạp chiếu phim
+    </div>
+        <a href="@Url.Action("Index", "MovieTheaters")" class="nav-card-btn">
+        <i class="fa-solid fa-arrow-right"></i> Xem danh sách
+    </a>
+        </div>
+
+<!-- Card 2: Cinema Types -->
+   <div class="nav-card">
+        <div class="nav-card-icon">
+      <i class="fa-solid fa-clapperboard"></i>
+            </div>
+<div class="nav-card-title">Loại Phòng Chiếu</div>
+   <div class="nav-card-desc">
+      Quản lý loại phòng (IMAX, 3D, 4DX...)
+            </div>
+  <a href="@Url.Action("Index", "CinemaTypes")" class="nav-card-btn">
+     <i class="fa-solid fa-arrow-right"></i> Xem loại
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary btn-lg">
+    <i class="fa-solid fa-arrow-left"></i> Quay lại quản lý
+        </a>
+    </div>
+</div>

@@ -5,38 +5,35 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
-
-<h4>SnackTypes</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="SnackTypeId" class="control-label"></label>
-                <input asp-for="SnackTypeId" class="form-control" />
-                <span asp-validation-for="SnackTypeId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
+<div class="card shadow-sm p-4">
+    <h1 class="mb-4 text-center text-primary">
+        <i class="fa-solid fa-tags"></i> Tạo Loại Đồ Ăn
+    </h1>
+    <form asp-action="Create">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label">
+                <i class="fa-solid fa-signature"></i> Tên Loại <span class="text-danger">*</span>
+            </label>
+            <input asp-for="Name" class="form-control" placeholder="VD: Đồ uống, Bắp rang bơ..." required />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label">
+                <i class="fa-solid fa-file-lines"></i> Mô tả
+            </label>
+            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-save"></i> Tạo mới
+            </button>
+        </div>
+    </form>
 </div>
 
 @section Scripts {

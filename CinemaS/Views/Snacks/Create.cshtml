@@ -1,63 +1,153 @@
 ﻿@model CinemaS.Models.Snacks
 
 @{
-    ViewData["Title"] = "Create";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Tạo Đồ Ăn";
+	Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
+<style>
+	.form-container {
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: 15px;
+		padding: 30px;
+		box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+		max-width: 700px;
+		margin: 0 auto;
+	}
 
-<h4>Snacks</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="SnackId" class="control-label"></label>
-                <input asp-for="SnackId" class="form-control" />
-                <span asp-validation-for="SnackId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="SnackTypeId" class="control-label"></label>
-                <select asp-for="SnackTypeId" class ="form-control" asp-items="ViewBag.SnackTypeId"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Image" class="control-label"></label>
-                <input asp-for="Image" class="form-control" />
-                <span asp-validation-for="Image" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="IsActive" class="control-label"></label>
-                <input asp-for="IsActive" class="form-control" />
-                <span asp-validation-for="IsActive" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
+	.form-label {
+		color: #e9ecf6;
+		font-weight: 600;
+		margin-bottom: 8px;
+	}
 
-<div>
-    <a asp-action="Index">Back to List</a>
+	.image-preview {
+		margin-top: 10px;
+		max-width: 200px;
+		border-radius: 8px;
+		display: none;
+	}
+
+	.custom-file-upload {
+		display: inline-block;
+		padding: 10px 20px;
+		cursor: pointer;
+		background: linear-gradient(90deg, var(--indigo), var(--purple));
+		color: white;
+		border-radius: 8px;
+		font-weight: 600;
+	}
+
+		.custom-file-upload:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(124,58,237,0.4);
+		}
+
+	input[type="file"] {
+		display: none;
+	}
+</style>
+
+<h1 class="mb-4">
+	<i class="fa-solid fa-utensils"></i> Tạo Đồ Ăn
+</h1>
+
+@if (TempData["Error"] != null)
+{
+	<div class="alert alert-danger alert-dismissible fade show" role="alert">
+		<i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
+		<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+	</div>
+}
+
+<div class="form-container">
+	<form asp-action="Create" method="post" enctype="multipart/form-data">
+		<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+		@* ID auto-generated *@
+
+		<div class="mb-3">
+			<label asp-for="SnackTypeId" class="form-label">
+				<i class="fa-solid fa-layer-group"></i> Loại đồ ăn <span class="text-danger">*</span>
+			</label>
+			<select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId" required>
+				<option value="">-- Chọn loại đồ ăn --</option>
+			</select>
+			<span asp-validation-for="SnackTypeId" class="text-danger"></span>
+		</div>
+
+		<div class="mb-3">
+			<label asp-for="Name" class="form-label">
+				<i class="fa-solid fa-signature"></i> Tên đồ ăn <span class="text-danger">*</span>
+			</label>
+			<input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." required />
+			<span asp-validation-for="Name" class="text-danger"></span>
+		</div>
+
+		<div class="mb-3">
+			<label asp-for="Price" class="form-label">
+				<i class="fa-solid fa-money-bill-wave"></i> Giá (VNĐ) <span class="text-danger">*</span>
+			</label>
+			<input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="VD: 50000" required />
+			<span asp-validation-for="Price" class="text-danger"></span>
+		</div>
+
+		<div class="mb-3">
+			<label class="form-label">
+				<i class="fa-solid fa-image"></i> Ảnh sản phẩm
+			</label>
+			<br />
+			<label for="imageFile" class="custom-file-upload">
+				<i class="fa-solid fa-upload"></i> Chọn ảnh
+			</label>
+			<input type="file" id="imageFile" name="imageFile" accept="image/*" onchange="previewImage(event)" />
+			<img id="imagePreview" class="image-preview" />
+			<small class="form-text text-muted d-block mt-2">Định dạng: JPG, PNG, GIF (tối đa 5MB)</small>
+		</div>
+
+		<div class="mb-3">
+			<label asp-for="Description" class="form-label">
+				<i class="fa-solid fa-file-lines"></i> Mô tả
+			</label>
+			<textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+			<span asp-validation-for="Description" class="text-danger"></span>
+		</div>
+
+		<div class="mb-3 form-check">
+			<input asp-for="IsActive" class="form-check-input" type="checkbox" />
+			<label asp-for="IsActive" class="form-check-label"></i> Đang bán
+			</label>
+		</div>
+
+
+
+		<div class="d-flex justify-content-between mt-4">
+			<a asp-action="Index" class="btn btn-secondary">
+				<i class="fa-solid fa-arrow-left"></i> Quay lại
+			</a>
+			<button type="submit" class="btn btn-primary">
+				<i class="fa-solid fa-save"></i> Tạo mới
+			</button>
+		</div>
+	</form>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+@{
+	await Html.RenderPartialAsync("_ValidationScriptsPartial");
+}
+<script>
+		 function previewImage(event) {
+	 const file = event.target.files[0];
+		  if (file) {
+	   const reader = new FileReader();
+	reader.onload = function(e) {
+			 const preview = document.getElementById('imagePreview');
+		   preview.src = e.target.result;
+			preview.style.display = 'block';
+		   }
+	 reader.readAsDataURL(file);
+	   }
+	 }
+</script>
 }

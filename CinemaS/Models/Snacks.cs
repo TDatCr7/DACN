@@ -25,7 +25,7 @@ namespace CinemaS.Models
         [MaxLength(300)]
         public string? Description { get; set; }
         [Column("IsActive")]
-        public bool? IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
 
     }
