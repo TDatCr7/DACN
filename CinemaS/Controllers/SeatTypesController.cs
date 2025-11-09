@@ -19,9 +19,24 @@ namespace CinemaS.Controllers
         }
 
         // GET: SeatTypes
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            return View(await _context.SeatTypes.ToListAsync());
+            var seatTypes = from s in _context.SeatTypes
+                            select s;
+
+            // Nếu có chuỗi tìm kiếm
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                searchString = searchString.Trim().ToLower();
+
+                seatTypes = seatTypes.Where(s =>
+                    s.Name.ToLower().Contains(searchString) ||
+                    s.Price.ToString().Contains(searchString)
+                );
+            }
+
+            seatTypes = seatTypes.OrderBy(s => s.SeatTypeId);
+            return View(await seatTypes.ToListAsync());
         }
 
         // GET: SeatTypes/Details/5

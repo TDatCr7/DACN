@@ -40,7 +40,11 @@
     
     <form asp-action="Delete">
         <input type="hidden" asp-for="PointHistoryId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-secondary" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <input type="submit" value="Delete" class="btn btn-danger" />
+        </div>
     </form>
 </div>

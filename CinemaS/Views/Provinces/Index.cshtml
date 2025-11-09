@@ -1,48 +1,126 @@
 ﻿@model IEnumerable<CinemaS.Models.Provinces>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Tỉnh/Thành phố";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+<link rel="stylesheet" href="~/css/management.css" />
 
-<h1>Index</h1>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fa-solid fa-map-location-dot"></i> Quản lý Tỉnh/Thành phố</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Tạo mới
+        </a>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ProvinceId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ProvinceId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ProvinceId">Delete</a>
-            </td>
-        </tr>
+    @* Alert messages *@
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* Search box *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group search-box">
+                            <input type="text" name="searchString"
+                                   value="@ViewData["CurrentFilter"]"
+                                   class="form-control"
+                                   placeholder="Tìm theo mã hoặc tên tỉnh/thành phố..." />
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+                            {
+                                <a href="@Url.Action("Index")" class="btn btn-outline-danger">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* Table list *@
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:10%">Mã</th>
+                            <th style="width:40%">Tên Tỉnh/Thành phố</th>
+                            <th style="width:20%">Ngày tạo</th>
+                            <th style="width:20%">Cập nhật</th>
+                            <th style="width:10%" class="text-center">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td><strong>@item.ProvinceId</strong></td>
+                                    <td>@item.Name</td>
+                                    <td>@item.CreatedAt?.ToString("dd/MM/yyyy")</td>
+                                    <td>@item.UpdatedAt?.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">
+                                        <a asp-action="Details" asp-route-id="@item.ProvinceId" class="btn btn-sm btn-info" title="Xem">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.ProvinceId" class="btn btn-sm btn-warning" title="Sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.ProvinceId" class="btn btn-sm btn-danger" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    <strong>Không tìm thấy dữ liệu</strong>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='@Url.Action("Index", "MovieTheaters")'">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Tự động ẩn thông báo
+        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
+    </script>
 }
-    </tbody>
-</table>

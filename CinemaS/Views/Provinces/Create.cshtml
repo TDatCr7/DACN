@@ -1,49 +1,78 @@
 ﻿@model CinemaS.Models.Provinces
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Tạo Tỉnh/Thành phố";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/create.css" />
 
-<h1>Create</h1>
+<div class="container mt-4">
+    <div class="form-container">
+        <h1 class="mb-4">
+            <i class="fa-solid fa-map-location-dot"></i> Tạo Tỉnh/Thành phố mới
+        </h1>
 
-<h4>Provinces</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="ProvinceId" class="control-label"></label>
-                <input asp-for="ProvinceId" class="form-control" />
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <!-- Mã tỉnh -->
+            <div class="mb-3">
+                <label asp-for="ProvinceId" class="form-label required-field">Mã tỉnh / TP</label>
+                <input asp-for="ProvinceId" class="form-control" placeholder="VD: HN, SG, DN..." required />
                 <span asp-validation-for="ProvinceId" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
+
+            <!-- Tên -->
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label required-field">Tên Tỉnh / Thành phố</label>
+                <input asp-for="Name" class="form-control" placeholder="VD: Hà Nội, Hồ Chí Minh, Đà Nẵng..." required />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
+
+            <!-- Ngày tạo -->
+            <div class="mb-3">
+                <label asp-for="CreatedAt" class="form-label">Ngày tạo</label>
+                <input asp-for="CreatedAt" type="date" class="form-control" />
                 <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ tự động ghi thời gian tạo.</small>
             </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
+
+            <!-- Ngày cập nhật -->
+            <div class="mb-3">
+                <label asp-for="UpdatedAt" class="form-label">Ngày cập nhật</label>
+                <input asp-for="UpdatedAt" type="date" class="form-control" />
                 <span asp-validation-for="UpdatedAt" class="text-danger"></span>
+                <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ cập nhật khi sửa thông tin.</small>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Lưu
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Ẩn thông báo sau 5s
+        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
+    </script>
 }

@@ -1,45 +1,78 @@
 ﻿@model CinemaS.Models.Provinces
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Chỉnh sửa Tỉnh/Thành phố";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/create.css" />
 
-<h1>Edit</h1>
+<div class="container mt-4">
+    <div class="form-container">
+        <h1 class="mb-4">
+            <i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa Tỉnh/Thành phố
+        </h1>
 
-<h4>Provinces</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="ProvinceId" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <!-- Mã tỉnh -->
+            <div class="mb-3">
+                <label asp-for="ProvinceId" class="form-label required-field">Mã tỉnh / TP</label>
+                <input asp-for="ProvinceId" class="form-control" readonly />
+                <span asp-validation-for="ProvinceId" class="text-danger"></span>
+            </div>
+
+            <!-- Tên -->
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label required-field">Tên Tỉnh / Thành phố</label>
+                <input asp-for="Name" class="form-control" placeholder="VD: Hà Nội, Hồ Chí Minh, Đà Nẵng..." required />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
+
+            <!-- Ngày tạo -->
+            <div class="mb-3">
+                <label asp-for="CreatedAt" class="form-label">Ngày tạo</label>
+                <input asp-for="CreatedAt" type="date" class="form-control" />
                 <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                <small class="text-muted">(*) Có thể để trống nếu không cần chỉnh.</small>
             </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
+
+            <!-- Ngày cập nhật -->
+            <div class="mb-3">
+                <label asp-for="UpdatedAt" class="form-label">Ngày cập nhật</label>
+                <input asp-for="UpdatedAt" type="date" class="form-control" />
                 <span asp-validation-for="UpdatedAt" class="text-danger"></span>
+                <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ cập nhật khi lưu.</small>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Cập nhật
+                </button>
             </div>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Tự động ẩn thông báo
+        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
+    </script>
 }

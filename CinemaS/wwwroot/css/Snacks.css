@@ -1,0 +1,155 @@
+﻿
+/* Toàn trang */
+body {
+    background-color: #1e1e2f; /* màu tối nhẹ, không đen hẳn */
+    color: #f1f1f1; /* chữ trắng dễ đọc */
+}
+
+/* Header và thẻ card */
+.card, .alert, .table, .form-control, .btn, .input-group {
+    background-color: #2b2b3b !important;
+    border-color: #3a3a4a !important;
+    color: #f1f1f1 !important;
+}
+
+/* Nút */
+.btn {
+    color: #f1f1f1;
+    border: none;
+}
+
+.btn-primary {
+    background-color: #007bff;
+}
+
+.btn-outline-secondary {
+    border: 1px solid #aaa;
+    color: #ddd;
+}
+
+.btn-outline-danger {
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+/* Ảnh đồ ăn */
+.snack-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #444;
+    background-color: #333;
+}
+
+/* Bảng */
+.table {
+    color: #eaeaea;
+    border-color: #444;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #3c3c4f;
+    cursor: pointer;
+}
+
+/* Tiêu đề bảng */
+.table-dark {
+    background-color: #34344a !important;
+    color: #fff;
+}
+
+/* Giá */
+.price-badge {
+    font-weight: bold;
+    color: #4caf50;
+}
+
+/* Badge trạng thái */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+/* Input tìm kiếm */
+.search-box input {
+    background-color: #2b2b3b;
+    color: #fff;
+    border: 1px solid #555;
+}
+
+/* Nút close alert */
+.btn-close {
+    filter: invert(1);
+}
+
+/* Alert */
+.alert-success {
+    background-color: #2e5333;
+    border: 1px solid #4caf50;
+}
+
+.alert-warning {
+    background-color: #5a4e2a;
+    border: 1px solid #f0ad4e;
+}
+
+.alert-danger {
+    background-color: #5c2a2a;
+    border: 1px solid #dc3545;
+}
+/* ==== Search Box (Dark Theme) ==== */
+.search-box {
+    max-width: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+    /* Input */
+    .search-box .form-control {
+        background-color: #2b2b3b;
+        color: #f1f1f1;
+        border: 1px solid #3a3a4a;
+        border-right: none;
+        padding: 10px 14px;
+        transition: all 0.2s ease;
+    }
+
+        .search-box .form-control:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #3c6df0; /* viền xanh lam nhẹ khi focus */
+            border-color: #3c6df0;
+        }
+
+        /* Placeholder */
+        .search-box .form-control::placeholder {
+            color: #aaa;
+        }
+
+    /* Nút tìm kiếm */
+    .search-box .btn {
+        background-color: #3a3a4a;
+        color: #fff;
+        border: 1px solid #3a3a4a;
+        transition: all 0.2s ease;
+    }
+
+        .search-box .btn:hover {
+            background-color: #4a4a5a;
+        }
+
+    /* Nút xoá tìm kiếm */
+    .search-box .btn-outline-danger {
+        background-color: transparent;
+        color: #ff6b6b;
+        border: 1px solid #ff6b6b;
+    }
+
+        .search-box .btn-outline-danger:hover {
+            background-color: #ff6b6b;
+            color: #fff;
+        }

@@ -1,40 +1,102 @@
 ﻿@model CinemaS.Models.SeatTypes
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Chỉnh sửa loại ghế";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Edit</h1>
+<!-- Font Awesome & CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
 
-<h4>SeatTypes</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="SeatTypeId" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header text-white">
+                    <h3><i class="fas fa-pen"></i> Chỉnh sửa loại ghế</h3>
+                </div>
+
+                <div class="card-body">
+                    <!-- Thông báo -->
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> <strong>Lỗi:</strong> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Message"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> @TempData["Message"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Edit" asp-controller="SeatTypes" method="post" novalidate>
+                        <input type="hidden" asp-for="SeatTypeId" />
+
+                        <!-- Tên loại ghế -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-chair"></i> Tên loại ghế <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control" placeholder="VD: NORMAL, VIP, COUPLE..." />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <!-- Giá vé -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tags"></i> Giá vé (VNĐ) <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Price" type="number" min="0" class="form-control" placeholder="VD: 75000" />
+                            <span asp-validation-for="Price" class="text-danger"></span>
+                        </div>
+
+                        <!-- Nút hành động -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="history.back()">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    <script>
+        // Tự động ẩn thông báo sau 5 giây
+        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+
+        // Kiểm tra form trước khi gửi
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('form');
+            const name = document.getElementById('Name');
+            const price = document.getElementById('Price');
+
+            form.addEventListener('submit', e => {
+                let errors = [];
+
+                if (!name.value.trim()) errors.push("• Tên loại ghế không được để trống");
+                if (!price.value || price.value <= 0) errors.push("• Giá vé phải lớn hơn 0");
+
+                if (errors.length > 0) {
+                    e.preventDefault();
+                    alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
+                }
+            });
+        });
+    </script>
 }

@@ -1,41 +1,65 @@
 ﻿@model CinemaS.Models.SnackTypes
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Tạo Loại Đồ Ăn";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="card shadow-sm p-4">
-    <h1 class="mb-4 text-center text-primary">
-        <i class="fa-solid fa-tags"></i> Tạo Loại Đồ Ăn
-    </h1>
-    <form asp-action="Create">
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-        <div class="mb-3">
-            <label asp-for="Name" class="form-label">
-                <i class="fa-solid fa-signature"></i> Tên Loại <span class="text-danger">*</span>
-            </label>
-            <input asp-for="Name" class="form-control" placeholder="VD: Đồ uống, Bắp rang bơ..." required />
-            <span asp-validation-for="Name" class="text-danger"></span>
+<!-- FontAwesome + CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fa-solid fa-tags"></i> Tạo Loại Đồ Ăn
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Hiển thị lỗi tổng quát -->
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <form asp-action="Create" method="post" novalidate>
+                        <!-- Tên loại -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-semibold">
+                                <i class="fa-solid fa-signature"></i> Tên Loại <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control" placeholder="VD: Đồ uống, Bắp rang bơ..." required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <!-- Mô tả -->
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold">
+                                <i class="fa-solid fa-file-lines"></i> Mô tả
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- Nút hành động -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="history.back()">
+                                <i class="fa-solid fa-arrow-left"></i> Quay lại
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-save"></i> Tạo mới
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label asp-for="Description" class="form-label">
-                <i class="fa-solid fa-file-lines"></i> Mô tả
-            </label>
-            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-        <div class="d-flex justify-content-between mt-4">
-            <a asp-action="Index" class="btn btn-secondary">
-                <i class="fa-solid fa-arrow-left"></i> Quay lại
-            </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="fa-solid fa-save"></i> Tạo mới
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }

@@ -5,12 +5,14 @@
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
 
 <div class="container mt-4">
 	<div class="row justify-content-center">
 		<div class="col-md-8">
 			<div class="card shadow">
-				<div class="card-header bg-primary text-white">
+				<div class="card-header text-white">
 					<h3><i class="fas fa-door-open"></i> Tạo phòng chiếu mới</h3>
 				</div>
 				<div class="card-body">
@@ -64,18 +66,48 @@
 						</div>
 
 
-						<div class="d-flex gap-2">
-							<button type="submit" class="btn btn-success" id="submitBtn">
-								<i class="fas fa-save"></i> Tạo phòng và ghế
-							</button>
-							<a asp-action="Index" class="btn btn-secondary">
-								<i class="fas fa-arrow-left"></i> Quay lại
-							</a>
-						</div>
+							<div class="d-flex justify-content-between mt-4">
+ <button type="button" class="btn btn-secondary" onclick="history.back()">
+ <i class="fas fa-arrow-left"></i> Quay lại
+ </button>
+ <button type="submit" class="btn btn-success" id="submitBtn">
+ <i class="fas fa-save"></i> Tạo phòng và ghế
+ </button>
+</div>
 					</form>
 				</div>
 			</div>
 		</div>
+	</div>
+</div>
+
+<div class="nav-card-container">
+	<!-- Card1: Movie Theaters -->
+	<div class="nav-card">
+		<div class="nav-card-icon">
+			<i class="fa-solid fa-film"></i>
+		</div>
+		<div class="nav-card-title">Rạp Chiếu Phim</div>
+		<div class="nav-card-desc">
+			Quản lý các rạp chiếu phim
+		</div>
+		<a href="@Url.Action("Index", "MovieTheaters")" class="nav-card-btn">
+			<i class="fa-solid fa-arrow-right"></i> Xem danh sách
+		</a>
+	</div>
+
+	<!-- Card2: Cinema Types -->
+	<div class="nav-card">
+		<div class="nav-card-icon">
+			<i class="fa-solid fa-clapperboard"></i>
+		</div>
+		<div class="nav-card-title">Loại Phòng Chiếu</div>
+		<div class="nav-card-desc">
+			Quản lý loại phòng (IMAX,3D,4DX...)
+		</div>
+		<a href="@Url.Action("Index", "CinemaTypes")" class="nav-card-btn">
+			<i class="fa-solid fa-arrow-right"></i> Xem loại
+		</a>
 	</div>
 </div>
 
@@ -103,10 +135,10 @@
 					errors.push('Tên phòng không được để trống');
 					document.getElementById('nameError').innerHTML = '<i class="fas fa-times-circle"></i> Tên phòng không được để trống';
 					nameInput.classList.add('is-invalid');
-				} else if (nameInput.value.trim().length < 3) {
+				} else if (nameInput.value.trim().length <3) {
 					isValid = false;
-					errors.push('Tên phòng phải có ít nhất 3 ký tự');
-					document.getElementById('nameError').innerHTML = '<i class="fas fa-times-circle"></i> Tên phòng phải có ít nhất 3 ký tự';
+					errors.push('Tên phòng phải có ít nhất3 ký tự');
+					document.getElementById('nameError').innerHTML = '<i class="fas fa-times-circle"></i> Tên phòng phải có ít nhất3 ký tự';
 					nameInput.classList.add('is-invalid');
 				} else {
 					document.getElementById('nameError').innerHTML = '';
@@ -150,7 +182,7 @@
 
 			// Xóa lỗi khi người dùng điền lại
 			nameInput.addEventListener('input', function () {
-				if (this.value.trim().length >= 3) {
+				if (this.value.trim().length >=3) {
 					document.getElementById('nameError').innerHTML = '';
 					this.classList.remove('is-invalid');
 				}
@@ -171,23 +203,4 @@
 			});
 		});
 	</script>
-
-	<style>
-		.invalid-feedback {
-			color: #dc3545;
-			font-size: 0.875rem;
-			margin-top: 0.25rem;
-		}
-
-		.is-invalid {
-			border-color: #dc3545 !important;
-			background-color: #fff8f8;
-		}
-
-		.form-control:focus.is-invalid,
-		.form-select:focus.is-invalid {
-			border-color: #dc3545 !important;
-			box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-		}
-	</style>
 }

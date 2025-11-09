@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CinemaS.Models;
 
@@ -19,9 +18,48 @@ namespace CinemaS.Controllers
         }
 
         // GET: Provinces
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            return View(await _context.Provinces.ToListAsync());
+            ViewData["CurrentFilter"] = searchString;
+
+            var provinces = from p in _context.Provinces
+                            select p;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                provinces = provinces.Where(p =>
+                    p.Name.Contains(searchString) ||
+                    p.ProvinceId.Contains(searchString));
+            }
+
+            var result = await provinces.OrderBy(p => p.Name).ToListAsync();
+            return View(result);
+        }
+
+        // API Search (AJAX)
+        [HttpGet]
+        public async Task<IActionResult> SearchProvinces(string searchString)
+        {
+            var query = _context.Provinces.AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                query = query.Where(p =>
+                    p.Name.Contains(searchString) ||
+                    p.ProvinceId.Contains(searchString));
+            }
+
+            var results = await query
+                .OrderBy(p => p.Name)
+                .Select(p => new
+                {
+                    p.ProvinceId,
+                    p.Name,
+                    p.CreatedAt,
+                    p.UpdatedAt
+                }).ToListAsync();
+
+            return Json(results);
         }
 
         // GET: Provinces/Details/5
@@ -29,17 +67,19 @@ namespace CinemaS.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                TempData["Error"] = "❌ Không tìm thấy mã tỉnh/thành phố!";
+                return RedirectToAction(nameof(Index));
             }
 
-            var provinces = await _context.Provinces
-                .FirstOrDefaultAsync(m => m.ProvinceId == id);
-            if (provinces == null)
+            var province = await _context.Provinces
+                .FirstOrDefaultAsync(p => p.ProvinceId == id);
+            if (province == null)
             {
-                return NotFound();
+                TempData["Error"] = "❌ Tỉnh/Thành phố không tồn tại!";
+                return RedirectToAction(nameof(Index));
             }
 
-            return View(provinces);
+            return View(province);
         }
 
         // GET: Provinces/Create
@@ -49,19 +89,28 @@ namespace CinemaS.Controllers
         }
 
         // POST: Provinces/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ProvinceId,Name,CreatedAt,UpdatedAt")] Provinces provinces)
+        public async Task<IActionResult> Create([Bind("ProvinceId,Name,CreatedAt,UpdatedAt")] Provinces province)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(provinces);
+                TempData["Error"] = "❌ Dữ liệu không hợp lệ!";
+                return View(province);
+            }
+
+            try
+            {
+                _context.Add(province);
                 await _context.SaveChangesAsync();
+                TempData["Message"] = $"✅ Đã tạo '{province.Name}' thành công!";
                 return RedirectToAction(nameof(Index));
             }
-            return View(provinces);
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"❌ Lỗi khi tạo: {ex.Message}";
+                return View(province);
+            }
         }
 
         // GET: Provinces/Edit/5
@@ -69,50 +118,53 @@ namespace CinemaS.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                TempData["Error"] = "❌ Không tìm thấy mã tỉnh/thành phố!";
+                return RedirectToAction(nameof(Index));
             }
 
-            var provinces = await _context.Provinces.FindAsync(id);
-            if (provinces == null)
+            var province = await _context.Provinces.FindAsync(id);
+            if (province == null)
             {
-                return NotFound();
+                TempData["Error"] = "❌ Không tìm thấy tỉnh/thành phố!";
+                return RedirectToAction(nameof(Index));
             }
-            return View(provinces);
+
+            return View(province);
         }
 
         // POST: Provinces/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("ProvinceId,Name,CreatedAt,UpdatedAt")] Provinces provinces)
+        public async Task<IActionResult> Edit(string id, [Bind("ProvinceId,Name,CreatedAt,UpdatedAt")] Provinces province)
         {
-            if (id != provinces.ProvinceId)
+            if (id != province.ProvinceId)
             {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(provinces);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ProvincesExists(provinces.ProvinceId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+                TempData["Error"] = "❌ Mã không khớp!";
                 return RedirectToAction(nameof(Index));
             }
-            return View(provinces);
+
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = "❌ Dữ liệu không hợp lệ!";
+                return View(province);
+            }
+
+            try
+            {
+                _context.Update(province);
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "✅ Cập nhật thành công!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Provinces.Any(p => p.ProvinceId == id))
+                {
+                    TempData["Error"] = "❌ Không tìm thấy bản ghi!";
+                    return RedirectToAction(nameof(Index));
+                }
+                throw;
+            }
         }
 
         // GET: Provinces/Delete/5
@@ -120,17 +172,19 @@ namespace CinemaS.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                TempData["Error"] = "❌ Không tìm thấy mã tỉnh/thành phố!";
+                return RedirectToAction(nameof(Index));
             }
 
-            var provinces = await _context.Provinces
-                .FirstOrDefaultAsync(m => m.ProvinceId == id);
-            if (provinces == null)
+            var province = await _context.Provinces
+                .FirstOrDefaultAsync(p => p.ProvinceId == id);
+            if (province == null)
             {
-                return NotFound();
+                TempData["Error"] = "❌ Không tìm thấy tỉnh/thành phố!";
+                return RedirectToAction(nameof(Index));
             }
 
-            return View(provinces);
+            return View(province);
         }
 
         // POST: Provinces/Delete/5
@@ -138,19 +192,17 @@ namespace CinemaS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var provinces = await _context.Provinces.FindAsync(id);
-            if (provinces != null)
+            var province = await _context.Provinces.FindAsync(id);
+            if (province == null)
             {
-                _context.Provinces.Remove(provinces);
+                TempData["Error"] = "❌ Không tìm thấy bản ghi!";
+                return RedirectToAction(nameof(Index));
             }
 
+            _context.Provinces.Remove(province);
             await _context.SaveChangesAsync();
+            TempData["Message"] = "🗑️ Đã xóa thành công!";
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool ProvincesExists(string id)
-        {
-            return _context.Provinces.Any(e => e.ProvinceId == id);
         }
     }
 }
