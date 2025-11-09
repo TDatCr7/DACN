@@ -4,239 +4,212 @@
     ViewData["Title"] = "Quản lý Loại Phòng Chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+<link rel="stylesheet" href="~/css/management.css" />
 
-<style>
-    .search-container {
-        margin-bottom: 20px;
-display: flex;
- justify-content: space-between;
-    align-items: center;
-        gap: 15px;
-    }
+<div class="container-fluid mt-4">
 
-    .search-box {
-        flex: 1;
-        max-width: 400px;
-    }
-
-    .table-container {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  }
-
-    .table {
-        color: #e9ecf6;
-    }
-
-    .table thead {
-     background: linear-gradient(90deg, var(--indigo) 0%, var(--purple) 100%);
-        color: white;
-    }
-
-  .table tbody tr {
-        background: rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-   transition: all 0.3s ease;
-    }
-
-    .table tbody tr:hover {
-        background: rgba(124, 58, 237, 0.15);
- transform: translateX(5px);
-    }
-
-    .btn-action {
-        margin: 0 2px;
-        padding: 5px 12px;
-        font-size: 14px;
-  }
-
-    .alert {
-        border-radius: 8px;
-        animation: slideIn 0.3s ease;
-    }
-
-    @@keyframes slideIn {
-        from {
-          opacity: 0;
-      transform: translateY(-10px);
-        }
-      to {
- opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .no-results {
-        text-align: center;
-     padding: 40px;
-        color: #9aa5c6;
-        font-style: italic;
-    }
-</style>
-
-<h1 class="mb-4">
-    <i class="fa-solid fa-film"></i> Quản lý Loại Phòng Chiếu
-</h1>
-
-@* TempData Messages *@
-@if (TempData["Message"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fa-solid fa-check-circle"></i> @TempData["Message"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fa-solid fa-film"></i> Quản lý Loại Phòng Chiếu</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fa-solid fa-plus-circle"></i> Tạo mới
+        </a>
     </div>
-}
 
-@if (TempData["Warning"] != null)
-{
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="fa-solid fa-exclamation-triangle"></i> @TempData["Warning"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <!-- Thông báo -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fa-solid fa-check-circle"></i> @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fa-solid fa-exclamation-triangle"></i> @TempData["Warning"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Tìm kiếm -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="d-flex justify-content-between align-items-center">
+                <div class="search-box w-100">
+                    <div class="input-group">
+                        <input type="text" id="searchInput" name="searchString" class="form-control"
+                               placeholder="Tìm kiếm theo tên hoặc mã loại phòng..." />
+                        <button type="button" class="btn btn-outline-secondary" onclick="searchCinemaTypes()">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-danger">
+                            <i class="fa-solid fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
-}
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-}
-
-<div class="search-container">
-    <div class="search-box">
-        <div class="input-group">
-     <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo tên hoặc mã..." />
-    <button class="btn btn-primary" type="button" onclick="searchCinemaTypes()">
-         <i class="fa-solid fa-search"></i> Tìm kiếm
-            </button>
-      </div>
+    <!-- Bảng danh sách -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive table-container">
+                <table class="table table-hover table-bordered" id="cinemaTypesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:10%;">Mã Loại</th>
+                            <th style="width:25%;">Tên Loại Phòng</th>
+                            <th style="width:35%;">Mô Tả</th>
+                            <th style="width:10%;">Code</th>
+                            <th style="width:20%;" class="text-center">Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        @if (Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.CinemaTypeId</td>
+                                    <td>@item.Name</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Description))
+                                        {
+                                            @(item.Description.Length > 50
+                                                                            ? item.Description.Substring(0, 50) + "..."
+                                                                            : item.Description)
+                                                                }
+                                        else
+                                        {
+                                            <span class="text-muted">Không có mô tả</span>
+                                        }
+                                    </td>
+                                    <td>@item.Code</td>
+                                    <td class="text-center">
+                                        <a asp-action="Details" asp-route-id="@item.CinemaTypeId" class="btn btn-info btn-sm btn-action" title="Chi tiết">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.CinemaTypeId" class="btn btn-warning btn-sm btn-action" title="Chỉnh sửa">
+                                            <i class="fa-solid fa-edit"></i>
+                                        </a>
+                                        <button type="button" onclick="confirmDelete('@item.CinemaTypeId', '@item.Name')" class="btn btn-danger btn-sm btn-action" title="Xóa">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4 no-results">
+                                    <i class="fa-solid fa-inbox fa-3x mb-3 d-block"></i>
+                                    <strong>Không có dữ liệu</strong>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <a asp-action="Create" class="btn btn-success">
-        <i class="fa-solid fa-plus-circle"></i> Tạo mới
-    </a>
+
+    <!-- Quay lại button -->
+    <div class="d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-secondary" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </button>
+    </div>
+
 </div>
 
-<div class="table-container">
-    <table class="table table-hover" id="cinemaTypesTable">
-    <thead>
-            <tr>
-        <th>Mã loại</th>
-     <th>Tên loại phòng</th>
-            <th>Mô tả</th>
-     <th>Code</th>
-        <th style="width: 200px;">Hành động</th>
-            </tr>
-        </thead>
-  <tbody id="tableBody">
-       @if (Model.Any())
-     {
-            @foreach (var item in Model)
-     {
-            <tr>
-             <td>@item.CinemaTypeId</td>
-            <td>@item.Name</td>
-               <td>@item.Description</td>
-          <td>@item.Code</td>
-    <td>
-       <a asp-action="Edit" asp-route-id="@item.CinemaTypeId" class="btn btn-warning btn-sm btn-action">
-          <i class="fa-solid fa-edit"></i> Sửa
-  </a>
- <a asp-action="Details" asp-route-id="@item.CinemaTypeId" class="btn btn-info btn-sm btn-action">
-             <i class="fa-solid fa-eye"></i> Chi tiết
-      </a>
-   <button onclick="confirmDelete('@item.CinemaTypeId', '@item.Name')" class="btn btn-danger btn-sm btn-action">
-            <i class="fa-solid fa-trash"></i> Xóa
-      </button>
-              </td>
-         </tr>
-        }
-    }
-         else
-     {
-                <tr>
-    <td colspan="5" class="no-results">
-            <i class="fa-solid fa-inbox"></i> Chưa có dữ liệu
-              </td>
-        </tr>
-}
-        </tbody>
-    </table>
-</div>
-
-<!-- Delete Confirmation Form (Hidden) -->
-<form id="deleteForm" method="post" style="display: none;">
+<!-- Form ẩn dùng để xóa -->
+<form id="deleteForm" method="post" style="display:none;">
     @Html.AntiForgeryToken()
     <input type="hidden" id="deleteId" name="id" />
 </form>
 
+@section Scripts {
     <script>
-        // AJAX Search
+        // === AJAX SEARCH ===
         function searchCinemaTypes() {
-   const searchString = document.getElementById('searchInput').value.trim();
-        
+            const searchString = document.getElementById('searchInput').value.trim();
             fetch(`/CinemaTypes/SearchCinemaTypes?searchString=${encodeURIComponent(searchString)}`)
-       .then(response => response.json())
-         .then(data => {
-           const tbody = document.getElementById('tableBody');
- tbody.innerHTML = '';
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('tableBody');
+                    tbody.innerHTML = '';
 
-       if (data.length === 0) {
-              tbody.innerHTML = `<tr><td colspan="5" class="no-results"><i class="fa-solid fa-inbox"></i> Không tìm thấy kết quả</td></tr>`;
-  } else {
-              data.forEach(item => {
-     tbody.innerHTML += `
-       <tr>
-   <td>${item.cinemaTypeId}</td>
-   <td>${item.name || ''}</td>
-       <td>${item.description || ''}</td>
-   <td>${item.code || ''}</td>
-         <td>
- <a href="/CinemaTypes/Edit/${item.cinemaTypeId}" class="btn btn-warning btn-sm btn-action">
-            <i class="fa-solid fa-edit"></i> Sửa
-       </a>
-            <a href="/CinemaTypes/Details/${item.cinemaTypeId}" class="btn btn-info btn-sm btn-action">
-            <i class="fa-solid fa-eye"></i> Chi tiết
-       </a>
-  <button onclick="confirmDelete('${item.cinemaTypeId}', '${item.name}')" class="btn btn-danger btn-sm btn-action">
-  <i class="fa-solid fa-trash"></i> Xóa
-            </button>
-         </td>
-        </tr>
-       `;
-         });
-  }
-         })
-        .catch(error => {
-      console.error('Search error:', error);
-           alert('Lỗi khi tìm kiếm!');
-    });
+                    if (data.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="no-results text-center py-4">
+                                    <i class="fa-solid fa-inbox fa-3x mb-3 d-block"></i>
+                                    Không tìm thấy kết quả
+                                </td>
+                            </tr>`;
+                    } else {
+                        data.forEach(item => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${item.cinemaTypeId}</td>
+                                    <td>${item.name || ''}</td>
+                                    <td>${item.description || ''}</td>
+                                    <td>${item.code || ''}</td>
+                                    <td class="text-center">
+                                        <a href="/CinemaTypes/Details/${item.cinemaTypeId}" class="btn btn-info btn-sm btn-action">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <a href="/CinemaTypes/Edit/${item.cinemaTypeId}" class="btn btn-warning btn-sm btn-action">
+                                            <i class="fa-solid fa-edit"></i>
+                                        </a>
+                                        <button onclick="confirmDelete('${item.cinemaTypeId}', '${item.name}')" class="btn btn-danger btn-sm btn-action">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>`;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    alert('Lỗi khi tìm kiếm!');
+                });
         }
 
-     // Search on Enter key
-    document.getElementById('searchInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-     searchCinemaTypes();
-      }
+        // === ENTER TO SEARCH ===
+        document.getElementById('searchInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchCinemaTypes();
+            }
         });
 
-        // Delete confirmation with popup
+        // === CONFIRM DELETE ===
         function confirmDelete(id, name) {
             if (confirm(`❌ Bạn có chắc chắn muốn xóa loại phòng "${name}" không?`)) {
-       document.getElementById('deleteId').value = id;
-       document.getElementById('deleteForm').action = '/CinemaTypes/Delete/' + id;
-     document.getElementById('deleteForm').submit();
+                document.getElementById('deleteId').value = id;
+                document.getElementById('deleteForm').action = '/CinemaTypes/Delete/' + id;
+                document.getElementById('deleteForm').submit();
             }
         }
 
-        // Auto-hide alerts after 5 seconds
-      setTimeout(() => {
-         document.querySelectorAll('.alert').forEach(alert => {
+        // === AUTO HIDE ALERTS ===
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
                 alert.style.transition = 'opacity 0.5s ease';
-             alert.style.opacity = '0';
- setTimeout(() => alert.remove(), 500);
-      });
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
         }, 5000);
     </script>
+}

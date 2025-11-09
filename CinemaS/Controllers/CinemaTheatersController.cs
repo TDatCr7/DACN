@@ -17,36 +17,102 @@ namespace CinemaS.Controllers
             _context = context;
         }
 
-        // ================== LIST ==================
-        // Trả về danh sách phòng chiếu kèm tên loại phòng, tên rạp và tổng số ghế
-        public async Task<IActionResult> Index()
+        // ================== LIST + SEARCH ==================
+        public async Task<IActionResult> Index(string? searchString)
         {
-            var theaters = await _context.CinemaTheaters
-                .Select(ct => new CinemaTheaterVM
+            // Lấy toàn bộ phòng chiếu + loại phòng + rạp
+            var query = from ct in _context.CinemaTheaters
+                        join type in _context.CinemaTypes on ct.CinemaTypeId equals type.CinemaTypeId
+                        join theater in _context.MovieTheaters on ct.MovieTheaterId equals theater.MovieTheaterId
+                        select new CinemaTheaterVM
+                        {
+                            CinemaTheaterId = ct.CinemaTheaterId,
+                            Name = ct.Name,
+                            CinemaTypeName = type.Name,
+                            MovieTheaterName = theater.Name,
+                            NumOfRows = ct.NumOfRows,
+                            NumOfColumns = ct.NumOfColumns,
+                            Status = ct.Status,
+                            TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
+                        };
+
+            // Nếu có chuỗi tìm kiếm => lọc
+            if (!string.IsNullOrWhiteSpace(searchString))
+            {
+                searchString = searchString.Trim().ToLower();
+                query = query.Where(t =>
+                    t.Name.ToLower().Contains(searchString) ||
+                    t.CinemaTheaterId.ToLower().Contains(searchString) ||
+                    t.CinemaTypeName.ToLower().Contains(searchString) ||
+                    t.MovieTheaterName.ToLower().Contains(searchString)
+                );
+                ViewData["CurrentFilter"] = searchString;
+            }
+
+            var theaters = await query
+                .OrderBy(t => t.CinemaTheaterId)
+                .ToListAsync();
+
+            return View(theaters);
+        }
+
+        // ================== AJAX SEARCH ==================
+        [HttpGet]
+        public async Task<IActionResult> SearchCinemaTheaters(string searchString)
+        {
+            if (string.IsNullOrWhiteSpace(searchString))
+            {
+                var all = await _context.CinemaTheaters
+                    .Select(ct => new
+                    {
+                        ct.CinemaTheaterId,
+                        ct.Name,
+                        ct.NumOfRows,
+                        ct.NumOfColumns,
+                        ct.Status,
+                        CinemaTypeName = _context.CinemaTypes
+                            .Where(t => t.CinemaTypeId == ct.CinemaTypeId)
+                            .Select(t => t.Name)
+                            .FirstOrDefault(),
+                        MovieTheaterName = _context.MovieTheaters
+                            .Where(mt => mt.MovieTheaterId == ct.MovieTheaterId)
+                            .Select(mt => mt.Name)
+                            .FirstOrDefault(),
+                        TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
+                    }).ToListAsync();
+
+                return Json(all);
+            }
+
+            searchString = searchString.Trim().ToLower();
+
+            var result = await _context.CinemaTheaters
+                .Where(ct =>
+                    ct.CinemaTheaterId.ToLower().Contains(searchString) ||
+                    ct.Name.ToLower().Contains(searchString) ||
+                    _context.CinemaTypes.Any(t => t.CinemaTypeId == ct.CinemaTypeId && t.Name.ToLower().Contains(searchString)) ||
+                    _context.MovieTheaters.Any(mt => mt.MovieTheaterId == ct.MovieTheaterId && mt.Name.ToLower().Contains(searchString))
+                )
+                .Select(ct => new
                 {
-                    CinemaTheaterId = ct.CinemaTheaterId,
-                    Name = ct.Name,
-                    CinemaTypeId = ct.CinemaTypeId,
-                    MovieTheaterId = ct.MovieTheaterId,
-                    NumOfRows = ct.NumOfRows,
-                    NumOfColumns = ct.NumOfColumns,
-                    Status = ct.Status
+                    ct.CinemaTheaterId,
+                    ct.Name,
+                    ct.NumOfRows,
+                    ct.NumOfColumns,
+                    ct.Status,
+                    CinemaTypeName = _context.CinemaTypes
+                        .Where(t => t.CinemaTypeId == ct.CinemaTypeId)
+                        .Select(t => t.Name)
+                        .FirstOrDefault(),
+                    MovieTheaterName = _context.MovieTheaters
+                        .Where(mt => mt.MovieTheaterId == ct.MovieTheaterId)
+                        .Select(mt => mt.Name)
+                        .FirstOrDefault(),
+                    TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
                 })
                 .ToListAsync();
 
-            foreach (var t in theaters)
-            {
-                var cinemaType = await _context.CinemaTypes
-                    .FirstOrDefaultAsync(x => x.CinemaTypeId == t.CinemaTypeId);
-                var movieTheater = await _context.MovieTheaters
-                    .FirstOrDefaultAsync(x => x.MovieTheaterId == t.MovieTheaterId);
-
-                t.CinemaTypeName = cinemaType?.Name;
-                t.MovieTheaterName = movieTheater?.Name;
-                t.TotalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == t.CinemaTheaterId);
-            }
-
-            return View(theaters);
+            return Json(result);
         }
 
         // ================== DETAILS ==================
@@ -73,60 +139,44 @@ namespace CinemaS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CinemaTheaters cinemaTheater)
         {
-            // Bỏ qua validate cho khóa chính vì sẽ tự sinh
             ModelState.Remove(nameof(cinemaTheater.CinemaTheaterId));
-
-            // LOG nhanh để debug khi cần
-            Console.WriteLine("=== CREATE CINEMATHEATER ===");
-            Console.WriteLine($"Name: {cinemaTheater?.Name}");
-            Console.WriteLine($"CinemaTypeId: {cinemaTheater?.CinemaTypeId}");
-            Console.WriteLine($"MovieTheaterId: {cinemaTheater?.MovieTheaterId}");
 
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("❌ ModelState INVALID");
+                TempData["Error"] = "Vui lòng kiểm tra lại thông tin!";
                 LoadDropdowns();
-                TempData["Error"] = "Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(cinemaTheater);
             }
 
             try
             {
-                // Kiểm tra đã có đủ loại ghế (NORMAL, VIP, COUPLE)
                 var seatTypesCount = await _context.SeatTypes.CountAsync();
                 if (seatTypesCount < 3)
                 {
-                    TempData["Error"] = "Vui lòng tạo đủ 3 loại ghế NORMAL, VIP, COUPLE trong database trước!";
+                    TempData["Error"] = "Cần đủ 3 loại ghế NORMAL, VIP, COUPLE!";
                     LoadDropdowns();
                     return View(cinemaTheater);
                 }
 
-                // Sinh mã phòng CTxxx
                 cinemaTheater.CinemaTheaterId = await GenerateNewTheaterIdAsync();
-                cinemaTheater.Status = 1; // Active
+                cinemaTheater.Status = 1;
 
-                // Thiết lập sơ đồ ghế mặc định (6 hàng A-F, 14 cột)
-                cinemaTheater.NumOfRows = 6;      // A..F
-                cinemaTheater.NumOfColumns = 14;  // 14 cột
-                cinemaTheater.RegularSeatRow = 3; // A-C
-                cinemaTheater.VIPSeatRow = 2;     // D-E (trung tâm là VIP)
-                cinemaTheater.DoubleSeatRow = 1;  // F (ghế đôi)
+                cinemaTheater.NumOfRows = 6;
+                cinemaTheater.NumOfColumns = 14;
+                cinemaTheater.RegularSeatRow = 3;
+                cinemaTheater.VIPSeatRow = 2;
+                cinemaTheater.DoubleSeatRow = 1;
 
                 _context.Add(cinemaTheater);
                 await _context.SaveChangesAsync();
-
-                // Tạo ghế tự động theo bố cục trên
                 await CreateSeatsForTheater(cinemaTheater);
 
-                TempData["Message"] = $"✅ Tạo phòng chiếu '{cinemaTheater.Name}' và 72 ghế thành công!";
+                TempData["Message"] = $"✅ Tạo phòng '{cinemaTheater.Name}' thành công!";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ EXCEPTION: {ex.Message}");
-                TempData["Error"] = ex.InnerException == null
-                    ? $"Lỗi: {ex.Message}"
-                    : $"Lỗi: {ex.Message} | Chi tiết: {ex.InnerException.Message}";
+                TempData["Error"] = $"Lỗi: {ex.Message}";
                 LoadDropdowns();
                 return View(cinemaTheater);
             }
@@ -137,34 +187,34 @@ namespace CinemaS.Controllers
         {
             if (string.IsNullOrWhiteSpace(id)) return NotFound();
 
-            var cinemaTheaters = await _context.CinemaTheaters.FindAsync(id);
-            if (cinemaTheaters == null) return NotFound();
+            var ct = await _context.CinemaTheaters.FindAsync(id);
+            if (ct == null) return NotFound();
 
             LoadDropdowns();
-            return View(cinemaTheaters);
+            return View(ct);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, CinemaTheaters cinemaTheaters)
+        public async Task<IActionResult> Edit(string id, CinemaTheaters ct)
         {
-            if (id != cinemaTheaters.CinemaTheaterId) return NotFound();
+            if (id != ct.CinemaTheaterId) return NotFound();
 
             if (!ModelState.IsValid)
             {
                 LoadDropdowns();
-                return View(cinemaTheaters);
+                return View(ct);
             }
 
             try
             {
-                _context.Update(cinemaTheaters);
+                _context.Update(ct);
                 await _context.SaveChangesAsync();
                 TempData["Message"] = "✅ Cập nhật phòng chiếu thành công!";
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!CinemaTheatersExists(cinemaTheaters.CinemaTheaterId))
+                if (!CinemaTheatersExists(ct.CinemaTheaterId))
                     return NotFound();
                 throw;
             }
@@ -177,51 +227,50 @@ namespace CinemaS.Controllers
         {
             if (string.IsNullOrWhiteSpace(id)) return NotFound();
 
-            var cinemaTheaters = await _context.CinemaTheaters
-                .FirstOrDefaultAsync(m => m.CinemaTheaterId == id);
+            var ct = await _context.CinemaTheaters.FirstOrDefaultAsync(m => m.CinemaTheaterId == id);
+            if (ct == null) return NotFound();
 
-            if (cinemaTheaters == null) return NotFound();
+            return View(ct);
+        }
 
-            return View(cinemaTheaters);
+        [HttpGet]
+        public JsonResult CheckInUse(string id)
+        {
+            var inUse = _context.ShowTimes.Any(st => st.CinemaTheaterId == id);
+            return Json(new { inUse });
         }
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var cinemaTheaters = await _context.CinemaTheaters.FindAsync(id);
-            if (cinemaTheaters != null)
+            try
             {
-                _context.CinemaTheaters.Remove(cinemaTheaters);
+                var entity = await _context.CinemaTheaters.FindAsync(id);
+                if (entity == null)
+                    return NotFound();
 
-                // Xóa ghế liên quan (nếu muốn dọn sạch)
-                var seats = _context.Seats.Where(s => s.CinemaTheaterId == id);
-                _context.Seats.RemoveRange(seats);
+                _context.CinemaTheaters.Remove(entity);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Xóa thành công!";
             }
-
-            await _context.SaveChangesAsync();
-            TempData["Message"] = "🗑️ Đã xóa phòng chiếu (và ghế) thành công!";
+            catch (Exception)
+            {
+                TempData["Error"] = "Không thể xóa vì đang được sử dụng!";
+            }
             return RedirectToAction(nameof(Index));
         }
 
         // ================== HELPERS ==================
         private bool CinemaTheatersExists(string id)
-        {
-            return _context.CinemaTheaters.Any(e => e.CinemaTheaterId == id);
-        }
+            => _context.CinemaTheaters.Any(e => e.CinemaTheaterId == id);
 
         private void LoadDropdowns()
         {
-            ViewBag.CinemaTypes = new SelectList(
-                _context.CinemaTypes.OrderBy(ct => ct.Name),
-                "CinemaTypeId", "Name");
-
-            ViewBag.MovieTheaters = new SelectList(
-                _context.MovieTheaters.OrderBy(mt => mt.Name),
-                "MovieTheaterId", "Name");
+            ViewBag.CinemaTypes = new SelectList(_context.CinemaTypes.OrderBy(x => x.Name), "CinemaTypeId", "Name");
+            ViewBag.MovieTheaters = new SelectList(_context.MovieTheaters.OrderBy(x => x.Name), "MovieTheaterId", "Name");
         }
 
-        // Sinh ID CTxxx
         private async Task<string> GenerateNewTheaterIdAsync()
         {
             var last = await _context.CinemaTheaters
@@ -233,8 +282,6 @@ namespace CinemaS.Controllers
             return $"CT{(num + 1):D3}";
         }
 
-        // Tạo ghế theo bố cục mặc định:
-        // A-C: NORMAL; D-E: VIP ở cột 4..11, ngoài ra NORMAL; F: COUPLE
         private async Task CreateSeatsForTheater(CinemaTheaters theater)
         {
             var seats = new List<Seats>();
@@ -244,71 +291,44 @@ namespace CinemaS.Controllers
             var vip = seatTypes.FirstOrDefault(st => st.Name == "VIP");
             var couple = seatTypes.FirstOrDefault(st => st.Name == "COUPLE");
 
-            if (normal == null || vip == null || couple == null)
-                throw new Exception("Thiếu SeatType: cần NORMAL, VIP, COUPLE.");
+            var lastSeat = await _context.Seats.OrderByDescending(s => s.SeatId).FirstOrDefaultAsync();
+            int counter = (lastSeat != null && lastSeat.SeatId.StartsWith("S"))
+                ? int.Parse(lastSeat.SeatId.Substring(1)) + 1 : 1;
 
-            // Lấy seatId lớn nhất hiện tại để không trùng
-            var lastSeat = await _context.Seats
-                .OrderByDescending(s => s.SeatId)
-                .FirstOrDefaultAsync();
-
-            int counter = 1;
-            if (lastSeat != null && lastSeat.SeatId.StartsWith("S"))
-            {
-                counter = int.Parse(lastSeat.SeatId.Substring(1)) + 1;
-            }
-
-            // A..C: NORMAL (3*14 = 42)
             for (char row = 'A'; row <= 'C'; row++)
-            {
                 for (int col = 1; col <= 14; col++)
-                {
                     seats.Add(new Seats
                     {
-                        SeatId = $"S{counter:D6}",
+                        SeatId = $"S{counter++:D6}",
                         SeatTypeId = normal.SeatTypeId,
                         CinemaTheaterId = theater.CinemaTheaterId,
                         RowIndex = row.ToString(),
                         ColumnIndex = col,
                         Label = $"{row}{col}"
                     });
-                    counter++;
-                }
-            }
 
-            // D..E: VIP ở giữa (cột 4..11), còn lại NORMAL
             for (char row = 'D'; row <= 'E'; row++)
-            {
                 for (int col = 1; col <= 14; col++)
-                {
-                    var type = (col >= 4 && col <= 11) ? vip.SeatTypeId : normal.SeatTypeId;
                     seats.Add(new Seats
                     {
-                        SeatId = $"S{counter:D6}",
-                        SeatTypeId = type,
+                        SeatId = $"S{counter++:D6}",
+                        SeatTypeId = (col >= 4 && col <= 11) ? vip.SeatTypeId : normal.SeatTypeId,
                         CinemaTheaterId = theater.CinemaTheaterId,
                         RowIndex = row.ToString(),
                         ColumnIndex = col,
                         Label = $"{row}{col}"
                     });
-                    counter++;
-                }
-            }
 
-            // F: COUPLE (14)
             for (int col = 1; col <= 14; col++)
-            {
                 seats.Add(new Seats
                 {
-                    SeatId = $"S{counter:D6}",
+                    SeatId = $"S{counter++:D6}",
                     SeatTypeId = couple.SeatTypeId,
                     CinemaTheaterId = theater.CinemaTheaterId,
                     RowIndex = "F",
                     ColumnIndex = col,
                     Label = $"F{col}"
                 });
-                counter++;
-            }
 
             _context.Seats.AddRange(seats);
             await _context.SaveChangesAsync();

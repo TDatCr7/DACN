@@ -44,8 +44,13 @@
                 <input asp-for="UpdatedAt" class="form-control" />
                 <span asp-validation-for="UpdatedAt" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </button>
+                <div class="form-group">
+                    <input type="submit" value="Save" class="btn btn-primary" />
+                </div>
             </div>
         </form>
     </div>

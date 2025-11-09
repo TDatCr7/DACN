@@ -1,42 +1,129 @@
 ﻿@model IEnumerable<CinemaS.Models.SeatTypes>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Loại Ghế";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<link rel="stylesheet" href="~/css/management.css" />
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Price)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Price)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.SeatTypeId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.SeatTypeId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.SeatTypeId">Delete</a>
-            </td>
-        </tr>
+<div class="container-fluid mt-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fa-solid fa-couch"></i> Quản lý Loại Ghế</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fa-solid fa-plus-circle"></i> Thêm loại ghế
+        </a>
+    </div>
+
+    <!-- Ô tìm kiếm -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group search-box">
+                            <input type="text" name="searchString" class="form-control" placeholder="Tìm theo tên hoặc giá..." value="@Context.Request.Query["searchString"]" />
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="fa-solid fa-search"></i>
+                            </button>
+                            @if (!string.IsNullOrEmpty(Context.Request.Query["searchString"]))
+                            {
+                                <a href="@Url.Action("Index")" class="btn btn-outline-danger">
+                                    <i class="fa-solid fa-times"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Nếu chưa có dữ liệu -->
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fa-solid fa-info-circle"></i> Chưa có loại ghế nào. Hãy thêm mới!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    else
+    {
+        <!-- Bảng danh sách -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive table-container">
+                    <table class="table table-hover table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 20%;">Mã ghế</th>
+                                <th style="width: 40%;">Tên loại ghế</th>
+                                <th style="width: 20%;">Giá</th>
+                                <th style="width: 20%;">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td><strong>@item.SeatTypeId</strong></td>
+                                    <td>
+                                        @if (item.Name == "NORMAL")
+                                        {
+                                            <span class="badge bg-secondary">Ghế thường</span>
+                                        }
+                                        else if (item.Name == "VIP")
+                                        {
+                                            <span class="badge bg-warning text-dark">Ghế VIP</span>
+                                        }
+                                        else if (item.Name == "COUPLE")
+                                        {
+                                            <span class="badge bg-danger">Ghế đôi</span>
+                                        }
+                                        else
+                                        {
+                                            @item.Name
+                                        }
+                                    </td>
+                                    <td>@string.Format("{0:N0} đ", item.Price)</td>
+                                    <td class="text-center">
+                                        <a asp-action="Edit" asp-route-id="@item.SeatTypeId" class="btn btn-sm btn-warning" title="Chỉnh sửa">
+                                            <i class="fas fa-pencil"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@item.SeatTypeId" class="btn btn-sm btn-info" title="Chi tiết">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.SeatTypeId" class="btn btn-sm btn-danger" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-secondary" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Tự động ẩn alert sau 5 giây
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+    </script>
 }
-    </tbody>
-</table>

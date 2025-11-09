@@ -1,153 +1,132 @@
 ﻿@model CinemaS.Models.Snacks
 
 @{
-	ViewData["Title"] = "Tạo Đồ Ăn";
-	Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Tạo Đồ Ăn";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-	.form-container {
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 15px;
-		padding: 30px;
-		box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-		max-width: 700px;
-		margin: 0 auto;
-	}
+<!-- FontAwesome + CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
 
-	.form-label {
-		color: #e9ecf6;
-		font-weight: 600;
-		margin-bottom: 8px;
-	}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fa-solid fa-utensils"></i> Tạo Đồ Ăn
+                    </h4>
+                </div>
+                <div class="card-body p-4">
 
-	.image-preview {
-		margin-top: 10px;
-		max-width: 200px;
-		border-radius: 8px;
-		display: none;
-	}
+                    <!-- Thông báo lỗi -->
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
 
-	.custom-file-upload {
-		display: inline-block;
-		padding: 10px 20px;
-		cursor: pointer;
-		background: linear-gradient(90deg, var(--indigo), var(--purple));
-		color: white;
-		border-radius: 8px;
-		font-weight: 600;
-	}
+                    <form asp-action="Create" method="post" enctype="multipart/form-data" novalidate>
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-		.custom-file-upload:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 5px 15px rgba(124,58,237,0.4);
-		}
+                        <!-- Loại đồ ăn -->
+                        <div class="mb-3">
+                            <label asp-for="SnackTypeId" class="form-label fw-semibold">
+                                <i class="fa-solid fa-layer-group"></i> Loại đồ ăn <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId" required>
+                                <option value="">-- Chọn loại đồ ăn --</option>
+                            </select>
+                            <span asp-validation-for="SnackTypeId" class="text-danger"></span>
+                        </div>
 
-	input[type="file"] {
-		display: none;
-	}
-</style>
+                        <!-- Tên đồ ăn -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-semibold">
+                                <i class="fa-solid fa-signature"></i> Tên đồ ăn <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
 
-<h1 class="mb-4">
-	<i class="fa-solid fa-utensils"></i> Tạo Đồ Ăn
-</h1>
+                        <!-- Giá -->
+                        <div class="mb-3">
+                            <label asp-for="Price" class="form-label fw-semibold">
+                                <i class="fa-solid fa-money-bill-wave"></i> Giá (VNĐ) <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="Nhập giá tiền" required />
+                            <span asp-validation-for="Price" class="text-danger"></span>
+                        </div>
 
-@if (TempData["Error"] != null)
-{
-	<div class="alert alert-danger alert-dismissible fade show" role="alert">
-		<i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
-		<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-	</div>
-}
+                        <!-- Ảnh -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fa-solid fa-image"></i> Ảnh sản phẩm
+                            </label>
+                            <div>
+                                <label for="imageFile" class="btn btn-outline-primary">
+                                    <i class="fa-solid fa-upload"></i> Chọn ảnh
+                                </label>
+                                <input type="file" id="imageFile" name="imageFile" accept="image/*" class="d-none" onchange="previewImage(event)" />
+                                <img id="imagePreview" class="mt-3 rounded shadow-sm" style="max-width:200px; display:none;" />
+                                <small class="form-text text-white-50 d-block mt-2">Định dạng: JPG, PNG, GIF (tối đa 5MB)</small>
+                            </div>
+                        </div>
 
-<div class="form-container">
-	<form asp-action="Create" method="post" enctype="multipart/form-data">
-		<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                        <!-- Mô tả -->
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold">
+                                <i class="fa-solid fa-file-lines"></i> Mô tả
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
 
-		@* ID auto-generated *@
+                        <!-- Trạng thái -->
+                        <div class="form-check mb-3">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsActive" class="form-check-label"> Đang bán
+                            </label>
+                        </div>
 
-		<div class="mb-3">
-			<label asp-for="SnackTypeId" class="form-label">
-				<i class="fa-solid fa-layer-group"></i> Loại đồ ăn <span class="text-danger">*</span>
-			</label>
-			<select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId" required>
-				<option value="">-- Chọn loại đồ ăn --</option>
-			</select>
-			<span asp-validation-for="SnackTypeId" class="text-danger"></span>
-		</div>
-
-		<div class="mb-3">
-			<label asp-for="Name" class="form-label">
-				<i class="fa-solid fa-signature"></i> Tên đồ ăn <span class="text-danger">*</span>
-			</label>
-			<input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." required />
-			<span asp-validation-for="Name" class="text-danger"></span>
-		</div>
-
-		<div class="mb-3">
-			<label asp-for="Price" class="form-label">
-				<i class="fa-solid fa-money-bill-wave"></i> Giá (VNĐ) <span class="text-danger">*</span>
-			</label>
-			<input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="VD: 50000" required />
-			<span asp-validation-for="Price" class="text-danger"></span>
-		</div>
-
-		<div class="mb-3">
-			<label class="form-label">
-				<i class="fa-solid fa-image"></i> Ảnh sản phẩm
-			</label>
-			<br />
-			<label for="imageFile" class="custom-file-upload">
-				<i class="fa-solid fa-upload"></i> Chọn ảnh
-			</label>
-			<input type="file" id="imageFile" name="imageFile" accept="image/*" onchange="previewImage(event)" />
-			<img id="imagePreview" class="image-preview" />
-			<small class="form-text text-muted d-block mt-2">Định dạng: JPG, PNG, GIF (tối đa 5MB)</small>
-		</div>
-
-		<div class="mb-3">
-			<label asp-for="Description" class="form-label">
-				<i class="fa-solid fa-file-lines"></i> Mô tả
-			</label>
-			<textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
-			<span asp-validation-for="Description" class="text-danger"></span>
-		</div>
-
-		<div class="mb-3 form-check">
-			<input asp-for="IsActive" class="form-check-input" type="checkbox" />
-			<label asp-for="IsActive" class="form-check-label"></i> Đang bán
-			</label>
-		</div>
-
-
-
-		<div class="d-flex justify-content-between mt-4">
-			<a asp-action="Index" class="btn btn-secondary">
-				<i class="fa-solid fa-arrow-left"></i> Quay lại
-			</a>
-			<button type="submit" class="btn btn-primary">
-				<i class="fa-solid fa-save"></i> Tạo mới
-			</button>
-		</div>
-	</form>
+                        <!-- Nút hành động -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="history.back()">
+                                <i class="fa-solid fa-arrow-left"></i> Quay lại
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-save"></i> Tạo mới
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-@{
-	await Html.RenderPartialAsync("_ValidationScriptsPartial");
-}
-<script>
-		 function previewImage(event) {
-	 const file = event.target.files[0];
-		  if (file) {
-	   const reader = new FileReader();
-	reader.onload = function(e) {
-			 const preview = document.getElementById('imagePreview');
-		   preview.src = e.target.result;
-			preview.style.display = 'block';
-		   }
-	 reader.readAsDataURL(file);
-	   }
-	 }
-</script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        // Hiển thị ảnh xem trước
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Ẩn alert sau 5s
+        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+    </script>
 }

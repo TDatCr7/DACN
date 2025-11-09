@@ -1,75 +1,117 @@
 ﻿@model CinemaS.Models.ShowTimes
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Chỉnh sửa suất chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Edit</h1>
+<!-- Font Awesome & CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
 
-<h4>ShowTimes</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="ShowTimeId" />
-            <div class="form-group">
-                <label asp-for="MoviesId" class="control-label"></label>
-                <select asp-for="MoviesId" class="form-control" asp-items="ViewBag.MoviesId"></select>
-                <span asp-validation-for="MoviesId" class="text-danger"></span>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header text-white">
+                    <h3><i class="fas fa-film"></i> Chỉnh sửa suất chiếu</h3>
+                </div>
+
+                <div class="card-body">
+                    <!-- Thông báo -->
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> <strong>Lỗi:</strong> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Message"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> @TempData["Message"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Edit" asp-controller="ShowTimes" method="post" novalidate>
+                        <input type="hidden" asp-for="ShowTimeId" />
+
+                        <!-- Chọn phim -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-video"></i> Phim <span class="text-danger">*</span></label>
+                            <select asp-for="MoviesId" class="form-select" asp-items="ViewBag.Movies">
+                                <option value="">-- Chọn phim --</option>
+                            </select>
+                            <span asp-validation-for="MoviesId" class="text-danger"></span>
+                        </div>
+
+                        <!-- Chọn phòng chiếu -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-door-open"></i> Phòng chiếu <span class="text-danger">*</span></label>
+                            <select asp-for="CinemaTheaterId" class="form-select" asp-items="ViewBag.CinemaTheaters">
+                                <option value="">-- Chọn phòng chiếu --</option>
+                            </select>
+                            <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
+                        </div>
+
+                        <!-- Ngày chiếu -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-calendar-days"></i> Ngày chiếu</label>
+                            <input asp-for="ShowDate" type="date" class="form-control" />
+                            <span asp-validation-for="ShowDate" class="text-danger"></span>
+                        </div>
+
+                        <!-- Giờ bắt đầu - Giờ kết thúc -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-clock"></i> Giờ bắt đầu</label>
+                                <input asp-for="StartTime" type="time" class="form-control" />
+                                <span asp-validation-for="StartTime" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-hourglass-end"></i> Giờ kết thúc</label>
+                                <input asp-for="EndTime" type="time" class="form-control" />
+                                <span asp-validation-for="EndTime" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Giá gốc -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-money-bill"></i> Giá gốc</label>
+                            <input asp-for="OriginPrice" type="number" min="0" class="form-control" />
+                            <span asp-validation-for="OriginPrice" class="text-danger"></span>
+                        </div>
+
+                        <!-- Tổng số ghế -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fas fa-th"></i> Tổng số ghế</label>
+                            <input asp-for="TotalCinema" type="number" class="form-control" readonly />
+                            <span asp-validation-for="TotalCinema" class="text-danger"></span>
+                        </div>
+
+                        <!-- Nút hành động -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="history.back()">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="CinemaTheaterId" class="control-label"></label>
-                <select asp-for="CinemaTheaterId" class="form-control" asp-items="ViewBag.CinemaTheaterId"></select>
-                <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="OriginPrice" class="control-label"></label>
-                <input asp-for="OriginPrice" class="form-control" />
-                <span asp-validation-for="OriginPrice" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ShowDate" class="control-label"></label>
-                <input asp-for="ShowDate" class="form-control" />
-                <span asp-validation-for="ShowDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="StartTime" class="control-label"></label>
-                <input asp-for="StartTime" class="form-control" />
-                <span asp-validation-for="StartTime" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="EndTime" class="control-label"></label>
-                <input asp-for="EndTime" class="form-control" />
-                <span asp-validation-for="EndTime" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="TotalCinema" class="control-label"></label>
-                <input asp-for="TotalCinema" class="form-control" />
-                <span asp-validation-for="TotalCinema" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
-                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        // Tự ẩn thông báo sau 5s
+        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+    </script>
 }

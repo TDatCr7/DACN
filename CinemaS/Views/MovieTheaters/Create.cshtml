@@ -1,112 +1,101 @@
 ﻿@model CinemaS.Models.MovieTheaters
 
 @{
-    ViewData["Title"] = "Tạo Rạp Chiếu";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Tạo Rạp Chiếu";
+	Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
-<style>
-    .form-container {
-   background: #fff;
-  border-radius: 10px;
-        padding: 30px;
-box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  max-width: 800px;
-  margin: 0 auto;
-    }
-
- .form-label {
- font-weight: 600;
-   color: #333;
-    }
-
- .required-field::after {
-  content: " *";
- color: red;
-    }
-</style>
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
 
 <div class="container mt-4">
-    <div class="form-container">
-  <h1 class="mb-4">
-    <i class="fas fa-film"></i> Tạo Rạp Chiếu Mới
-   </h1>
+	<div class="form-container">
+		<h1 class="mb-4">
+			<i class="fas fa-film"></i> Tạo Rạp Chiếu Mới
+		</h1>
 
-        @if (TempData["Error"] != null)
-        {
-     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-         </div>
-        }
+		@if (TempData["Error"] != null)
+		{
+			<div class="alert alert-danger alert-dismissible fade show" role="alert">
+				<i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+				<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+			</div>
+		}
 
-        <form asp-action="Create" method="post">
-   <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+		<form asp-action="Create" method="post">
+			<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-         <div class="mb-3">
-       <label asp-for="Name" class="form-label required-field">Tên Rạp</label>
-        <input asp-for="Name" class="form-control" placeholder="VD: CGV Vincom" required />
-          <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
+			<div class="mb-3">
+				<label asp-for="Name" class="form-label required-field">Tên Rạp</label>
+				<input asp-for="Name" class="form-control" placeholder="VD: CGV ,..." required />
+				<span asp-validation-for="Name" class="text-danger"></span>
+			</div>
 
-          <div class="mb-3">
-                <label asp-for="ProvinceId" class="form-label required-field">Tỉnh/Thành phố</label>
- <select asp-for="ProvinceId" class="form-select" asp-items="ViewBag.ProvinceId" required>
-        <option value="">-- Chọn tỉnh/thành phố --</option>
-         </select>
-   <span asp-validation-for="ProvinceId" class="text-danger"></span>
-         </div>
+			<div class="mb-3">
+				<label asp-for="ProvinceId" class="form-label required-field">Tỉnh/Thành phố</label>
+				<div class="input-group">
+					<select asp-for="ProvinceId" class="form-select" asp-items="ViewBag.ProvinceId" required>
+						<option value="">-- Chọn tỉnh/thành phố --</option>
+					</select>
+					<a href="@Url.Action("Index", "Provinces")" class="btn btn-outline-info" title="Xem chi tiết Tỉnh/Thành phố">
+						<i class="fa-solid fa-map-location-dot"></i>
+					</a>
+				</div>
+				<span asp-validation-for="ProvinceId" class="text-danger"></span>
+			</div>
 
-            <div class="mb-3">
-   <label asp-for="Address" class="form-label">Địa chỉ</label>
-     <textarea asp-for="Address" class="form-control" rows="3" placeholder="VD: Tầng 5, Vincom Center..."></textarea>
-      <span asp-validation-for="Address" class="text-danger"></span>
-        </div>
 
-         <div class="mb-3">
-          <label asp-for="Hotline" class="form-label">Hotline</label>
-         <input asp-for="Hotline" class="form-control" placeholder="VD: 1900 xxxx" />
-     <span asp-validation-for="Hotline" class="text-danger"></span>
-       </div>
+			<div class="mb-3">
+				<label asp-for="Address" class="form-label">Địa chỉ</label>
+				<textarea asp-for="Address" class="form-control" rows="3" placeholder="VD: Tầng 5, Vincom Center..."></textarea>
+				<span asp-validation-for="Address" class="text-danger"></span>
+			</div>
 
-        <div class="mb-3">
-           <label asp-for="Status" class="form-label">Trạng thái</label>
-   <select asp-for="Status" class="form-select">
-    <option value="">-- Chọn trạng thái --</option>
-              <option value="1" selected>Hoạt động</option>
-     <option value="0">Tạm ngưng</option>
-    </select>
-      <span asp-validation-for="Status" class="text-danger"></span>
-</div>
+			<div class="mb-3">
+				<label asp-for="Hotline" class="form-label">Hotline</label>
+				<input asp-for="Hotline" class="form-control" />
+				<span asp-validation-for="Hotline" class="text-danger"></span>
+			</div>
 
-      <div class="mb-3">
-         <label asp-for="IFrameCode" class="form-label">IFrame Code (Google Maps)</label>
-     <textarea asp-for="IFrameCode" class="form-control" rows="2" placeholder="Nhập mã iframe từ Google Maps..."></textarea>
-   <span asp-validation-for="IFrameCode" class="text-danger"></span>
-         <small class="form-text text-muted">
-          Dùng để hiển thị bản đồ vị trí rạp
-    </small>
-    </div>
+			<div class="mb-3">
+				<label asp-for="Status" class="form-label">Trạng thái</label>
+				<select asp-for="Status" class="form-select">
+					<option value="">-- Chọn trạng thái --</option>
+					<option value="1" selected>Hoạt động</option>
+					<option value="0">Tạm ngưng</option>
+				</select>
+				<span asp-validation-for="Status" class="text-danger"></span>
+			</div>
 
-            <div class="d-flex justify-content-between mt-4">
-          <a asp-action="Index" class="btn btn-secondary">
-       <i class="fas fa-arrow-left"></i> Quay lại
-        </a>
-    <button type="submit" class="btn btn-success">
-          <i class="fas fa-save"></i> Lưu
-  </button>
-   </div>
-        </form>
-    </div>
+			<div class="mb-3">
+				<label asp-for="IFrameCode" class="form-label">IFrame Code (Google Maps)</label>
+				<textarea asp-for="IFrameCode" class="form-control" rows="2" placeholder="Copy iframe từ Google Maps..."></textarea>
+				<span asp-validation-for="IFrameCode" class="text-danger"></span>
+				<small class="form-text text-muted">
+					<em>Dùng để hiển thị bản đồ vị trí rạp</em>
+				</small>
+			</div>
+
+			<div class="d-flex justify-content-between mt-4">
+				<a asp-action="Index" class="btn btn-secondary">
+					<i class="fas fa-arrow-left"></i> Quay lại
+				</a>
+				<button type="submit" class="btn btn-success">
+					<i class="fas fa-save"></i> Lưu
+				</button>
+			</div>
+		</form>
+	</div>
 </div>
 
 @section Scripts {
-  @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    
-    <script>
-     // Auto-hide alerts after 5 seconds
-      setTimeout(function () {
-    $('.alert').fadeOut('slow');
-        }, 5000);
-    </script>
+	@{
+		await Html.RenderPartialAsync("_ValidationScriptsPartial");
+	}
+
+	<script>
+		 // Auto-hide alerts after 5 seconds
+		  setTimeout(function () {
+		$('.alert').fadeOut('slow');
+			}, 5000);
+	</script>
 }
