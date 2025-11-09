@@ -68,7 +68,8 @@ namespace CinemaS.Controllers
                     Label = s.Label,
                     Status = isBooked ? "Booked" : "Available",
                     IsCouple = seatType?.Name == "COUPLE",
-                    IsVIP = seatType?.Name == "VIP"
+                    IsVIP = seatType?.Name == "VIP",
+                    IsActive = s.IsActive // ✅ Thêm trạng thái hoạt động
                 };
             }).ToList();
 

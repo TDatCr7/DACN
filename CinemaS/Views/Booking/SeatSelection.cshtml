@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/booking-modal.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
 
 <div class="seat-selection-container">
 	<input type="hidden" id="showTimeId" value="@Model.ShowTimeId" />
@@ -68,16 +69,23 @@
 							var combinedSeatIds = seat2 != null ? $"{seat1.SeatId},{seat2.SeatId}" : seat1.SeatId;
 							var combinedLabels = seat2 != null ? $"{seat1.Label}-{seat2.Label}" : seat1.Label;
 							var totalPrice = (seat1.SeatTypePrice ?? 0) + (seat2?.SeatTypePrice ?? 0);
+							var isBookedOrInactive = seat1.Status == "Booked" || seat2?.Status == "Booked" || !seat1.IsActive || (seat2 != null && !seat2.IsActive);
+							var cssClass = isBookedOrInactive ? "booked" : "";
 
-							<div class="couple-seat-wrapper @(seat1.Status == "Booked" || seat2?.Status == "Booked" ? "booked" : "")"
+							<div class="couple-seat-wrapper @cssClass"
 								 data-seat-id="@combinedSeatIds"
 								 data-seat-type="@seat1.SeatTypeId"
 								 data-seat-price="@totalPrice"
 								 data-seat-label="@combinedLabels"
 								 data-is-couple="true"
+								 data-is-active="@(seat1.IsActive && (seat2?.IsActive ?? true))"
 								 onclick="toggleSeat(this)">
 								<div class="couple-seat">
-									<span class="seat-badge">CP</span>
+									<span class="seat-badge"></span>
+									@if (!seat1.IsActive || (seat2 != null && !seat2.IsActive))
+									{
+										<span class="broken-icon" style="color: black;">✗</span>
+									}
 									<div class="user-icons" style="display:none;">
 										<img src="~/images/user.png" alt="user" class="user-icon" />
 										<img src="~/images/user.png" alt="user" class="user-icon" />
@@ -92,7 +100,7 @@
 						<!-- Ghế thường/VIP -->
 						foreach (var seat in seatsInRow)
 						{
-							var seatClass = seat.Status == "Booked" ? "booked" : "";
+							var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
 							seatClass += seat.IsVIP ? " vip" : " normal";
 
 							<div class="seat @seatClass"
@@ -101,10 +109,15 @@
 								 data-seat-price="@(seat.SeatTypePrice ?? 0)"
 								 data-seat-label="@seat.Label"
 								 data-is-couple="false"
+								 data-is-active="@seat.IsActive"
 								 onclick="toggleSeat(this)">
 								@if (seat.IsVIP)
 								{
 									<span class="seat-badge">V</span>
+								}
+								@if (!seat.IsActive)
+								{
+									<span class="broken-icon" style="color: white;">✗</span>
 								}
 								<div class="user-icon-wrapper" style="display:none;">
 									<img src="~/images/user.png" alt="user" class="user-icon" />
@@ -137,11 +150,15 @@
 				<span>Đang Chọn</span>
 			</div>
 			<div class="legend-item">
-				<div class="seat booked"></div>
+				<div class="seat booked">
+					<i class="fas fa-check" style="color: white; font-size: 16px;"></i>
+				</div>
 				<span>Đã Đặt</span>
 			</div>
 			<div class="legend-item">
-				<div class="seat normal"><span class="seat-badge" style="background:red;">✗</span></div>
+				<div class="seat normal broken">
+					<span class="broken-icon">✗</span>
+				</div>
 				<span>Ghế Hỏng</span>
 			</div>
 			<div class="legend-item">
@@ -150,7 +167,7 @@
 			</div>
 			<div class="legend-item">
 				<div class="couple-seat-wrapper">
-					<div class="couple-seat"><span class="seat-badge">CP</span></div>
+					<div class="couple-seat"><span class="seat-badge"></span></div>
 				</div>
 				<span>Ghế Đôi</span>
 			</div>
@@ -158,17 +175,17 @@
 	</div>
 
 	<!-- Chọn đồ ăn kèm - Collapsible -->
-	<div class="snack-selection mt-4">
+	<div class="snack-selection">
 		<div class="snack-header" onclick="toggleSnackSection()">
 			<h5 class="fw-bold mb-0">
-				<i class="fas fa-utensils"></i> Chọn đồ ăn kèm
+				<i class="fas fa-utensils"></i> Chọn đồ ăn kèm <span id="snackCount" class="snack-badge-count"></span>
 			</h5>
 			<button type="button" class="btn-collapse" id="snackToggleBtn">
 				<i class="fas fa-chevron-down"></i>
 			</button>
 		</div>
-		
-		<div class="snack-content" id="snackContent" style="display: none;">
+
+		<div class="snack-content" id="snackContent">
 			<div class="row g-3 mt-2">
 				@if (ViewBag.Snacks != null)
 				{
@@ -190,10 +207,10 @@
 									<h6 class="snack-name">@snack.Name</h6>
 									<p class="snack-price">@snack.Price?.ToString("N0") đ</p>
 									<label class="snack-checkbox-wrapper">
-										<input class="snack-checkbox" 
-											type="checkbox" 
-											   value="@snack.SnackId" 
-											   data-price="@snack.Price" 
+										<input class="snack-checkbox"
+											   type="checkbox"
+											   value="@snack.SnackId"
+											   data-price="@snack.Price"
 											   id="snack-@snack.SnackId">
 										<span class="checkmark">Chọn</span>
 									</label>
@@ -288,278 +305,305 @@
 @section Scripts {
 	<script src="~/js/seat-selection.js" asp-append-version="true"></script>
 	<script>
-        // ✅ Khởi tạo biến toàn cục
-  const showTimeId = '@Model.ShowTimeId';
-  let selectedSnacks = [];
+				// ✅ Khởi tạo biến toàn cục
+		  const showTimeId = '@Model.ShowTimeId';
+		  let selectedSnacks = [];
 
-    // ===== MODAL FUNCTIONS =====
- 
-        // Mở modal xác nhận
-        window.openBookingModal = function() {
-     if (selectedSeats.length === 0) {
-   showBookingToast('⚠️ Vui lòng chọn ít nhất 1 ghế!', 'error');
-      return;
-        }
+			// ===== MODAL FUNCTIONS =====
 
-    // Tính toán
-          const seatTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
-    const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * s.quantity), 0);
-     const grandTotal = seatTotal + snackTotal;
-     const seatLabels = selectedSeats.map(s => s.label).join(', ');
+				// Mở modal xác nhận
+				window.openBookingModal = function() {
+			 if (selectedSeats.length === 0) {
+		   showBookingToast('⚠️ Vui lòng chọn ít nhất 1 ghế!', 'error');
+			  return;
+				}
 
-      // Điền dữ liệu ghế vào modal
-  document.getElementById('modalSeatCount').textContent = selectedSeats.length + ' ghế';
-      document.getElementById('modalSeatLabels').textContent = seatLabels;
-  document.getElementById('modalSeatTotal').textContent = seatTotal.toLocaleString('vi-VN') + ' đ';
+			// Tính toán
+				  const seatTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
+			const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * s.quantity), 0);
+			 const grandTotal = seatTotal + snackTotal;
+			 const seatLabels = selectedSeats.map(s => s.label).join(', ');
 
-     // ✅ Hiển thị danh sách snacks với input số lượng
-            const snacksList = document.getElementById('modalSnacksList');
-    snacksList.innerHTML = '';
+			  // Điền dữ liệu ghế vào modal
+		  document.getElementById('modalSeatCount').textContent = selectedSeats.length + ' ghế';
+			  document.getElementById('modalSeatLabels').textContent = seatLabels;
+		  document.getElementById('modalSeatTotal').textContent = seatTotal.toLocaleString('vi-VN') + ' đ';
 
-  if (selectedSnacks.length > 0) {
-  selectedSnacks.forEach((snack, index) => {
-    const snackDiv = document.createElement('div');
-   snackDiv.className = 'snack-quantity-item';
-    snackDiv.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-  <span style="color: #fff; flex: 1;">${snack.name || 'Snack'}</span>
-           <div style="display: flex; align-items: center; gap: 10px;">
-      <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, -1)">
- <i class="fas fa-minus"></i>
-        </button>
-  <input type="number" 
-          class="quantity-input" 
-         value="${snack.quantity}" 
-     min="1" 
-  max="10"
-         readonly
- style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 5px; border-radius: 5px;">
-      <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, 1)">
-           <i class="fas fa-plus"></i>
-      </button>
-   <span style="color: #22c55e; font-weight: bold; min-width: 100px; text-align: right;">
-           ${(snack.price * snack.quantity).toLocaleString('vi-VN')} đ
-  </span>
-           </div>
- </div>
-   `;
-         snacksList.appendChild(snackDiv);
-     });
-      } else {
-         snacksList.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 10px 0;">Chưa chọn đồ ăn</p>';
-    }
+			 // ✅ Hiển thị danh sách snacks với input số lượng
+					const snacksList = document.getElementById('modalSnacksList');
+			snacksList.innerHTML = '';
 
-   // Cập nhật tổng tiền
-       document.getElementById('modalSnackTotal').textContent = snackTotal.toLocaleString('vi-VN') + ' đ';
-     document.getElementById('modalGrandTotal').textContent = grandTotal.toLocaleString('vi-VN') + ' đ';
+		  if (selectedSnacks.length > 0) {
+		  selectedSnacks.forEach((snack, index) => {
+			const snackDiv = document.createElement('div');
+		   snackDiv.className = 'snack-quantity-item';
+			snackDiv.innerHTML = `
+			<div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+		  <span style="color: #fff; flex: 1;">${snack.name || 'Snack'}</span>
+				   <div style="display: flex; align-items: center; gap: 10px;">
+			  <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, -1)">
+		 <i class="fas fa-minus"></i>
+				</button>
+		  <input type="number"
+				  class="quantity-input"
+				 value="${snack.quantity}"
+			 min="1"
+		  max="10"
+				 readonly
+		 style="width: 50px; text-align: center; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 5px; border-radius: 5px;">
+			  <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, 1)">
+				   <i class="fas fa-plus"></i>
+			  </button>
+		   <span style="color: #22c55e; font-weight: bold; min-width: 100px; text-align: right;">
+				   ${(snack.price * snack.quantity).toLocaleString('vi-VN')} đ
+		  </span>
+				   </div>
+		 </div>
+		   `;
+				 snacksList.appendChild(snackDiv);
+			 });
+			  } else {
+				 snacksList.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 10px 0;">Chưa chọn đồ ăn</p>';
+			}
 
-    // Hiển thị modal
-     document.getElementById('bookingModalOverlay').classList.add('show');
-};
+		   // Cập nhật tổng tiền
+			   document.getElementById('modalSnackTotal').textContent = snackTotal.toLocaleString('vi-VN') + ' đ';
+			 document.getElementById('modalGrandTotal').textContent = grandTotal.toLocaleString('vi-VN') + ' đ';
 
- // ✅ Hàm cập nhật số lượng snack
-        window.updateSnackQuantity = function(index, change) {
-   if (index < 0 || index >= selectedSnacks.length) return;
+			// Hiển thị modal
+			 document.getElementById('bookingModalOverlay').classList.add('show');
+		};
 
-    const snack = selectedSnacks[index];
-  const newQuantity = snack.quantity + change;
+		 // ✅ Hàm cập nhật số lượng snack
+				window.updateSnackQuantity = function(index, change) {
+		   if (index < 0 || index >= selectedSnacks.length) return;
 
-    if (newQuantity < 1 || newQuantity > 10) {
-        showBookingToast('⚠️ Số lượng từ 1-10!', 'error');
-       return;
- }
+			const snack = selectedSnacks[index];
+		  const newQuantity = snack.quantity + change;
 
-      snack.quantity = newQuantity;
+			if (newQuantity < 1 || newQuantity > 10) {
+				showBookingToast('⚠️ Số lượng từ 1-10!', 'error');
+			   return;
+		 }
 
-  // Cập nhật lại modal
-   openBookingModal();
-        };
+			  snack.quantity = newQuantity;
 
-        // Đóng modal
-        window.closeBookingModal = function() {
-            document.getElementById('bookingModalOverlay').classList.remove('show');
-        };
+		  // Cập nhật lại modal
+		   openBookingModal();
+				};
 
-        // Xác nhận đặt vé
-      window.confirmBooking = async function() {
-     closeBookingModal();
-       showBookingLoading(true);
+				// Đóng modal
+				window.closeBookingModal = function() {
+					document.getElementById('bookingModalOverlay').classList.remove('show');
+				};
 
-      try {
-   // Lấy tất cả seatIds
- const allSeatIds = [];
-     selectedSeats.forEach(seat => {
-       const ids = seat.id.split(',');
-      allSeatIds.push(...ids);
-      });
+				// Xác nhận đặt vé
+			  window.confirmBooking = async function() {
+			 closeBookingModal();
+			   showBookingLoading(true);
 
-   // ✅ Chuẩn bị dữ liệu snacks với quantity
-     const snacksData = selectedSnacks.map(snack => ({
-    snackId: snack.id,
-        quantity: snack.quantity || 1 // ✅ Lấy quantity từ modal
-    }));
+			  try {
+		   // Lấy tất cả seatIds
+		 const allSeatIds = [];
+			 selectedSeats.forEach(seat => {
+			   const ids = seat.id.split(',');
+			  allSeatIds.push(...ids);
+			  });
+
+		   // ✅ Chuẩn bị dữ liệu snacks với quantity
+			 const snacksData = selectedSnacks.map(snack => ({
+			snackId: snack.id,
+				quantity: snack.quantity || 1 // ✅ Lấy quantity từ modal
+			}));
+
+		  const response = await fetch('/Booking/BookSeats', {
+				method: 'POST',
+				  headers: {
+		   'Content-Type': 'application/json',
+			},
+			   body: JSON.stringify({
+		  showTimeId: showTimeId,
+		  seatIds: allSeatIds,
+			snacks: snacksData
+		  })
+		});
+
+			   const result = await response.json();
+
+		   if (result.success) {
+				   showBookingToast('✅ Đặt vé thành công! Tổng tiền: ' + result.totalPrice.toLocaleString('vi-VN') + ' đ', 'success');
+
+		   // Đánh dấu ghế đã đặt
+		   document.querySelectorAll('.seat.selected, .couple-seat-wrapper.selected').forEach(el => {
+		  el.classList.remove('selected');
+					el.classList.add('booked');
+				el.onclick = null;
+
+			 const userIcons = el.querySelectorAll('.user-icon-wrapper, .user-icons');
+		 userIcons.forEach(icon => icon.style.display = 'none');
+				});
+
+			 // Reset
+			 selectedSeats = [];
+		  selectedSnacks = [];
+				   updateSummary();
+
+				 // Reload sau 3s
+		   setTimeout(() => {
+		   window.location.reload();
+			  }, 3000);
+		  } else {
+		  showBookingToast('❌ ' + result.message, 'error');
+		   }
+					} catch (error) {
+			  showBookingToast('❌ Lỗi: ' + error.message, 'error');
+			} finally {
+		  showBookingLoading(false);
+			 }
+			  };
+
+				// Hiển thị loading
+				function showBookingLoading(show) {
+			   const overlay = document.getElementById('bookingLoadingOverlay');
+					if (show) {
+		 overlay.classList.add('show');
+		   } else {
+				 overlay.classList.remove('show');
+		   }
+				}
+
+				// Hiển thị toast
+				function showBookingToast(message, type) {
+					const toast = document.getElementById('bookingToast');
+				toast.innerHTML = message;
+		   toast.className = 'booking-toast booking-toast-' + type + ' show';
+
+			setTimeout(() => {
+						toast.classList.remove('show');
+				}, 5000);
+			  }
+
+				// ===== SNACK SECTION =====
+
+				window.toggleSnackSection = function() {
+				const content = document.getElementById('snackContent');
+					const btn = document.getElementById('snackToggleBtn');
+			  const icon = btn.querySelector('i');
+
+			 if (content.style.display === 'none') {
+		 content.style.display = 'block';
+			 icon.classList.remove('fa-chevron-down');
+			  icon.classList.add('fa-chevron-up');
+				  } else {
+			   content.style.display = 'none';
+			  icon.classList.remove('fa-chevron-up');
+				 icon.classList.add('fa-chevron-down');
+		   }
+				};
+
+						document.querySelectorAll('.snack-checkbox').forEach(checkbox => {
+		  checkbox.addEventListener('change', () => {
+			const snackCard = checkbox.closest('.snack-card');
+			const labelText = snackCard.querySelector('.checkmark');
+			const snackId = checkbox.value;
+			const price = parseFloat(checkbox.getAttribute('data-price'));
+			const name = snackCard.querySelector('.snack-name').textContent;
+
+			if (checkbox.checked) {
+			  // ✅ Thêm snack vào danh sách và đổi chữ
+			  selectedSnacks.push({
+				id: snackId,
+				price: price,
+				name: name,
+				quantity: 1
+			  });
+			  labelText.textContent = 'Đã chọn';
+			  labelText.style.backgroundColor = '#22c55e';
+			  labelText.style.color = '#fff';
+			} else {
+			  // ❌ Bỏ snack khỏi danh sách và đổi lại chữ
+			  selectedSnacks = selectedSnacks.filter(s => s.id !== snackId);
+			  labelText.textContent = 'Chọn';
+			  labelText.style.backgroundColor = '';
+			  labelText.style.color = '';
+			}
+
+			updateSummary();
+			updateSnackCounter();
+		  });
+		});
 
 
-  const response = await fetch('/Booking/BookSeats', {
-        method: 'POST',
-          headers: {
-   'Content-Type': 'application/json',
-    },
-       body: JSON.stringify({
-  showTimeId: showTimeId,
-  seatIds: allSeatIds,
-    snacks: snacksData
-  })
-});
+			// ===== TOGGLE SEAT =====
 
-       const result = await response.json();
+				window.toggleSeat = function(element) {
+		  if (element.classList.contains('booked') || element.getAttribute('data-is-active') === 'false') {
+		 showBookingToast('⚠️ Ghế này không thể chọn!', 'error');
+		 return;
+		 }
 
-   if (result.success) {
-           showBookingToast('✅ Đặt vé thành công! Tổng tiền: ' + result.totalPrice.toLocaleString('vi-VN') + ' đ', 'success');
-      
-   // Đánh dấu ghế đã đặt
-   document.querySelectorAll('.seat.selected, .couple-seat-wrapper.selected').forEach(el => {
-  el.classList.remove('selected');
-            el.classList.add('booked');
-        el.onclick = null;
-      
-     const userIcons = el.querySelectorAll('.user-icon-wrapper, .user-icons');
- userIcons.forEach(icon => icon.style.display = 'none');
-        });
+				 const seatIds = element.getAttribute('data-seat-id').split(',');
+				const price = parseFloat(element.getAttribute('data-seat-price'));
+					const label = element.getAttribute('data-seat-label');
+					const isCouple = element.getAttribute('data-is-couple') === 'true';
 
-     // Reset
-     selectedSeats = [];
-  selectedSnacks = [];
-           updateSummary();
+					if (element.classList.contains('selected')) {
+			  element.classList.remove('selected');
 
-         // Reload sau 3s
-   setTimeout(() => {
-   window.location.reload();
-      }, 3000);
-  } else {
-  showBookingToast('❌ ' + result.message, 'error');
-   }
-            } catch (error) {
-      showBookingToast('❌ Lỗi: ' + error.message, 'error');
-    } finally {
-  showBookingLoading(false);
-     }
-      };
+				if (isCouple) {
+				const userIcons = element.querySelector('.user-icons');
+		  if (userIcons) userIcons.style.display = 'none';
+						} else {
+					  const userIcon = element.querySelector('.user-icon-wrapper');
+		   if (userIcon) userIcon.style.display = 'none';
+						}
 
-        // Hiển thị loading
-        function showBookingLoading(show) {
-       const overlay = document.getElementById('bookingLoadingOverlay');
-            if (show) {
- overlay.classList.add('show');
-   } else {
-         overlay.classList.remove('show');
-   }
-        }
+				if (isCouple) {
+			   const combinedId = seatIds.join(',');
+				 selectedSeats = selectedSeats.filter(s => s.id !== combinedId);
+		   } else {
+				selectedSeats = selectedSeats.filter(s => !seatIds.includes(s.id));
+				 }
+					} else {
+			  element.classList.add('selected');
 
-        // Hiển thị toast
-        function showBookingToast(message, type) {
-            const toast = document.getElementById('bookingToast');
-        toast.textContent = message;
-   toast.className = 'booking-toast booking-toast-' + type + ' show';
+				 if (isCouple) {
+				 const userIcons = element.querySelector('.user-icons');
+			   if (userIcons) userIcons.style.display = 'flex';
+				 } else {
+				  const userIcon = element.querySelector('.user-icon-wrapper');
+			if (userIcon) userIcon.style.display = 'flex';
+					 }
 
-    setTimeout(() => {
-                toast.classList.remove('show');
-        }, 5000);
-      }
+			selectedSeats.push({
+				 id: seatIds.join(','),
+			label: label,
+				 price: price,
+				isCouple: isCouple
+			  });
+		 }
 
-        // ===== SNACK SECTION =====
-  
-        window.toggleSnackSection = function() {
-        const content = document.getElementById('snackContent');
-            const btn = document.getElementById('snackToggleBtn');
-      const icon = btn.querySelector('i');
- 
-     if (content.style.display === 'none') {
- content.style.display = 'block';
-     icon.classList.remove('fa-chevron-down');
-      icon.classList.add('fa-chevron-up');
-          } else {
-       content.style.display = 'none';
-      icon.classList.remove('fa-chevron-up');
-         icon.classList.add('fa-chevron-down');
-   }
-        };
+					updateSummary();
+			};
 
-        document.querySelectorAll('.snack-checkbox').forEach(checkbox => {
-  checkbox.addEventListener('change', () => {
-    const snackId = checkbox.value;
-          const price = parseFloat(checkbox.getAttribute('data-price'));
-       const name = checkbox.closest('.snack-card').querySelector('.snack-name').textContent;
-  
-          if (checkbox.checked) {
-       selectedSnacks.push({ 
-         id: snackId, 
- price: price,
-       name: name,
- quantity: 1 // ✅ Mặc định số lượng = 1
-     });
-             } else {
-   selectedSnacks = selectedSnacks.filter(s => s.id !== snackId);
-  }
-     updateSummary();
-  });
-        });
+			// ✅ Hàm cập nhật bộ đếm snack
+			window.updateSnackCounter = function() {
+				const snackCount = selectedSnacks.length;
+				const countElement = document.getElementById('snackCount');
+				if (snackCount > 0) {
+					countElement.textContent = '(' + snackCount + ' mục đã chọn)';
+					countElement.style.backgroundColor = '#364747';
+					countElement.style.color = '#fff';
+					countElement.style.marginLeft = '8px';
+					countElement.style.fontSize = '13px';
+				} else {
+					countElement.textContent = '';
+				}
+			};
 
-    // ===== TOGGLE SEAT =====
- 
-        window.toggleSeat = function(element) {
-  if (element.classList.contains('booked')) {
-   showBookingToast('⚠️ Ghế này đã được đặt!', 'error');
-    return;
- }
-
-         const seatIds = element.getAttribute('data-seat-id').split(',');
-        const price = parseFloat(element.getAttribute('data-seat-price'));
-            const label = element.getAttribute('data-seat-label');
-            const isCouple = element.getAttribute('data-is-couple') === 'true';
-
-            if (element.classList.contains('selected')) {
-      element.classList.remove('selected');
-   
-        if (isCouple) {
-        const userIcons = element.querySelector('.user-icons');
-  if (userIcons) userIcons.style.display = 'none';
-                } else {
-              const userIcon = element.querySelector('.user-icon-wrapper');
-   if (userIcon) userIcon.style.display = 'none';
-                }
-
-        if (isCouple) {
-       const combinedId = seatIds.join(',');
-         selectedSeats = selectedSeats.filter(s => s.id !== combinedId);
-   } else {
-        selectedSeats = selectedSeats.filter(s => !seatIds.includes(s.id));
-         }
-            } else {
-      element.classList.add('selected');
-           
-         if (isCouple) {
-         const userIcons = element.querySelector('.user-icons');
-       if (userIcons) userIcons.style.display = 'flex';
-         } else {
-          const userIcon = element.querySelector('.user-icon-wrapper');
-    if (userIcon) userIcon.style.display = 'flex';
-             }
-
-    selectedSeats.push({
-         id: seatIds.join(','),
-    label: label,
-         price: price,
-        isCouple: isCouple
-      });
-   }
-
-            updateSummary();
-    };
-
-   // ✅ Tự động refresh trạng thái ghế mỗi 10 giây
-        setInterval(async () => {
- await refreshSeatsStatus();
-        }, 10000);
-    </script>
+		   // ✅ Tự động refresh trạng thái ghế mỗi 10 giây
+				setInterval(async () => {
+		 await refreshSeatsStatus();
+				}, 10000);
+	</script>
 }

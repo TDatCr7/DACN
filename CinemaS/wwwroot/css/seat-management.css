@@ -1,0 +1,432 @@
+/* ===== SEAT MANAGEMENT CSS ===== */
+
+.seat-management-container {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 20px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 15px;
+    color: #fff;
+}
+
+/* Header */
+.header-section {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+    .header-section h1 {
+        margin: 0;
+        font-size: 32px;
+        color: #ffd700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .header-section .subtitle {
+        margin: 10px 0 0 0;
+        font-size: 16px;
+        color: #e0e0e0;
+    }
+
+/* Chọn phòng chiếu */
+.theater-selector {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+    .theater-selector label {
+        font-size: 18px;
+        font-weight: bold;
+        color: #ffd700;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .theater-selector .form-select {
+        flex: 1;
+        max-width: 400px;
+        padding: 10px 15px;
+        font-size: 16px;
+        border: 2px solid #ffd700;
+        border-radius: 8px;
+        background: #2d3748;
+        color: #fff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .theater-selector .form-select:hover {
+            background: #3d4758;
+            border-color: #ffed4e;
+        }
+
+        .theater-selector .form-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+        }
+
+/* Thông tin phòng */
+.theater-info {
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+    .theater-info h3 {
+        margin: 0 0 10px 0;
+        font-size: 24px;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .theater-info p {
+        margin: 0;
+        font-size: 16px;
+        color: #e0e0e0;
+    }
+
+/* Màn hình */
+.screen-container {
+    text-align: center;
+    margin: 40px 0 30px 0;
+}
+
+.screen {
+    display: inline-block;
+    padding: 12px 100px;
+    background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
+    color: #333;
+    font-weight: bold;
+    font-size: 18px;
+    letter-spacing: 8px;
+    border-radius: 0 0 50px 50px;
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+    .screen::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 120%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #fff, transparent);
+    }
+
+/* Sơ đồ ghế */
+.seats-grid-container {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+/* Số cột */
+.column-numbers {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.row-label-space {
+    width: 40px;
+    flex-shrink: 0;
+}
+
+.column-number {
+    width: 45px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 0 3px;
+}
+
+/* Hàng ghế */
+.seat-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.row-label {
+    width: 40px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.seats-in-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+/* Ghế thường và VIP */
+.seat {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    border: 2px solid #718096;
+    border-radius: 8px 8px 2px 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .seat:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+    }
+
+    /* Ghế VIP */
+    .seat.vip {
+        border-color: #ffd700;
+        background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+    }
+
+    /* Ghế hỏng (inactive) */
+    .seat.inactive {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        border-color: #9ca3af;
+        opacity: 0.6;
+    }
+
+        .seat.inactive:hover {
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+        }
+
+/* Badge trên ghế (V, CP) */
+.seat-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+/* Icon ghế hỏng */
+.broken-icon {
+    position: absolute;
+    font-size: 24px;
+    color: #ef4444;
+    font-weight: bold;
+    z-index: 5;
+}
+
+/* Label nhỏ trên ghế */
+.seat-label-small {
+    position: absolute;
+    bottom: 2px; /* gần mép dưới hơn */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px; /* 👈 tăng nhẹ để rõ hơn */
+    font-weight: 600; /* đậm hơn cho dễ đọc */
+    color: #222; /* đậm hơn một chút */
+    background: rgba(255, 255, 255, 0.8); /* nền sáng mờ nhẹ */
+    padding: 1px 4px; /* tạo khung nhỏ quanh chữ */
+    border-radius: 3px; /* bo tròn nhẹ khung */
+    opacity: 0.9; /* giữ nhẹ nhàng, không quá gắt */
+    user-select: none;
+    pointer-events: none;
+}
+
+
+/* Ghế đôi */
+.couple-seat-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.couple-seat {
+    width: 96px;
+    height: 45px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    border: 2px solid #a78bfa;
+    border-radius: 12px 12px 4px 4px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.couple-seat-wrapper:hover .couple-seat {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
+}
+
+.couple-seat-wrapper.inactive .couple-seat {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    border-color: #9ca3af;
+    opacity: 0.6;
+}
+
+.couple-seat-wrapper.inactive:hover .couple-seat {
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+}
+
+.couple-seat-label {
+    font-size: 10px;
+    color: #e0e0e0;
+    margin-top: 3px;
+}
+
+/* Chú thích */
+.legend {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.legend-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .legend-item .seat,
+    .legend-item .couple-seat-wrapper {
+        transform: scale(0.8);
+    }
+
+    .legend-item span {
+        font-size: 14px;
+        color: #e0e0e0;
+    }
+
+/* Hướng dẫn */
+.instructions {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(34, 197, 94, 0.1);
+    border-left: 4px solid #22c55e;
+    border-radius: 8px;
+}
+
+    .instructions h5 {
+        margin: 0 0 15px 0;
+        font-size: 20px;
+        color: #22c55e;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .instructions ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .instructions li {
+        margin: 8px 0;
+        font-size: 15px;
+        color: #e0e0e0;
+    }
+
+/* No seats message */
+.no-seats-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: #9ca3af;
+}
+
+    .no-seats-message i {
+        color: #fbbf24;
+        margin-bottom: 20px;
+    }
+
+    .no-seats-message h3 {
+        margin: 20px 0 10px 0;
+        color: #e0e0e0;
+    }
+
+    .no-seats-message p {
+        margin: 0;
+        font-size: 16px;
+    }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .seat-management-container {
+        padding: 15px;
+    }
+
+    .header-section h1 {
+        font-size: 24px;
+    }
+
+    .theater-selector {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+        .theater-selector .form-select {
+            max-width: 100%;
+        }
+
+    .seat,
+    .couple-seat {
+        transform: scale(0.9);
+    }
+
+    .column-number,
+    .row-label {
+        font-size: 12px;
+    }
+}

@@ -4,7 +4,10 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-MsZmzC9Rv8YBuDfqZ4Z5u8bxIf9R27OgTfwAr7zEAm6wC6IY5HE0nC+EexVGqxKjMbMOB1gdzxuEYLVfE3O5og==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<!-- CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-MsZmzC9Rv8YBuDfqZ4Z5u8bxIf9R27OgTfwAr7zEAm6wC6IY5HE0nC+EexVGqxKjMbMOB1gdzxuEYLVfE3O5og=="
+      crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link rel="stylesheet" href="~/css/management.css" />
 <link rel="stylesheet" href="~/css/Create.css" />
 
@@ -75,37 +78,40 @@
 
                         <!-- Hàng 2: Ngày và giờ -->
                         <div class="row">
+                            <!-- Ngày chiếu -->
                             <div class="col-md-4 mb-3">
-                                <label class="form-label"><i class="fa-solid fa-calendar"></i> Ngày chiếu <span class="text-danger">*</span></label>
-                                <input asp-for="ShowDate" type="date" class="form-control" id="showDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                <label class="form-label">
+                                    <i class="fa-solid fa-calendar"></i> Ngày chiếu <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="ShowDate" type="date" class="form-control" id="showDate"
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                                 <span asp-validation-for="ShowDate" class="text-danger"></span>
                             </div>
 
+                            <!-- Giờ bắt đầu -->
                             <div class="col-md-4 mb-3">
-                                <label class="form-label"><i class="fa-solid fa-clock"></i> Giờ bắt đầu <span class="text-danger">*</span></label>
-                                <input type="time" name="startTimeInput" class="form-control" id="startTime" />
+                                <label class="form-label">
+                                    <i class="fa-solid fa-clock"></i> Giờ bắt đầu <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="time" name="startTimeInput" class="form-control" id="startTime" />
+                                </div>
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label class="form-label"><i class="fa-solid fa-hourglass-end"></i> Giờ kết thúc <span class="text-danger">*</span></label>
-                                <input type="time" name="endTimeInput" class="form-control" id="endTime" />
-                                <small class="text-muted" id="movieDurationInfo" style="display:none;">
-                                    <i class="fa-solid fa-circle-info"></i> Thời lượng phim: <span id="movieDuration">0</span> phút
+                                <label class="form-label">
+                                    <i class="fa-solid fa-hourglass-end"></i> Giờ kết thúc <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="time" name="endTimeInput" class="form-control" id="endTime" />
+                                    <button type="button" id="clearTimeBtn" class="btn btn-outline-danger" title="Xóa giờ bắt đầu & kết thúc">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <small class="text-white-50" id="movieDurationInfo" style="display:none;">
+                                    <i class="fa-solid fa-circle-info"></i> Thời lượng phim: <span id="movieDuration">0</span>
                                 </small>
-
-                                <div id="extraTimeSlider" style="display:none; margin-top:10px;">
-                                    <label class="form-label text-muted small">
-                                        <i class="fa-solid fa-sliders"></i> Thời gian dọn dẹp: <span id="extraTimeValue">15</span> phút
-                                    </label>
-                                    <input type="range" class="form-range" id="extraTime" min="5" max="30" value="15" step="5">
-                                    <div class="d-flex justify-content-between text-muted" style="font-size:0.75rem;">
-                                        <span>5'</span><span>10'</span><span>15'</span><span>20'</span><span>25'</span><span>30'</span>
-                                    </div>
-                                </div>
-
-                                <div id="durationWarning" class="alert alert-danger mt-2 py-2" style="display:none;">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> <span id="warningMessage"></span>
-                                </div>
                             </div>
                         </div>
 
@@ -132,12 +138,10 @@
                                                     }
                                                     else if (seatType.Name == "VIP")
                                                     {
-
                                                         <span class="badge bg-warning text-dark">Ghế VIP</span>
                                                     }
                                                     else if (seatType.Name == "COUPLE")
                                                     {
-
                                                         <span class="badge bg-danger">Ghế đôi</span>
                                                     }
                                                 </label>
@@ -170,107 +174,105 @@
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-
-    <script>
-        // Dữ liệu phim (ID - Thời lượng)
-        const moviesData = {
-            @if (ViewBag.MoviesWithDuration is Dictionary<string, int> moviesWithDuration)
-            {
-                    foreach (var item in moviesWithDuration)
-                    {
-                            @: '@item.Key': @item.Value,
-                    }
-            }
-        };
-
-        const movieSelect = document.getElementById('movieSelect');
-        const durationInfo = document.getElementById('movieDurationInfo');
-        const durationSpan = document.getElementById('movieDuration');
-        const sliderDiv = document.getElementById('extraTimeSlider');
-        const extraTime = document.getElementById('extraTime');
-        const extraTimeValue = document.getElementById('extraTimeValue');
-        const warningDiv = document.getElementById('durationWarning');
-        const warningMsg = document.getElementById('warningMessage');
-        const startTime = document.getElementById('startTime');
-        const endTime = document.getElementById('endTime');
-
-        movieSelect.addEventListener('change', () => {
-            const movieId = movieSelect.value;
-            if (movieId && moviesData[movieId]) {
-                durationSpan.textContent = moviesData[movieId];
-                durationInfo.style.display = 'block';
-                sliderDiv.style.display = 'block';
-                updateEndTime();
-            } else {
-                durationInfo.style.display = 'none';
-                sliderDiv.style.display = 'none';
-                endTime.value = '';
-                warningDiv.style.display = 'none';
-            }
-        });
-
-        startTime.addEventListener('change', updateEndTime);
-        extraTime.addEventListener('input', () => {
-            extraTimeValue.textContent = extraTime.value;
-            updateEndTime();
-        });
-
-        function updateEndTime() {
-            const movieId = movieSelect.value;
-            const start = startTime.value;
-            if (!movieId || !start || !moviesData[movieId]) return;
-
-            const duration = moviesData[movieId];
-            const cleaning = parseInt(extraTime.value);
-            const [h, m] = start.split(':').map(Number);
-            const total = h * 60 + m + duration + cleaning;
-            const endH = Math.floor(total / 60) % 24;
-            const endM = total % 60;
-
-            endTime.value = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-            checkDuration();
-        }
-
-        function checkDuration() {
-            const movieId = movieSelect.value;
-            if (!movieId || !startTime.value || !endTime.value) return;
-
-            const duration = moviesData[movieId];
-            const [sh, sm] = startTime.value.split(':').map(Number);
-            const [eh, em] = endTime.value.split(':').map(Number);
-
-            let startTotal = sh * 60 + sm;
-            let endTotal = eh * 60 + em;
-            if (endTotal < startTotal) endTotal += 24 * 60;
-
-            const actual = endTotal - startTotal;
-            if (actual < duration) {
-                warningMsg.textContent = `⛔ Thời gian chiếu ngắn hơn phim ${duration - actual} phút!`;
-                warningDiv.style.display = 'block';
-            } else {
-                warningDiv.style.display = 'none';
-            }
-        }
-
-        document.getElementById('createForm').addEventListener('submit', function (e) {
-            const movieId = movieSelect.value;
-            const cinemaId = document.getElementById('cinemaSelect').value;
-            const showDate = document.getElementById('showDate').value;
-
-            let errors = [];
-            if (!movieId) errors.push('• Vui lòng chọn phim');
-            if (!cinemaId) errors.push('• Vui lòng chọn phòng chiếu');
-            if (!showDate) errors.push('• Vui lòng chọn ngày chiếu');
-            if (!startTime.value) errors.push('• Vui lòng chọn giờ bắt đầu');
-            if (!endTime.value) errors.push('• Vui lòng chọn giờ kết thúc');
-
-            if (errors.length > 0) {
-                e.preventDefault();
-                alert('⚠️ Vui lòng kiểm tra lại:\n\n' + errors.join('\n'));
-            }
-        });
-    </script>
+    @await Html.PartialAsync("_ValidationScriptsPartial")
 }
+
+<!-- ====================== SCRIPT ====================== -->
+<script>
+    // --- Dữ liệu phim: ID -> thời lượng (phút)
+    const moviesData = {
+        @if (ViewBag.MoviesWithDuration is Dictionary<string, int> moviesWithDuration)
+        {
+                var last = moviesWithDuration.Last();
+                foreach (var item in moviesWithDuration)
+                {
+                        if (item.Key == last.Key)
+                        {
+                                @: '@item.Key': @item.Value
+                        }
+                        else
+                        {
+                                @: '@item.Key': @item.Value,
+                        }
+                }
+        }
+    };
+
+    const form = document.getElementById('createForm');
+    const movieSelect = document.getElementById('movieSelect');
+    const startTime = document.getElementById('startTime');
+    const endTime = document.getElementById('endTime');
+    const durationInfo = document.getElementById('movieDurationInfo');
+    const durationSpan = document.getElementById('movieDuration');
+    const warningDiv = document.getElementById('durationWarning');
+    const warningMsg = document.getElementById('warningMessage');
+    let userEditedEndTime = false;
+
+
+
+    // --- Ngăn Enter submit form
+    form.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
+    });
+
+    // --- Khi chọn phim
+    movieSelect.addEventListener('change', () => {
+        const movieId = movieSelect.value;
+        if (movieId && moviesData[movieId]) {
+            const duration = moviesData[movieId];
+            const hours = Math.floor(duration / 60);
+            const minutes = duration % 60;
+            let displayText = `${duration} phút`;
+            if (hours > 0 || minutes > 0)
+                displayText += ` (${hours > 0 ? hours + ' giờ' : ''}${minutes > 0 ? ' ' + minutes + ' phút' : ''})`;
+            durationSpan.textContent = displayText;
+            durationInfo.style.display = 'block';
+            if (startTime.value && !userEditedEndTime) updateEndTime();
+        } else {
+            durationInfo.style.display = 'none';
+            durationSpan.textContent = '';
+            if (!userEditedEndTime) endTime.value = '';
+        }
+    });
+
+    // --- Khi chọn giờ bắt đầu
+    startTime.addEventListener('change', () => {
+        if (!userEditedEndTime) updateEndTime();
+    });
+
+    // --- Khi chỉnh tay giờ kết thúc
+    endTime.addEventListener('input', () => userEditedEndTime = true);
+
+    // --- Cập nhật giờ kết thúc tự động
+    function updateEndTime() {
+        const movieId = movieSelect.value;
+        const start = startTime.value;
+        if (!movieId || !start || !moviesData[movieId]) return;
+
+        const duration = moviesData[movieId];
+        const [h, m] = start.split(':').map(Number);
+        const total = h * 60 + m + duration;
+        const endH = Math.floor(total / 60) % 24;
+        const endM = total % 60;
+
+        const pad = n => n.toString().padStart(2, '0');
+        endTime.value = `${pad(endH)}:${pad(endM)}`;
+
+        const ampm = endH >= 12 ? 'CH' : 'SA';
+        const h12 = endH % 12 || 12;
+        endTime.title = `Giờ kết thúc: ${pad(h12)}:${pad(endM)} ${ampm}`;
+
+        const startMinutes = h * 60 + m;
+        const endMinutes = endH * 60 + endM;
+
+        userEditedEndTime = false;
+    }
+        const clearBtn = document.getElementById('clearTimeBtn');
+    clearBtn.addEventListener('click', () => {
+        startTime.value = '';
+        endTime.value = '';
+        userEditedEndTime = false;
+        warningDiv.style.display = 'none';
+    });
+
+</script>

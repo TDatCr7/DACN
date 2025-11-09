@@ -1,7 +1,27 @@
-/* ===== SEAT SELECTION CSS ===== */
+/* ===== SEAT SELECTION CSS (Responsive + Centered) ===== */
+:root {
+    --seat-size: 45px; /* PC mặc định */
+    --gap-size: 6px;
+}
 
+/* Giảm kích thước trên tablet/mobile */
+@media (max-width: 992px) {
+    :root {
+        --seat-size: 38px;
+        --gap-size: 5px;
+    }
+}
+
+@media (max-width: 576px) {
+    :root {
+        --seat-size: 32px;
+        --gap-size: 4px;
+    }
+}
+
+/* ==== Layout chính ==== */
 .seat-selection-container {
- max-width: 1400px;
+    max-width: 1400px;
     margin: 20px auto;
     padding: 20px;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -9,7 +29,7 @@
     color: #fff;
 }
 
-/* Thông tin phim */
+/* ==== Phần thông tin phim ==== */
 .movie-info {
     display: flex;
     gap: 20px;
@@ -20,30 +40,21 @@
     backdrop-filter: blur(10px);
 }
 
-.movie-poster {
-    flex-shrink: 0;
-}
-
 .movie-poster img {
     width: 120px;
     height: 180px;
     object-fit: cover;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-}
-
-.movie-details {
-    flex: 1;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
 .movie-details h2 {
-  margin: 0 0 15px 0;
     font-size: 24px;
     color: #ffd700;
+    margin-bottom: 10px;
 }
 
 .movie-details p {
-    margin: 8px 0;
     font-size: 16px;
     color: #e0e0e0;
 }
@@ -53,166 +64,149 @@
     margin-right: 8px;
 }
 
-/* Màn hình */
+/* ==== Màn hình ==== */
 .screen-container {
     text-align: center;
-    margin: 40px 0 30px 0;
+    margin: 40px 0 25px 0;
 }
 
 .screen {
     display: inline-block;
     padding: 12px 100px;
-background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
     color: #333;
     font-weight: bold;
     font-size: 18px;
-    letter-spacing: 8px;
     border-radius: 0 0 50px 50px;
-    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
-    position: relative;
+    box-shadow: 0 8px 25px rgba(255,255,255,0.3);
 }
 
-.screen::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #fff, transparent);
-}
-
-/* Sơ đồ ghế */
+/* ==== Sơ đồ ghế ==== */
 .seats-grid-container {
     margin: 30px 0;
     padding: 20px;
-    background: rgba(0, 0, 0, 0.3);
- border-radius: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
 }
 
-/* Số cột */
+/* ===== Cột số (1–14) ===== */
 .column-numbers {
     display: flex;
     justify-content: center;
-    margin-bottom: 10px;
+    align-items: flex-end;
+    margin-bottom: clamp(4px, 1vw, 8px);
+    gap: var(--gap-size);
+    height: var(--seat-size);
+    transform: translateY(2px);
 }
 
 .row-label-space {
-    width: 40px;
+    width: var(--seat-size);
     flex-shrink: 0;
 }
 
 .column-number {
-    width: 45px;
-    height: 30px;
+    width: var(--seat-size);
+    height: var(--seat-size);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffd700;
+    font-size: clamp(12px, 2vw, 16px);
     font-weight: bold;
-    font-size: 14px;
-    margin: 0 3px;
+    color: #ffd700;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
 }
 
-/* Hàng ghế */
+/* ===== Hàng ghế ===== */
 .seat-row {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 8px 0;
+    margin: 6px 0;
 }
 
 .row-label {
-    width: 40px;
-    height: 45px;
+    width: var(--seat-size);
+    height: var(--seat-size);
     display: flex;
     align-items: center;
-  justify-content: center;
+    justify-content: center;
     color: #ffd700;
     font-weight: bold;
-    font-size: 18px;
-    flex-shrink: 0;
+    font-size: clamp(14px, 2vw, 18px);
 }
 
 .seats-in-row {
     display: flex;
-    gap: 6px;
+    gap: var(--gap-size);
     justify-content: center;
 }
 
-/* Ghế thường và VIP */
+/* ===== Ghế ===== */
 .seat {
- width: 45px;
-    height: 45px;
+    width: var(--seat-size);
+    height: var(--seat-size);
     background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
     border: 2px solid #718096;
     border-radius: 8px 8px 2px 2px;
-    cursor: pointer;
-    transition: all 0.3s ease;
- position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
 }
 
-.seat:hover:not(.booked) {
-    transform: scale(1.1);
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
-}
+    .seat:hover:not(.booked) {
+        transform: scale(1.08);
+        box-shadow: 0 4px 12px rgba(255,215,0,0.5);
+    }
 
-/* Ghế VIP */
-.seat.vip {
-    border-color: #ffd700;
-    background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
-}
+    .seat.vip {
+        border-color: #ffd700;
+        background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+    }
 
-/* Ghế đã chọn */
-.seat.selected {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border-color: #60a5fa;
-    transform: scale(1.05);
-}
+    .seat.selected {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        border-color: #60a5fa;
+    }
 
-/* Ghế đã đặt */
-.seat.booked {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border-color: #34d399;
-    cursor: not-allowed;
-}
+    .seat.booked {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        border-color: #9ca3af;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
 
-.seat.booked::after {
-    content: '🔒';
+.broken-icon {
     position: absolute;
-    font-size: 18px;
+    font-size: 20px;
+    color: #ef4444;
+    font-weight: bold;
 }
 
-/* Badge trên ghế (V, CP) */
+/* Badge ghế (V, CP) */
 .seat-badge {
     position: absolute;
-    top: -8px;
-    right: -8px;
+    top: -6px;
+    right: -6px;
     background: #ef4444;
     color: #fff;
     font-size: 10px;
     font-weight: bold;
     padding: 2px 6px;
     border-radius: 10px;
-    z-index: 2;
 }
 
-.seat.vip .seat-badge {
-    background: #ffd700;
-    color: #000;
-}
-
-/* Icon user */
+/* Icon người */
 .user-icon-wrapper {
     display: none;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     height: 100%;
-    align-items: center;
- justify-content: center;
 }
 
 .seat.selected .user-icon-wrapper {
@@ -220,12 +214,12 @@ background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
 }
 
 .user-icon {
-    width: 24px;
- height: 24px;
+    width: 20px;
+    height: 20px;
     filter: brightness(0) invert(1);
 }
 
-/* Ghế đôi */
+/* ===== Ghế đôi ===== */
 .couple-seat-wrapper {
     display: flex;
     flex-direction: column;
@@ -235,113 +229,67 @@ background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
 }
 
 .couple-seat {
-    width: 90px;
-    height: 50px;
+    width: calc(var(--seat-size) * 2);
+    height: calc(var(--seat-size) + 5px);
     background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
     border: 3px solid #f472b6;
     border-radius: 25px;
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
 }
 
-.couple-seat::before {
-    content: '';
-    position: absolute;
-    width: 1px;
-    height: 70%;
-    background: rgba(255, 255, 255, 0.3);
-    left: 50%;
-    transform: translateX(-50%);
-}
-
-.couple-seat-wrapper:hover:not(.booked) .couple-seat {
-    transform: scale(1.1);
-    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.5);
-}
-
 .couple-seat-wrapper.selected .couple-seat {
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     border-color: #60a5fa;
-    transform: scale(1.05);
 }
 
-.couple-seat-wrapper.booked .couple-seat {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border-color: #34d399;
-    cursor: not-allowed;
-}
-
-.couple-seat-wrapper.booked::after {
-    content: '🔒';
-    position: absolute;
-    top: 50%;
-    left: 50%;
- transform: translate(-50%, -50%);
-    font-size: 20px;
-}
-
-.couple-seat-label {
-    margin-top: 5px;
-    font-size: 11px;
-    color: #cbd5e0;
-    font-weight: 600;
-}
-
-/* Icon user cho ghế đôi */
-.user-icons {
-    display: none;
-    gap: 5px;
-    width: 100%;
-    height: 100%;
-    align-items: center;
-    justify-content: center;
-}
-
-.couple-seat-wrapper.selected .user-icons {
-    display: flex;
-}
-
-/* Chú thích */
+/* ===== Chú thích ===== */
 .legend {
-    margin: 40px 0;
+    margin: 40px 0 20px 0;
     padding: 20px;
-background: rgba(255, 255, 255, 0.05);
+    background: rgba(255,255,255,0.05);
     border-radius: 10px;
 }
 
 .legend-title {
     font-size: 18px;
     font-weight: bold;
-    margin-bottom: 15px;
     color: #ffd700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .legend-items {
- display: flex;
-    flex-wrap: wrap;
+display: flex;
+flex-wrap: wrap;
     gap: 20px;
+    align-items: center;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
     gap: 10px;
-}
-
-.legend-item .seat,
-.legend-item .couple-seat-wrapper {
-    transform: scale(0.8);
+    min-width: 120px;
 }
 
 .legend-item span {
     font-size: 14px;
-    color: #e0e0e0;
+    white-space: nowrap;
 }
 
-/* Thông tin đặt vé */
+/* Ensure proper alignment for 'Đã Đặt' legend */
+.legend-item .seat.booked {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: #991b1b;
+    opacity: 1;
+}
+
+/* ===== Thông tin đặt vé ===== */
 .booking-summary {
     position: sticky;
     bottom: 0;
@@ -353,83 +301,56 @@ background: rgba(255, 255, 255, 0.05);
     justify-content: space-between;
     align-items: center;
     margin-top: 30px;
+    flex-wrap: wrap;
 }
 
-.summary-content {
-    flex: 1;
-}
-
-.selected-info,
-.total-price {
-    margin: 5px 0;
-    font-size: 16px;
-}
-
-.selected-info strong,
-.total-price strong {
+.selected-info strong, .total-price strong {
     color: #ffd700;
 }
 
 #totalPrice {
-    font-size: 24px;
-    font-weight: bold;
     color: #22c55e;
+    font-size: 22px;
+    font-weight: bold;
 }
 
 .btn-book {
-    padding: 15px 40px;
+    padding: 12px 30px;
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     color: #fff;
     border: none;
     border-radius: 8px;
-    font-size: 18px;
     font-weight: bold;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
 }
 
-.btn-book:hover:not(:disabled) {
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-    transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
-}
+    .btn-book:hover:not(:disabled) {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        transform: translateY(-2px);
+    }
 
-.btn-book:disabled {
-    background: #4b5563;
- cursor: not-allowed;
-    opacity: 0.5;
-}
+    .btn-book:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
-.btn-book i {
-    margin-right: 8px;
-}
-
-/* Responsive */
+/* ===== Responsive cho mobile ===== */
 @media (max-width: 768px) {
     .movie-info {
         flex-direction: column;
-      text-align: center;
+        text-align: center;
     }
 
     .movie-poster img {
         margin: 0 auto;
- }
-
-    .seat, .column-number {
-        width: 35px;
-   height: 35px;
-        font-size: 12px;
-    }
-
-    .couple-seat {
-        width: 70px;
-        height: 40px;
     }
 
     .booking-summary {
         flex-direction: column;
-        gap: 15px;
+        align-items: flex-start;
+        gap: 10px;
     }
 
     .btn-book {
@@ -437,169 +358,128 @@ background: rgba(255, 255, 255, 0.05);
     }
 }
 
-/* ===== SNACK SELECTION - COMPACT STYLE ===== */
+/* ===== SNACK SELECTION ===== */
 .snack-selection {
-    margin: 30px 0;
+    margin: 30px 0 20px 0;
     padding: 20px;
-background: rgba(255, 255, 255, 0.05);
+    background: rgba(255,255,255,0.05);
     border-radius: 10px;
 }
 
 .snack-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+ align-items: center;
     cursor: pointer;
-    padding: 10px 15px;
- background: rgba(255, 255, 255, 0.08);
+    padding: 10px;
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease;
 }
 
 .snack-header:hover {
- background: rgba(255, 255, 255, 0.12);
+    background: rgba(255,255,255,0.1);
 }
 
 .snack-header h5 {
     color: #ffd700;
- margin: 0;
-    font-size: 20px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .btn-collapse {
-    background: transparent;
+  background: none;
     border: none;
-   color: #ffd700;
-    font-size: 20px;
+    color: #ffd700;
+    font-size: 18px;
     cursor: pointer;
+    padding: 0;
     transition: transform 0.3s ease;
-    padding: 5px 10px;
-}
-
-.btn-collapse:hover {
-    transform: scale(1.1);
 }
 
 .snack-content {
     margin-top: 15px;
-    animation: slideDown 0.3s ease;
+    display: none;
 }
 
-@keyframes slideDown {
-    from {
-      opacity: 0;
-   transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.snack-content.show {
+    display: block;
 }
 
 .snack-card {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255,255,255,0.08);
     border-radius: 10px;
     overflow: hidden;
-    transition: all 0.3s ease;
-    cursor: pointer;
- border: 2px solid transparent;
+    transition: transform 0.3s ease;
 }
 
 .snack-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
-    border-color: #ffd700;
 }
 
 .snack-image {
-  width: 100%;
-  height: 120px;
+    width: 100%;
+    height: 150px;
     overflow: hidden;
-    background: #1a1a2e;
+    background: rgba(0,0,0,0.3);
 }
 
 .snack-image img {
     width: 100%;
-height: 100%;
+    height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.snack-card:hover .snack-image img {
-    transform: scale(1.1);
 }
 
 .snack-info {
-  padding: 12px;
-    text-align: center;
+    padding: 12px;
+  text-align: center;
 }
 
 .snack-name {
-    font-size: 13px;
-    font-weight: 600;
     color: #fff;
-    margin: 0 0 8px 0;
-    min-height: 32px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 14px;
+    margin-bottom: 5px;
 }
 
 .snack-price {
-    font-size: 16px;
-    font-weight: bold;
     color: #22c55e;
-    margin: 0 0 10px 0;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
 .snack-checkbox-wrapper {
-    display: block;
-cursor: pointer;
+    display: flex;
+  align-items: center;
+    justify-content: center;
+    cursor: pointer;
 }
 
 .snack-checkbox {
     display: none;
 }
 
-.snack-checkbox + .checkmark {
-    display: inline-block;
-    padding: 6px 20px;
-  background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border: 2px solid #4b5563;
-    border-radius: 20px;
-    font-size: 13px;
-  font-weight: 600;
+.checkmark {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #fff;
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .snack-checkbox:checked + .checkmark {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    border-color: #22c55e;
+}
+
+/* Snack counter badge */
+.snack-badge-count {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     color: #fff;
-}
-
-.snack-checkbox:checked + .checkmark::before {
- content: '✓ ';
-}
-
-/* Responsive snack cards */
-@media (max-width: 576px) {
-    .snack-card {
-      margin-bottom: 15px;
-    }
-    
-    .snack-image {
-        height: 100px;
-    }
-    
-    .snack-name {
-        font-size: 12px;
-        min-height: 28px;
- }
-    
-.snack-price {
-   font-size: 14px;
-    }
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 8px;
+    display: inline-block;
 }
