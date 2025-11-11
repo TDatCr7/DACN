@@ -1,48 +1,263 @@
 ﻿@model IEnumerable<CinemaS.Models.Seats>
 
 @{
-    ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Quản Lý Ghế";
+	Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/management.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/seat-management.css" asp-append-version="true" />
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.RowIndex)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ColumnIndex)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Label)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.RowIndex)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ColumnIndex)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Label)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.SeatId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.SeatId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.SeatId">Delete</a>
-            </td>
-        </tr>
+
+<div class="seat-selection-container">
+	<div class="header-section">
+		<h1><i class="fas fa-chair"></i> Quản Lý Ghế Phòng Chiếu</h1>
+		<p class="subtitle">Click vào ghế để báo hỏng hoặc phục hồi</p>
+	</div>
+
+	<!-- Chọn phòng chiếu -->
+	<div class="theater-selector">
+		<label for="theaterSelect">
+			<i class="fas fa-door-open"></i> Chọn Phòng Chiếu:
+		</label>
+		<select id="theaterSelect" class="form-select" onchange="changeTheater()">
+			@if (ViewBag.CinemaTheaters != null)
+			{
+				@foreach (var theater in ViewBag.CinemaTheaters)
+				{
+					var selected = theater.CinemaTheaterId == ViewBag.SelectedTheaterId ? "selected" : "";
+					<option value="@theater.CinemaTheaterId" selected="@selected">
+						@theater.Name
+					</option>
+				}
+			}
+		</select>
+	</div>
+
+	@if (Model != null && Model.Any())
+	{
+		<!-- Thông tin phòng chiếu -->
+		<div class="movie-info">
+			<div class="movie-details">
+				<h2><i class="fas fa-film"></i> @ViewBag.TheaterName</h2>
+				<p><i class="fas fa-chair"></i> <strong>Tổng số ghế:</strong> @Model.Count()</p>
+				<p><i class="fas fa-check-circle"></i> <strong>Ghế hoạt động:</strong> @Model.Count(s => s.IsActive)</p>
+				<p><i class="fas fa-times-circle"></i> <strong>Ghế hỏng:</strong> @Model.Count(s => !s.IsActive)</p>
+			</div>
+		</div>
+
+		<!-- Màn hình -->
+		<div class="screen-container">
+			<div class="screen">MÀN HÌNH</div>
+		</div>
+
+		<!-- Sơ đồ ghế -->
+		<div class="seats-grid-container">
+			<!-- Số cột -->
+			<div class="column-numbers">
+				<div class="row-label-space"></div>
+				@for (int col = 1; col <= ViewBag.NumOfColumns; col++)
+				{
+					<div class="column-number">@col</div>
+				}
+			</div>
+
+			<!-- Các hàng ghế -->
+			@{
+				var rows = Model.GroupBy(s => s.RowIndex).OrderBy(g => g.Key);
+				var seatTypes = ViewBag.SeatTypes as List<CinemaS.Models.SeatTypes>;
+			}
+
+			@foreach (var row in rows)
+			{
+				<div class="seat-row">
+					<!-- Ký hiệu hàng -->
+					<div class="row-label">@row.Key</div>
+
+					<!-- Ghế trong hàng -->
+					<div class="seats-in-row">
+						@foreach (var seat in row.OrderBy(s => s.ColumnIndex))
+						{
+							var seatType = seatTypes?.FirstOrDefault(st => st.SeatTypeId == seat.SeatTypeId);
+							var seatClass = seat.IsActive ? "" : "inactive";
+
+							if (seatType?.Name == "VIP")
+							{
+								seatClass += " vip";
+							}
+							else if (seatType?.Name == "COUPLE")
+							{
+								seatClass += " couple";
+							}
+							else
+							{
+								seatClass += " normal";
+							}
+
+							<div class="seat @seatClass"
+								 data-seat-id="@seat.SeatId"
+								 data-seat-label="@seat.Label"
+								 data-is-active="@seat.IsActive.ToString().ToLower()"
+								 onclick="toggleSeatStatus('@seat.SeatId')">
+								@if (seatType?.Name == "VIP")
+								{
+									<span class="seat-badge">V</span>
+								}
+								else if (seatType?.Name == "COUPLE")
+								{
+									<span class="seat-badge">CP</span>
+								}
+								@if (!seat.IsActive)
+								{
+									<span class="broken-icon">✗</span>
+								}
+								<div class="seat-label-small">@seat.Label</div>
+							</div>
+						}
+					</div>
+
+					<!-- Ký hiệu hàng bên phải -->
+					<div class="row-label">@row.Key</div>
+				</div>
+			}
+		</div>
+
+		<!-- Danh sách suất chiếu -->
+		@if (ViewBag.ShowTimes != null && ((List<CinemaS.Models.ViewModels.ShowTimeVM>)ViewBag.ShowTimes).Any())
+		{
+			<div class="showtimes-section custom-showtimes table-container">
+				<h3>
+					<i class="fas fa-clock"></i> Danh Sách Suất Chiếu Sắp Tới
+				</h3>
+				<table class="table table-dark table-hover">
+					<thead>
+						<tr>
+							<th>Phim</th>
+							<th>Ngày Chiếu</th>
+							<th>Giờ Bắt Đầu</th>
+							<th>Giờ Kết Thúc</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var showTime in (List<CinemaS.Models.ViewModels.ShowTimeVM>)ViewBag.ShowTimes)
+						{
+							<tr>
+								<td>@showTime.MovieTitle</td>
+								<td>@showTime.ShowDate?.ToString("dd-MM-yyyy")</td>
+								<td>@showTime.StartTime?.ToString("HH:mm")</td>
+								<td>@showTime.EndTime?.ToString("HH:mm")</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+
+		}
+		else
+		{
+			<div class="no-showtimes-message">
+				<i class="fas fa-exclamation-circle"></i>
+				<p>Không có suất chiếu nào sắp tới cho phòng này.</p>
+			</div>
+		}
+	}
+	else
+	{
+		<div class="no-seats-message">
+			<i class="fas fa-exclamation-triangle"></i>
+			<h3>Chưa có ghế nào trong phòng chiếu này</h3>
+			<p>Ghế sẽ được tạo tự động khi bạn tạo suất chiếu mới cho phòng này.</p>
+		</div>
+	}
+</div>
+
+@section Scripts {
+	<script src="~/js/toast-notification.js" asp-append-version="true"></script>
+	<script>
+		 function changeTheater() {
+		 var theaterId = document.getElementById('theaterSelect').value;
+		 if (theaterId) {
+		window.location.href = '@Url.Action("Index", "Seats")?cinemaTheaterId=' + theaterId;
+		 }
+		 }
+
+		 function toggleSeatStatus(seatId) {
+		 if (!seatId) return;
+
+		 const seatElement = document.querySelector(`[data-seat-id="${seatId}"]`);
+		 if (!seatElement) {
+		 showToast('Không tìm thấy ghế', 'error');
+		 return;
+		 }
+
+		 // Gọi API để toggle trạng thái
+		 fetch('@Url.Action("ToggleActive", "Seats")', {
+		 method: 'POST',
+		 headers: {
+		 'Content-Type': 'application/json'
+		 },
+		 body: JSON.stringify(seatId)
+		 })
+		 .then(response => response.json())
+		 .then(data => {
+		 if (data.success) {
+		// Cập nhật UI ngay lập tức
+		 if (data.isActive) {
+		 seatElement.classList.remove('inactive');
+		 // Xóa icon hỏng nếu có
+		 const brokenIcon = seatElement.querySelector('.broken-icon');
+		 if (brokenIcon) brokenIcon.remove();
+		 } else {
+		 seatElement.classList.add('inactive');
+		 // Thêm icon hỏng nếu chưa có
+		 if (!seatElement.querySelector('.broken-icon')) {
+		 const icon = document.createElement('span');
+		 icon.className = 'broken-icon';
+		 icon.textContent = '✗';
+		 seatElement.insertBefore(icon, seatElement.querySelector('.seat-label-small'));
+		 }
+		 }
+
+		 // Cập nhật attribute
+		 seatElement.setAttribute('data-is-active', data.isActive.toString());
+
+		 // Hiển thị thông báo thành công
+		 showToast(data.message, 'success');
+
+		 // Cập nhật số liệu thống kê
+		 updateStatistics();
+		 } else {
+		 showToast(data.message, 'error');
+		 }
+		 })
+		 .catch(error => {
+		 console.error('Error:', error);
+		 showToast('Có lỗi xảy ra khi cập nhật trạng thái ghế', 'error');
+		 });
+		 }
+
+		 // Cập nhật số liệu thống kê
+		 function updateStatistics() {
+		 const allSeats = document.querySelectorAll('.seat');
+		 const inactiveSeats = document.querySelectorAll('.seat.inactive');
+
+		 const total = allSeats.length;
+		 const broken = inactiveSeats.length;
+		 const active = total - broken;
+
+
+		 // Cập nhật hiển thị
+		 const movieDetails = document.querySelector('.movie-details');
+		 if (movieDetails) {
+		 const paragraphs = movieDetails.querySelectorAll('p');
+		 if (paragraphs.length >= 3) {
+		 paragraphs[1].innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <strong>Ghế hoạt động:</strong> ' + active;
+		 paragraphs[2].innerHTML = '<i class="fas fa-times-circle" style="color: #ef4444;"></i> <strong>Ghế hỏng:</strong> ' + broken;
+		 }
+		 }
+		 }
+	</script>
 }
-    </tbody>
-</table>

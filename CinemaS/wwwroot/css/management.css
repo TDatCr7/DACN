@@ -346,9 +346,34 @@ h1, h2, h3, h4, h5 {
         }
 /* Ensure correct z-index for modal and backdrop */
 .modal-backdrop.show {
- opacity:0.5 !important;
- z-index:1050 !important;
+    opacity: 0.5 !important;
+    z-index: 1050 !important;
 }
+
 .modal {
- z-index:1060 !important;
+    z-index: 1060 !important;
 }
+/* 🎬 Custom cho bảng suất chiếu */
+.custom-showtimes .table {
+    background-color: var(--dark-card) !important;
+    color: var(--text-light) !important;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+    .custom-showtimes .table thead {
+        background: linear-gradient(90deg, var(--indigo), var(--purple));
+        color: #fff !important;
+    }
+
+    .custom-showtimes .table tbody tr:hover {
+        background-color: rgba(124, 58, 237, 0.15);
+        transform: scale(1.005);
+        transition: all 0.25s ease;
+    }
+
+    .custom-showtimes .table td,
+    .custom-showtimes .table th {
+        padding: 12px 18px;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }

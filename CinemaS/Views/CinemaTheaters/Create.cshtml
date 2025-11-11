@@ -66,14 +66,23 @@
 						</div>
 
 
-							<div class="d-flex justify-content-between mt-4">
- <button type="button" class="btn btn-secondary" onclick="history.back()">
- <i class="fas fa-arrow-left"></i> Quay lại
- </button>
- <button type="submit" class="btn btn-success" id="submitBtn">
- <i class="fas fa-save"></i> Tạo phòng và ghế
- </button>
-</div>
+						<div class="d-flex justify-content-between align-items-center mt-4">
+							<!-- Bên trái: Quay lại -->
+							<button type="button" class="btn btn-secondary" onclick="history.back()">
+								<i class="fas fa-arrow-left"></i> Quay lại
+							</button>
+
+							<!-- Giữa: Liên kết quản lý loại ghế -->
+							<a asp-action="Index" asp-controller="SeatTypes" class="btn btn-info">
+								<i class="fa-solid fa-couch"></i> Quản lý loại ghế
+							</a>
+
+							<!-- Bên phải: Nút chính -->
+							<button type="submit" class="btn btn-success" id="submitBtn">
+								<i class="fas fa-save"></i> Tạo phòng và ghế
+							</button>
+						</div>
+
 					</form>
 				</div>
 			</div>

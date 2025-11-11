@@ -1,8 +1,8 @@
 ﻿@model IEnumerable<CinemaS.Models.Snacks>
 
 @{
-    ViewData["Title"] = "Quản lý Đồ Ăn";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Quản lý Đồ Ăn";
+	Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <link rel="stylesheet" href="~/css/management.css" />
@@ -10,156 +10,157 @@
 <link rel="stylesheet" href="~/css/Snacks.css" />
 
 <div class="container-fluid mt-4">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="fw-bold">
-            <i class="fas fa-utensils"></i> Quản lý Đồ Ăn
-        </h1>
-        <div class="d-flex gap-2">
-            <a asp-action="Create" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> Tạo mới
-            </a>
-            <button type="button" class="btn btn-secondary" onclick="window.location.href='@Url.Action("Management", "Snacks")'">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </button>
-        </div>
-    </div>
+	<!-- Header -->
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h1 class="fw-bold">
+			<i class="fas fa-utensils"></i> Quản lý Đồ Ăn
+		</h1>
+		<div class="d-flex gap-2">
+			<a asp-action="Create" class="btn btn-primary">
+				<i class="fas fa-plus-circle"></i> Tạo mới
+			</a>
+			<button type="button" class="btn btn-secondary" onclick="history.back()">
+				<i class="fas fa-arrow-left"></i> Quay lại
+			</button>
 
-    <!-- Alerts -->
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i> @TempData["Message"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-    @if (TempData["Warning"] != null)
-    {
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-times-circle"></i> @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+		</div>
+	</div>
 
-    <!-- Search -->
-    <div class="card mb-4 shadow-sm border-0">
-        <div class="card-body">
-            <form asp-action="Index" method="get" class="row g-3 align-items-center">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" name="searchString" value="@ViewData["CurrentFilter"]"
-                               class="form-control" placeholder="🔍 Tìm theo tên, mã hoặc mô tả..." />
-                        <button type="submit" class="btn btn-outline-secondary">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-                        {
-                            <a href="@Url.Action("Index")" class="btn btn-outline-danger" title="Xóa tìm kiếm">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        }
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
+	<!-- Alerts -->
+	@if (TempData["Message"] != null)
+	{
+		<div class="alert alert-success alert-dismissible fade show" role="alert">
+			<i class="fas fa-check-circle"></i> @TempData["Message"]
+			<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+	}
+	@if (TempData["Warning"] != null)
+	{
+		<div class="alert alert-warning alert-dismissible fade show" role="alert">
+			<i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+			<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+	}
+	@if (TempData["Error"] != null)
+	{
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			<i class="fas fa-times-circle"></i> @TempData["Error"]
+			<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+		</div>
+	}
 
-    <!-- Table -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-dark text-center">
-                        <tr>
-                            <th>STT</th>
-                            <th>Ảnh</th>
-                            <th>Mã</th>
-                            <th>Tên</th>
-                            <th>Giá (VNĐ)</th>
-                            <th>Mô tả</th>
-                            <th>Trạng thái</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            int index = 1;
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td class="text-center fw-bold">@index</td>
-                                    <td class="text-center">
-                                        <img src="@(string.IsNullOrEmpty(item.Image) ? "/images/snacks/default-snack.png" : item.Image)"
-                                             alt="@item.Name" class="rounded snack-image shadow-sm" />
-                                    </td>
-                                    <td><strong>@item.SnackId</strong></td>
-                                    <td>@item.Name</td>
-                                    <td class="text-end text-primary fw-semibold">
-                                        @(item.Price.HasValue? item.Price.Value.ToString("N0") : "Chưa định giá")
-                                    </td>
-                                    <td>
-                                        @(string.IsNullOrEmpty(item.Description)
-                                                                        ? Html.Raw("<span class='text-muted'>Không có mô tả</span>")
-                                                                        : (item.Description.Length > 50
-                                                                        ? item.Description.Substring(0, 50) + "..."
-                                                                        : item.Description))
-                            </td>
-                            <td class="text-center">
-                                @if (item.IsActive == true)
-                                        {
-                                            <span class="badge bg-success"><i class="fas fa-check"></i> Đang bán</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary"><i class="fas fa-ban"></i> Ngừng bán</span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <a asp-action="Details" asp-route-id="@item.SnackId" class="btn btn-sm btn-info me-1" title="Chi tiết">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a asp-action="Edit" asp-route-id="@item.SnackId" class="btn btn-sm btn-warning me-1" title="Chỉnh sửa">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.SnackId" class="btn btn-sm btn-danger" title="Xóa">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                index++;
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="8" class="text-center py-4 text-muted">
-                                    <i class="fas fa-inbox fa-3x mb-3"></i><br />
-                                    <strong>Không tìm thấy đồ ăn nào</strong>
-                                    @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-                                    {
-                                        <p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+	<!-- Search -->
+	<div class="card mb-4 shadow-sm border-0">
+		<div class="card-body">
+			<form asp-action="Index" method="get" class="row g-3 align-items-center">
+				<div class="col-md-6">
+					<div class="input-group">
+						<input type="text" name="searchString" value="@ViewData["CurrentFilter"]"
+							   class="form-control" placeholder="🔍 Tìm theo tên, mã hoặc mô tả..." />
+						<button type="submit" class="btn btn-outline-secondary">
+							<i class="fas fa-search"></i>
+						</button>
+						@if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+						{
+							<a href="@Url.Action("Index")" class="btn btn-outline-danger" title="Xóa tìm kiếm">
+								<i class="fas fa-times"></i>
+							</a>
+						}
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Table -->
+	<div class="card shadow-sm border-0">
+		<div class="card-body">
+			<div class="table-responsive">
+				<table class="table table-hover align-middle">
+					<thead class="table-dark text-center">
+						<tr>
+							<th>STT</th>
+							<th>Ảnh</th>
+							<th>Mã</th>
+							<th>Tên</th>
+							<th>Giá (VNĐ)</th>
+							<th>Mô tả</th>
+							<th>Trạng thái</th>
+							<th>Hành động</th>
+						</tr>
+					</thead>
+					<tbody>
+						@if (Model != null && Model.Any())
+						{
+							int index = 1;
+							foreach (var item in Model)
+							{
+								<tr>
+									<td class="text-center fw-bold">@index</td>
+									<td class="text-center">
+										<img src="@(string.IsNullOrEmpty(item.Image) ? "/images/snacks/default-snack.png" : item.Image)"
+											 alt="@item.Name" class="rounded snack-image shadow-sm" />
+									</td>
+									<td><strong>@item.SnackId</strong></td>
+									<td>@item.Name</td>
+									<td class="text-end text-primary fw-semibold">
+										@(item.Price.HasValue? item.Price.Value.ToString("N0") : "Chưa định giá")
+									</td>
+									<td>
+										@(string.IsNullOrEmpty(item.Description)
+																		? Html.Raw("<span class='text-muted'>Không có mô tả</span>")
+																		: (item.Description.Length > 50
+																		? item.Description.Substring(0, 50) + "..."
+																		: item.Description))
+							</td>
+							<td class="text-center">
+								@if (item.IsActive == true)
+										{
+											<span class="badge bg-success"><i class="fas fa-check"></i> Đang bán</span>
+										}
+										else
+										{
+											<span class="badge bg-secondary"><i class="fas fa-ban"></i> Ngừng bán</span>
+										}
+									</td>
+									<td class="text-center">
+										<a asp-action="Details" asp-route-id="@item.SnackId" class="btn btn-sm btn-info me-1" title="Chi tiết">
+											<i class="fas fa-eye"></i>
+										</a>
+										<a asp-action="Edit" asp-route-id="@item.SnackId" class="btn btn-sm btn-warning me-1" title="Chỉnh sửa">
+											<i class="fas fa-edit"></i>
+										</a>
+										<a asp-action="Delete" asp-route-id="@item.SnackId" class="btn btn-sm btn-danger" title="Xóa">
+											<i class="fas fa-trash"></i>
+										</a>
+									</td>
+								</tr>
+								index++;
+							}
+						}
+						else
+						{
+							<tr>
+								<td colspan="8" class="text-center py-4 text-muted">
+									<i class="fas fa-inbox fa-3x mb-3"></i><br />
+									<strong>Không tìm thấy đồ ăn nào</strong>
+									@if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+									{
+										<p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
 </div>
 
 @section Scripts {
-    <script>
-        // Tự ẩn thông báo sau 5s
-        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
-    </script>
+	<script>
+		// Tự ẩn thông báo sau 5s
+		setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+	</script>
 }

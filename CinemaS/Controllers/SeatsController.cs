@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CinemaS.Models;
+using CinemaS.Models.ViewModels;
 
 namespace CinemaS.Controllers
 {
@@ -19,9 +20,119 @@ namespace CinemaS.Controllers
         }
 
         // GET: Seats
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string cinemaTheaterId)
         {
-            return View(await _context.Seats.ToListAsync());
+            // Lấy danh sách phòng chiếu để hiển thị dropdown
+            ViewBag.CinemaTheaters = await _context.CinemaTheaters
+                .Where(ct => ct.Status == 1)
+                .OrderBy(ct => ct.Name)
+                .ToListAsync();
+
+            if (string.IsNullOrEmpty(cinemaTheaterId))
+            {
+                // Nếu chưa chọn phòng, lấy phòng đầu tiên
+                var firstTheater = await _context.CinemaTheaters
+                    .Where(ct => ct.Status == 1)
+                    .OrderBy(ct => ct.Name)
+                    .FirstOrDefaultAsync();
+
+                if (firstTheater != null)
+                {
+                    cinemaTheaterId = firstTheater.CinemaTheaterId;
+                }
+            }
+
+            ViewBag.SelectedTheaterId = cinemaTheaterId;
+
+            if (!string.IsNullOrEmpty(cinemaTheaterId))
+            {
+                // Lấy ghế và thông tin loại ghế
+                var seats = await _context.Seats
+                    .Where(s => s.CinemaTheaterId == cinemaTheaterId)
+                    .OrderBy(s => s.RowIndex)
+                    .ThenBy(s => s.ColumnIndex)
+                    .ToListAsync();
+
+                var theater = await _context.CinemaTheaters
+                    .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == cinemaTheaterId);
+
+                ViewBag.TheaterName = theater?.Name;
+                ViewBag.NumOfColumns = theater?.NumOfColumns ?? 14;
+
+                // Lấy thông tin loại ghế
+                var seatTypes = await _context.SeatTypes.ToListAsync();
+                ViewBag.SeatTypes = seatTypes;
+
+                // Lấy danh sách suất chiếu với thông tin phim
+                var showTimes = await _context.ShowTimes
+                    .Where(st => st.CinemaTheaterId == cinemaTheaterId
+            && st.ShowDate >= DateTime.Today)
+                    .OrderBy(st => st.ShowDate)
+                    .ThenBy(st => st.StartTime)
+                    .ToListAsync();
+
+                var showTimeVMs = new List<ShowTimeVM>();
+                foreach (var st in showTimes)
+                {
+                    var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
+                    showTimeVMs.Add(new ShowTimeVM
+                    {
+                        ShowTimeId = st.ShowTimeId,
+                        MoviesId = st.MoviesId,
+                        MovieTitle = movie?.Title,
+                        CinemaTheaterId = st.CinemaTheaterId,
+                        ShowDate = st.ShowDate,
+                        StartTime = st.StartTime,
+                        EndTime = st.EndTime,
+                        OriginPrice = st.OriginPrice
+                    });
+                }
+
+                ViewBag.ShowTimes = showTimeVMs;
+
+                return View(seats);
+            }
+
+            return View(new List<Seats>());
+        }
+
+        // POST: Seats/ToggleActive - API để bật/tắt trạng thái ghế
+        [HttpPost]
+        public async Task<IActionResult> ToggleActive([FromBody] string seatId)
+        {
+            try
+            {
+                var seat = await _context.Seats.FindAsync(seatId);
+                if (seat == null)
+                {
+                    return Json(new { success = false, message = "Không tìm thấy ghế" });
+                }
+
+                // Kiểm tra xem ghế có đang được đặt không
+                var isBooked = await _context.Tickets
+                    .AnyAsync(t => t.SeatId == seatId && t.Status == 1);
+
+                if (isBooked)
+                {
+                    return Json(new { success = false, message = "Ghế đã được đặt, không thể báo hỏng" });
+                }
+
+                // Đổi trạng thái
+                seat.IsActive = !seat.IsActive;
+                _context.Update(seat);
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    isActive = seat.IsActive,
+                    message = seat.IsActive ? "Đã phục hồi ghế" : "Đã báo hỏng ghế"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
+            }
         }
 
         // GET: Seats/Details/5
