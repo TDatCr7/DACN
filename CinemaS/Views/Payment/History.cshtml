@@ -1,0 +1,53 @@
+﻿@model List<CinemaS.Controllers.InvoiceHistoryVM>
+@{
+    ViewData["Title"] = "Vé/Hóa đơn của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-4">
+    <h3 class="mb-3">Vé/Hóa đơn của tôi</h3>
+
+    <div class="table-responsive">
+        <table class="table table-dark table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Mã hóa đơn</th>
+                    <th>Phim</th>
+                    <th>Phòng</th>
+                    <th>Ngày</th>
+                    <th>Giờ</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in Model)
+                {
+                    <tr>
+                        <td>@i.InvoiceId</td>
+                        <td>@(i.MovieTitle ?? "-")</td>
+                        <td>@(i.Room ?? "-")</td>
+                        <td>@i.ShowDate?.ToString("dd/MM/yyyy")</td>
+                        <td>@i.StartTime?.ToString("HH:mm")</td>
+                        <td class="text-end">@i.TotalPrice.ToString("#,0") đ</td>
+                        <td>
+                            @if (i.Status == 1)
+                            {
+                                <span class="badge bg-success">ĐÃ THANH TOÁN</span>
+                            }
+                            else
+                            {
+
+                                <span class="badge bg-warning text-dark">CHƯA THANH TOÁN</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="ResultById" asp-route-invoiceId="@i.InvoiceId" class="btn btn-sm btn-outline-light">Xem chi tiết</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
