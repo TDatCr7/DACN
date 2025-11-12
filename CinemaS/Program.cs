@@ -1,4 +1,6 @@
 using CinemaS.Models;
+using CinemaS.Models.Payments;
+using CinemaS.VNPAY;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +28,9 @@ builder.Services
     .AddEntityFrameworkStores<CinemaContext>()
     .AddDefaultTokenProviders()
     .AddDefaultUI();
+
+builder.Services.Configure<VnPaySettings>(builder.Configuration.GetSection("VnPay"));
+builder.Services.AddSingleton<VnPayLibrary>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

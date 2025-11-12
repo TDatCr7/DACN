@@ -1,0 +1,106 @@
+﻿@model CinemaS.Controllers.PaymentResultVM
+@{
+    ViewData["Title"] = Model.IsSuccess ? "Thanh toán thành công" : "Kết quả thanh toán";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var d = Model.Detail;
+}
+
+<div class="container my-4">
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
+        <strong>@(Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "KHÔNG THÀNH CÔNG")</strong>
+        <span class="ms-2">@Model.Message</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header fw-bold"><i class="fa-solid fa-receipt me-1"></i>Thông tin giao dịch</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-4">Mã đơn</dt>
+                        <dd class="col-8">@Model.OrderId</dd>
+                        <dt class="col-4">Số tiền</dt>
+                        <dd class="col-8">@Model.Amount.ToString("#,0") đ</dd>
+                        <dt class="col-4">Ngân hàng</dt>
+                        <dd class="col-8">@Model.BankCode</dd>
+                        <dt class="col-4">Mã GD</dt>
+                        <dd class="col-8">@Model.TransactionNo</dd>
+                        <dt class="col-4">Thời gian</dt>
+                        <dd class="col-8">@Model.PayDateRaw</dd>
+                        <dt class="col-4">VNP Response</dt>
+                        <dd class="col-8">@Model.VnpResponseCode / @Model.VnpTransactionStatus</dd>
+                        <dt class="col-4">Signature</dt>
+                        <dd class="col-8">@((Model.IsValidSignature) ? "OK" : "INVALID")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header fw-bold"><i class="fa-solid fa-ticket me-1"></i>Chi tiết vé</div>
+                <div class="card-body">
+                    @if (d == null)
+                    {
+                        <div class="text-muted">Không tìm thấy chi tiết vé cho đơn <strong>@Model.OrderId</strong>.</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex gap-3">
+                            <img src="@(string.IsNullOrEmpty(d.MoviePoster) ? "/images/no-poster.png" : d.MoviePoster)" style="width:110px;border-radius:8px" />
+                            <div>
+                                <div class="fw-bold fs-5">@d.MovieTitle</div>
+                                <div>@d.CinemaTheater</div>
+                                <div>Ngày: @d.ShowDate?.ToString("dd/MM/yyyy")</div>
+                                <div>Giờ: @d.StartTime?.ToString("HH:mm") - @d.EndTime?.ToString("HH:mm")</div>
+                                <div>Ghế: <strong>@string.Join(", ", d.SeatLabels)</strong></div>
+                                <div class="mt-2 small text-muted">Liên hệ: @d.InvoiceEmail / @d.InvoicePhone</div>
+                                <div class="small text-muted">PT thanh toán: @d.PaymentMethod</div>
+                                <div class="small text-muted">Tạo lúc: @d.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="fw-bold mb-2">Tiền vé (@d.TicketCount)</div>
+                                <div>@d.TicketTotal.ToString("#,0") đ</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="fw-bold mb-2">Bắp nước</div>
+                                @if (d.SnackItems.Any())
+                                {
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var s in d.SnackItems)
+                                        {
+                                            <li>@s.Name x @s.Quantity — @s.LineTotal.ToString("#,0") đ</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <div class="text-muted">Không có</div>
+                                }
+                            </div>
+                        </div>
+
+                        <hr />
+                        <div class="d-flex justify-content-end">
+                            <div class="text-end">
+                                <div>Tiền đồ ăn: <strong>@d.SnackTotal.ToString("#,0") đ</strong></div>
+                                <div class="fs-5">TỔNG CỘNG: <strong>@d.GrandTotal.ToString("#,0") đ</strong></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-house me-1"></i>Về trang chủ</a>
+        <a asp-action="ResultById" asp-route-invoiceId="@Model.OrderId" class="btn btn-outline-primary">Xem lại hoá đơn</a>
+        <a asp-action="History" class="btn btn-primary">Vé đã đặt</a>
+    </div>
+</div>
