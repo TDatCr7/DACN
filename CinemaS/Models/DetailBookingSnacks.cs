@@ -12,7 +12,7 @@ namespace CinemaS.Models
     [StringLength(10)]
     public string SnackId { get; set; }
     [Column("Invoice_ID")]
-    [StringLength(10)]
+    [MaxLength(50)]
     public string InvoiceId { get; set; }
     [Column("Detail_Booking_Snack_ID")]
     [StringLength(10)]

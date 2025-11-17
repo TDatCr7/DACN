@@ -19,9 +19,23 @@ namespace CinemaS.Controllers
         }
 
         // GET: TicketTypes
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString)
         {
-            return View(await _context.TicketTypes.ToListAsync());
+            ViewData["CurrentFilter"] = searchString;
+
+            var ticketTypes = from t in _context.TicketTypes
+                              select t;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                ticketTypes = ticketTypes.Where(t => 
+                    t.TicketTypeId.Contains(searchString) ||
+                    (t.Name != null && t.Name.Contains(searchString)) ||
+                    (t.Description != null && t.Description.Contains(searchString))
+                );
+            }
+
+            return View(await ticketTypes.ToListAsync());
         }
 
         // GET: TicketTypes/Details/5
@@ -59,8 +73,10 @@ namespace CinemaS.Controllers
             {
                 _context.Add(ticketTypes);
                 await _context.SaveChangesAsync();
+                TempData["Message"] = "Tạo loại vé mới thành công!";
                 return RedirectToAction(nameof(Index));
             }
+            TempData["Error"] = "Không thể tạo loại vé. Vui lòng kiểm tra lại thông tin.";
             return View(ticketTypes);
         }
 
@@ -98,20 +114,24 @@ namespace CinemaS.Controllers
                 {
                     _context.Update(ticketTypes);
                     await _context.SaveChangesAsync();
+                    TempData["Message"] = "Cập nhật loại vé thành công!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!TicketTypesExists(ticketTypes.TicketTypeId))
                     {
+                        TempData["Error"] = "Loại vé không tồn tại.";
                         return NotFound();
                     }
                     else
                     {
+                        TempData["Error"] = "Có lỗi xảy ra khi cập nhật loại vé.";
                         throw;
                     }
                 }
                 return RedirectToAction(nameof(Index));
             }
+            TempData["Error"] = "Không thể cập nhật loại vé. Vui lòng kiểm tra lại thông tin.";
             return View(ticketTypes);
         }
 
@@ -142,9 +162,14 @@ namespace CinemaS.Controllers
             if (ticketTypes != null)
             {
                 _context.TicketTypes.Remove(ticketTypes);
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "Xóa loại vé thành công!";
+            }
+            else
+            {
+                TempData["Error"] = "Không tìm thấy loại vé cần xóa.";
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

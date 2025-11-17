@@ -32,14 +32,13 @@
                     <form asp-action="Create" method="post" id="createForm" novalidate>
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                        <!-- Mã loại ghế -->
+                        <!-- Mã loại ghế - Tự động sinh -->
                         <div class="mb-3">
                             <label class="form-label">
                                 <i class="fas fa-hashtag"></i> Mã loại ghế
-                                <span class="text-danger">*</span>
+                                <span class="badge bg-info">Tự động tạo</span>
                             </label>
-                            <input asp-for="SeatTypeId" class="form-control" placeholder="VD: ST001, ST002..." />
-                            <span asp-validation-for="SeatTypeId" class="text-danger"></span>
+                            <input type="text" class="form-control" value="@(ViewBag.NextSeatTypeId ?? "Tự động tạo")" readonly disabled />
                         </div>
 
                         <!-- Tên loại ghế -->
@@ -48,7 +47,7 @@
                                 <i class="fas fa-chair"></i> Tên loại ghế
                                 <span class="text-danger">*</span>
                             </label>
-                            <input asp-for="Name" class="form-control" placeholder="VD: NORMAL, VIP, COUPLE..." />
+                            <input asp-for="Name" class="form-control" placeholder="VD: NORMAL, VIP, COUPLE..." required />
                             <span asp-validation-for="Name" class="text-danger"></span>
                         </div>
 
@@ -58,7 +57,7 @@
                                 <i class="fas fa-tags"></i> Giá vé (VNĐ)
                                 <span class="text-danger">*</span>
                             </label>
-                            <input asp-for="Price" type="number" min="0" class="form-control" placeholder="VD: 75000" />
+                            <input asp-for="Price" type="number" min="0" class="form-control" placeholder="VD: 75000" required />
                             <span asp-validation-for="Price" class="text-danger"></span>
                         </div>
 
@@ -87,15 +86,12 @@
         // Kiểm tra hợp lệ trước khi gửi
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('createForm');
-            const idInput = document.getElementById('SeatTypeId');
-            const nameInput = document.getElementById('Name');
-            const priceInput = document.getElementById('Price');
+            const nameInput = document.querySelector('input[name="Name"]');
+            const priceInput = document.querySelector('input[name="Price"]');
 
             form.addEventListener('submit', e => {
                 let errors = [];
 
-                if (!idInput.value.trim())
-                    errors.push("• Mã loại ghế không được để trống");
                 if (!nameInput.value.trim())
                     errors.push("• Tên loại ghế không được để trống");
                 if (!priceInput.value || priceInput.value <= 0)

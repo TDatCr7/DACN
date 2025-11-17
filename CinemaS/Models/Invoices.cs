@@ -10,7 +10,7 @@ namespace CinemaS.Models
     {
     [Key]
     [Column("Invoice_ID")]
-    [StringLength(10)]
+    [MaxLength(50)]
     public string InvoiceId { get; set; }
     [Column("Staff_ID")]
     [StringLength(10)]

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CinemaS.Models;
+using CinemaS.Models.ViewModels;
 
 namespace CinemaS.Controllers
 {
@@ -18,10 +19,111 @@ namespace CinemaS.Controllers
             _context = context;
         }
 
-        // GET: Tickets
-        public async Task<IActionResult> Index()
+        // GET: Tickets/Management
+        public IActionResult Management()
         {
-            return View(await _context.Tickets.ToListAsync());
+            return View();
+        }
+
+        // GET: Tickets
+        public async Task<IActionResult> Index(string searchString, DateTime? fromDate, DateTime? toDate, byte? statusFilter)
+        {
+            ViewData["CurrentFilter"] = searchString;
+            ViewData["FromDate"] = fromDate?.ToString("yyyy-MM-dd");
+            ViewData["ToDate"] = toDate?.ToString("yyyy-MM-dd");
+            ViewData["StatusFilter"] = statusFilter;
+
+            // total tickets in DB for debugging
+            var totalTicketsInDb = await _context.Tickets.CountAsync();
+
+            // Use left joins to avoid dropping tickets when related record is missing
+            var ticketsQuery = from ticket in _context.Tickets
+                               join invoice in _context.Invoices on ticket.InvoiceId equals invoice.InvoiceId into invGroup
+                               from invoice in invGroup.DefaultIfEmpty()
+
+                               join showTime in _context.ShowTimes on ticket.ShowTimeId equals showTime.ShowTimeId into stGroup
+                               from showTime in stGroup.DefaultIfEmpty()
+
+                               join movie in _context.Movies on showTime.MoviesId equals movie.MoviesId into mGroup
+                               from movie in mGroup.DefaultIfEmpty()
+
+                               join seat in _context.Seats on ticket.SeatId equals seat.SeatId into seatGroup
+                               from seat in seatGroup.DefaultIfEmpty()
+
+                               join cinemaTheater in _context.CinemaTheaters on showTime.CinemaTheaterId equals cinemaTheater.CinemaTheaterId into ctGroup
+                               from cinemaTheater in ctGroup.DefaultIfEmpty()
+
+                               join user in _context.Users on invoice.CustomerId equals user.UserId into userGroup
+                               from user in userGroup.DefaultIfEmpty()
+
+                               join ticketType in _context.TicketTypes on ticket.TicketTypeId equals ticketType.TicketTypeId into ttGroup
+                               from ticketType in ttGroup.DefaultIfEmpty()
+
+                               join seatType in _context.SeatTypes on seat.SeatTypeId equals seatType.SeatTypeId into stypeGroup
+                               from seatType in stypeGroup.DefaultIfEmpty()
+
+                               select new
+                               {
+                                   Ticket = ticket,
+                                   Invoice = invoice,
+                                   MovieTitle = movie != null ? movie.Title : "",
+                                   MoviePoster = movie != null ? movie.PosterImage : null,
+                                   ShowDate = showTime != null ? showTime.ShowDate : (DateTime?)null,
+                                   StartTime = showTime != null ? showTime.StartTime : (DateTime?)null,
+                                   CinemaTheaterName = cinemaTheater != null ? cinemaTheater.Name : "",
+                                   SeatLabel = seat != null ? (seat.RowIndex + seat.ColumnIndex.ToString()) : "",
+                                   SeatTypeName = seatType != null ? seatType.Name : null,
+                                   CustomerName = user != null ? user.FullName : null,
+                                   TicketTypeName = ticketType != null ? ticketType.Name : null
+                               };
+
+            // Debug: count before filters
+            var preFilterCount = await ticketsQuery.CountAsync();
+
+            // Filter by search string
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                ticketsQuery = ticketsQuery.Where(t =>
+                    (t.MovieTitle ?? "").Contains(searchString) ||
+                    t.Ticket.TicketId.Contains(searchString) ||
+                    (t.Invoice != null && t.Invoice.InvoiceId.Contains(searchString)) ||
+                    (t.CustomerName != null && t.CustomerName.Contains(searchString)) ||
+                    (t.Invoice != null && t.Invoice.Email != null && t.Invoice.Email.Contains(searchString))
+                );
+            }
+
+            // Filter by date range
+            if (fromDate.HasValue)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.Ticket.CreatedBooking >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                var endOfDay = toDate.Value.AddDays(1).AddSeconds(-1);
+                ticketsQuery = ticketsQuery.Where(t => t.Ticket.CreatedBooking <= endOfDay);
+            }
+
+            // Filter by status
+            if (statusFilter.HasValue)
+            {
+                ticketsQuery = ticketsQuery.Where(t => t.Ticket.Status == statusFilter.Value);
+            }
+
+            var results = await ticketsQuery
+                .OrderByDescending(t => t.Ticket.CreatedBooking)
+                .ToListAsync();
+
+            // set debug info for view
+            ViewBag.TotalTicketsInDb = totalTicketsInDb;
+            ViewBag.PreFilterCount = preFilterCount;
+            ViewBag.ResultCount = results.Count;
+            ViewBag.SampleIds = results.Take(10).Select(r => r.Ticket?.TicketId).Where(id => id != null).ToList();
+
+            ViewBag.TicketData = results; // pass rich anonymous objects to view
+
+            // Also return Tickets list as model for compatibility
+            return View(results.Select(r => r.Ticket).ToList());
         }
 
         // GET: Tickets/Details/5
@@ -59,8 +161,10 @@ namespace CinemaS.Controllers
             {
                 _context.Add(tickets);
                 await _context.SaveChangesAsync();
+                TempData["Message"] = "Tạo vé mới thành công!";
                 return RedirectToAction(nameof(Index));
             }
+            TempData["Error"] = "Không thể tạo vé. Vui lòng kiểm tra lại thông tin.";
             return View(tickets);
         }
 
@@ -98,20 +202,24 @@ namespace CinemaS.Controllers
                 {
                     _context.Update(tickets);
                     await _context.SaveChangesAsync();
+                    TempData["Message"] = "Cập nhật vé thành công!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!TicketsExists(tickets.TicketId))
                     {
+                        TempData["Error"] = "Vé không tồn tại.";
                         return NotFound();
                     }
                     else
                     {
+                        TempData["Error"] = "Có lỗi xảy ra khi cập nhật vé.";
                         throw;
                     }
                 }
                 return RedirectToAction(nameof(Index));
             }
+            TempData["Error"] = "Không thể cập nhật vé. Vui lòng kiểm tra lại thông tin.";
             return View(tickets);
         }
 
@@ -142,9 +250,14 @@ namespace CinemaS.Controllers
             if (tickets != null)
             {
                 _context.Tickets.Remove(tickets);
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "Xóa vé thành công!";
+            }
+            else
+            {
+                TempData["Error"] = "Không tìm thấy vé cần xóa.";
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

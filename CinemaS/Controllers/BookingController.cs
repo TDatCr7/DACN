@@ -215,11 +215,20 @@ namespace CinemaS.Controllers
         /* ============= Helpers ============= */
         private async Task<string> GenerateInvoiceIdAsync()
         {
-            var last = await _context.Invoices.AsNoTracking()
-                        .OrderByDescending(i => i.InvoiceId).FirstOrDefaultAsync();
-            if (last == null) return "INV001";
-            var num = int.TryParse(last.InvoiceId.Substring(3), out var n) ? n : 0;
-            return $"INV{(num + 1):D3}";
+            // Get count of invoices today to determine sequence number
+            var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
+                TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+            var today = vietnamTime.Date;
+
+            var todayCount = await _context.Invoices.AsNoTracking()
+                .Where(i => i.CreatedAt.HasValue && i.CreatedAt.Value.Date == today)
+                .CountAsync();
+
+            int sequenceNumber = todayCount + 1;
+
+            string formatted = $"INV{sequenceNumber:D4}_{vietnamTime:HH}h{vietnamTime:mm}m{vietnamTime:dd}{vietnamTime:MM}{vietnamTime:yyyy}";
+
+            return formatted;
         }
 
         public class BookSeatRequest

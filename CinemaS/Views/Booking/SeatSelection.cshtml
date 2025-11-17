@@ -1,7 +1,7 @@
 @model CinemaS.Models.ViewModels.SeatSelectionVM
 @{
     ViewData["Title"] = "Chọn ghế";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "~/Views/Shared/_LayoutHeader.cshtml";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -77,14 +77,21 @@
                                  onclick="toggleSeat(this, true)">
                                 <div class="couple-seat">
                                     <span class="seat-badge"></span>
-                                    @if (!seat1.IsActive || (seat2 != null && !seat2.IsActive))
+                                    @if (seat1.Status == "Booked" || seat2?.Status == "Booked")
+                                    {
+                                        <i class="fas fa-check" style="color: white; font-size: 20px;"></i>
+                                    }
+                                    else if (!seat1.IsActive || (seat2 != null && !seat2.IsActive))
                                     {
                                         <span class="broken-icon" style="color: black;">✗</span>
                                     }
-                                    <div class="user-icons" style="display:none;">
-                                        <img src="~/images/user.png" alt="user" class="user-icon" />
-                                        <img src="~/images/user.png" alt="user" class="user-icon" />
-                                    </div>
+                                    else
+                                    {
+                                        <div class="user-icons" style="display:none;">
+                                            <img src="~/images/user.png" alt="user" class="user-icon" />
+                                            <img src="~/images/user.png" alt="user" class="user-icon" />
+                                        </div>
+                                    }
                                 </div>
                                 <div class="couple-seat-label">
                                     @(seat2 != null ? $"{seat1.Label}-{seat2.Label}" : seat1.Label)
@@ -105,17 +112,24 @@
                                  data-seat-label="@seat.Label"
                                  data-is-active="@seat.IsActive"
                                  onclick="toggleSeat(this, false)">
-                                @if (seat.IsVIP)
+                                @if (seat.Status == "Booked")
+                                {
+                                    <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
+                                }
+                                else if (seat.IsVIP)
                                 {
                                     <span class="seat-badge">V</span>
                                 }
-                                @if (!seat.IsActive)
+                                @if (!seat.IsActive && seat.Status != "Booked")
                                 {
                                     <span class="broken-icon" style="color: white;">✗</span>
                                 }
-                                <div class="user-icon-wrapper" style="display:none;">
-                                    <img src="~/images/user.png" alt="user" class="user-icon" />
-                                </div>
+                                @if (seat.Status != "Booked")
+                                {
+                                    <div class="user-icon-wrapper" style="display:none;">
+                                        <img src="~/images/user.png" alt="user" class="user-icon" />
+                                    </div>
+                                }
                             </div>
                         }
                     }
@@ -594,16 +608,28 @@
                         if (booked.has(id)) {
                             el.classList.remove('selected');
                             el.classList.add('booked');
+                            // Add checkmark icon
+                            const existingIcon = el.querySelector('.fa-check');
+                            if (!existingIcon) {
+                                el.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 16px;"></i>';
+                            }
                             selectedSeats = selectedSeats.filter(s => s.id !== id);
                         }
                     });
 
                     // với wrapper couple: nếu 1 trong 2 ghế bị booked thì block cả cặp
-                    document.querySelectorAll('.couple-seat-wrapper').forEach(el => {
+                    document.querySelectorAll('.couple-seat-wrapper:not(.booked)').forEach(el => {
                         const ids = (el.getAttribute('data-seat-ids') || '').split(',').filter(Boolean);
                         if (ids.some(id => booked.has(id))) {
                             el.classList.remove('selected');
                             el.classList.add('booked');
+                            const coupleSeat = el.querySelector('.couple-seat');
+                            if (coupleSeat) {
+                                const existingIcon = coupleSeat.querySelector('.fa-check');
+                                if (!existingIcon) {
+                                    coupleSeat.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 20px;"></i>';
+                                }
+                            }
                             const userIcons = el.querySelector('.user-icons');
                             if (userIcons) userIcons.style.display = 'none';
                             ids.forEach(id => selectedSeats = selectedSeats.filter(s => s.id !== id));

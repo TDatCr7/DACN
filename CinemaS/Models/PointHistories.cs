@@ -18,7 +18,7 @@ namespace CinemaS.Models
     public string UserId { get; set; }
     [Required]
     [Column("Invoice_ID")]
-    [StringLength(10)]
+    [MaxLength(50)]
     public string InvoiceId { get; set; }
     [Column("Change_Amount", TypeName="money")]
     public decimal? ChangeAmount { get; set; }
