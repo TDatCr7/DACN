@@ -1,0 +1,140 @@
+﻿@{
+    var title = ViewData["Title"] ?? "CinemaS";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - CinemaS</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/CinemaS.styles.css" asp-append-version="true" />
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+          crossorigin="anonymous" />
+
+    <style>
+        :root {
+            --blue-1: #0b1026;
+            --blue-2: #15214e;
+            --indigo: #3b5ccc;
+            --purple: #7c3aed;
+            --magenta: #a21caf;
+            --text: #e9ecf6;
+            --muted: #9aa5c6;
+            --line: rgba(255,255,255,.10);
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text);
+            background: var(--blue-1);
+            overflow-x: hidden;
+        }
+
+        #bg-glow {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image: radial-gradient(1200px 720px at 18% -12%, rgba(59, 92, 204, 0.35) 0%, rgba(59, 92, 204, 0) 60%), radial-gradient(1000px 600px at 82% 10%, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0) 60%), radial-gradient(900px 600px at 70% 92%, rgba(162, 28, 175, 0.20) 0%, rgba(162, 28, 175, 0) 55%), radial-gradient(1400px 900px at 50% 40%, rgba(21, 33, 78, 0.45) 0%, rgba(21, 33, 78, 0) 70%);
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-blend-mode: screen;
+        }
+
+        .navbar {
+            background: linear-gradient(180deg, #12183f 0%, #0f1440 100%);
+            border-bottom: 1px solid var(--line);
+            box-shadow: 0 4px 20px rgba(0,0,0,.35);
+            position: relative;
+            z-index: 2;
+        }
+
+        .navbar-brand img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .nav-link {
+            color: #cfd6ff !important;
+            font-weight: 600;
+            letter-spacing: .3px;
+            padding: 10px 14px !important;
+            border-radius: 10px;
+            transition: all .2s ease;
+        }
+
+            .nav-link:hover, .nav-link:focus {
+                color: #fff !important;
+                background: linear-gradient(90deg, var(--indigo) 0%, var(--purple) 100%);
+                box-shadow: 0 0 0 2px rgba(124,58,237,.25) inset;
+            }
+
+        main {
+            flex: 1 0 auto;
+            padding: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="bg-glow"></div>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/logo/Logo.jpg" alt="CinemaS" />
+            </a>
+
+            <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav ms-3 me-auto">
+                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Payment" asp-action="History">Vé đã đặt</a></li>
+                    @if (User?.IsInRole("Admin") == true)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Admin" asp-action="Index">
+                                <i class="fa-solid fa-screwdriver-wrench me-1"></i> Quản lý hệ thống
+                            </a>
+                        </li>
+                    }
+                </ul>
+                <partial name="_LoginPartial" />
+            </div>
+        </div>
+    </nav>
+
+    <main role="main">
+        <div class="container">
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- KHÔNG CÓ FOOTER -->
+    <!-- KHÔNG CÓ BACK TO TOP -->
+    <!-- KHÔNG CÓ SCRIPT PHẦN FOOTER -->
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

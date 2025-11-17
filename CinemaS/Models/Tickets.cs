@@ -14,7 +14,7 @@ namespace CinemaS.Models
     public string TicketId { get; set; }
     [Required]
     [Column("Invoice_ID")]
-    [StringLength(10)]
+    [MaxLength(50)]
     public string InvoiceId { get; set; }
     [Required]
     [Column("Ticket_Type_ID")]

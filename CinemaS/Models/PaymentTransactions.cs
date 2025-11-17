@@ -14,7 +14,7 @@ namespace CinemaS.Models
     public string PaymentTransactionId { get; set; }
     [Required]
     [Column("Invoice_ID")]
-    [StringLength(10)]
+    [MaxLength(50)]
     public string InvoiceId { get; set; }
     [Required]
     [Column("Payment_Method_ID")]

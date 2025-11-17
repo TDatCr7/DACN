@@ -43,7 +43,7 @@ namespace CinemaS.Controllers
 
             var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
             var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-            var expire = now.AddMinutes(15);
+            var expire = now.AddMinutes(10);
 
             var vnp = new VnPayLibrary();
             vnp.AddRequestData("vnp_Version", VnPayLibrary.VERSION);
@@ -79,6 +79,11 @@ namespace CinemaS.Controllers
             string respCode = vnp.GetResponseData("vnp_ResponseCode");        // 00
             string txnStatus = vnp.GetResponseData("vnp_TransactionStatus");   // 00
             string secureHash = vnp.GetResponseData("vnp_SecureHash");
+            string providerTxnId = vnp.GetResponseData("vnp_TransactionNo") ?? "";
+            string bankCode = vnp.GetResponseData("vnp_BankCode") ?? "";
+            string payDate = vnp.GetResponseData("vnp_PayDate") ?? "";
+            long vnpAmount = long.TryParse(vnp.GetResponseData("vnp_Amount"), out var amt) ? amt : 0;
+
             bool signatureOk = vnp.ValidateSignature(secureHash, secret);
 
             var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
@@ -89,13 +94,30 @@ namespace CinemaS.Controllers
                 IsValidSignature = signatureOk,
                 VnpResponseCode = respCode,
                 VnpTransactionStatus = txnStatus,
-                BankCode = vnp.GetResponseData("vnp_BankCode"),
+                BankCode = bankCode,
                 Amount = ParseVnpAmount(vnp.GetResponseData("vnp_Amount")),
-                PayDateRaw = vnp.GetResponseData("vnp_PayDate"),
-                TransactionNo = vnp.GetResponseData("vnp_TransactionNo"),
+                PayDateRaw = payDate,
+                TransactionNo = providerTxnId,
                 IsSuccess = false,
                 Message = signatureOk ? "Thanh toán không thành công." : "Chữ ký VNPay không hợp lệ."
             };
+
+            // Always save payment transaction for history
+            var paymentMethod = await _context.PaymentMethods.AsNoTracking().FirstOrDefaultAsync(x => x.Code == "VNPAY");
+            await SavePaymentTransactionAsync(
+                invoiceId,
+                paymentMethod?.PaymentMethodId ?? "PM001",
+                vnpAmount / 100,
+                respCode,
+                txnStatus,
+                providerTxnId,
+                invoiceId,
+                bankCode,
+                payDate,
+                signatureOk,
+                status: (signatureOk && respCode == "00" && txnStatus == "00") ? (byte)1 : (byte)2,
+                failureReason: (signatureOk && respCode == "00" && txnStatus == "00") ? null : $"Response: {respCode}, Status: {txnStatus}"
+            );
 
             if (signatureOk && respCode == "00" && txnStatus == "00" && invoice != null)
             {
@@ -105,8 +127,7 @@ namespace CinemaS.Controllers
                 invoice.Status = (byte)1;       // 1 = Paid
                 invoice.UpdatedAt = DateTime.UtcNow;
 
-                var pm = await _context.PaymentMethods.AsNoTracking().FirstOrDefaultAsync(x => x.Code == "VNPAY");
-                if (pm != null) invoice.PaymentMethodId = pm.PaymentMethodId;
+                if (paymentMethod != null) invoice.PaymentMethodId = paymentMethod.PaymentMethodId;
                 else invoice.PaymentMethod = "VNPAY";
 
                 // 2) Nếu chưa có vé cho invoice này -> dựng từ Session
@@ -169,6 +190,14 @@ namespace CinemaS.Controllers
                                 {
                                     var seat = seats.FirstOrDefault(x => x.SeatId == sid);
                                     var stype = seatTypes.FirstOrDefault(x => x.SeatTypeId == seat?.SeatTypeId);
+
+                                    // Map TicketType based on SeatType: ST001 -> TT001, ST002 -> TT002
+                                    string ticketTypeId = "TT001"; // default
+                                    if (stype != null && !string.IsNullOrEmpty(stype.SeatTypeId) && stype.SeatTypeId.Length >= 5)
+                                    {
+                                        ticketTypeId = "TT" + stype.SeatTypeId.Substring(2); // ST001 -> TT001
+                                    }
+
                                     decimal price = stype?.Price ?? 0m;
                                     ticketSum += price;
 
@@ -178,13 +207,12 @@ namespace CinemaS.Controllers
                                     {
                                         TicketId = newTicketId,
                                         InvoiceId = invoice.InvoiceId,
-                                        TicketTypeId = "TT001",
+                                        TicketTypeId = ticketTypeId, // Map theo SeatType
                                         ShowTimeId = st.ShowTimeId,
                                         SeatId = sid,
                                         Status = (byte)2, // Paid
                                         CreatedBooking = DateTime.UtcNow,
                                         Expire = null,
-                                        // Đổi theo kiểu dữ liệu cột Price của bạn (int? hoặc decimal?)
                                         Price = (int?)Convert.ToInt32(price)
                                     });
                                 }
@@ -310,6 +338,12 @@ namespace CinemaS.Controllers
             var invoice = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
             if (invoice == null) return NotFound();
 
+            // Get payment transaction for this invoice
+            var paymentTxn = await _context.PaymentTransactions.AsNoTracking()
+                .Where(pt => pt.InvoiceId == invoiceId)
+                .OrderByDescending(pt => pt.CreatedAt)
+                .FirstOrDefaultAsync();
+
             var vm = new PaymentResultVM
             {
                 OrderId = invoice.InvoiceId,
@@ -317,7 +351,67 @@ namespace CinemaS.Controllers
                 Message = invoice.Status == (byte)1 ? "Thanh toán thành công." : "Đơn hàng chưa thanh toán.",
                 Detail = await BuildTicketDetailAsync(invoice.InvoiceId)
             };
+
+            // Populate transaction info if available
+            if (paymentTxn != null)
+            {
+                vm.IsValidSignature = paymentTxn.Status == 1;
+
+                // Extract bank code from description (format: "VNPay - Bank: NCB, Response: 00, Status: 00")
+                var description = paymentTxn.Description ?? "";
+                vm.BankCode = ExtractBankCodeFromDescription(description);
+
+                vm.VnpResponseCode = description.Contains("Response:")
+                    ? ExtractValueFromDescription(description, "Response:")
+                    : (paymentTxn.Status == 1 ? "00" : "");
+                vm.VnpTransactionStatus = description.Contains("Status:")
+                    ? ExtractValueFromDescription(description, "Status:")
+                    : (paymentTxn.Status == 1 ? "00" : "");
+
+                vm.Amount = (int)paymentTxn.Amount.GetValueOrDefault(0);
+                vm.TransactionNo = paymentTxn.ProviderTxnId;
+                vm.PayDateRaw = paymentTxn.PaidAt?.ToString("yyyyMMddHHmmss");
+            }
+
             return View("Result", vm);
+        }
+
+        private string ExtractBankCodeFromDescription(string description)
+        {
+            if (string.IsNullOrEmpty(description)) return "";
+
+            // Format: "VNPay - Bank: NCB, Response: 00, Status: 00"
+            var parts = description.Split(',');
+            foreach (var part in parts)
+            {
+                var trimmed = part.Trim();
+                if (trimmed.Contains("Bank:"))
+                {
+                    var colonIndex = trimmed.IndexOf(':');
+                    if (colonIndex >= 0 && colonIndex + 1 < trimmed.Length)
+                    {
+                        return trimmed.Substring(colonIndex + 1).Trim();
+                    }
+                }
+            }
+            return "";
+        }
+
+        private string ExtractValueFromDescription(string description, string key)
+        {
+            var parts = description.Split(',');
+            foreach (var part in parts)
+            {
+                if (part.Trim().Contains(key))
+                {
+                    var colonIndex = part.IndexOf(':');
+                    if (colonIndex >= 0 && colonIndex + 1 < part.Length)
+                    {
+                        return part.Substring(colonIndex + 1).Trim();
+                    }
+                }
+            }
+            return "";
         }
 
         /* ===================== 4) Lịch sử hoá đơn của user ===================== */
@@ -448,6 +542,60 @@ namespace CinemaS.Controllers
             detail.GrandTotal = detail.TicketTotal + detail.SnackTotal;
 
             return detail;
+        }
+
+        // Save PaymentTransaction for history
+        private async Task SavePaymentTransactionAsync(
+            string invoiceId,
+            string paymentMethodId,
+            long amount,
+            string responseCode,
+            string transactionStatus,
+            string providerTxnId,
+            string providerOrderNo,
+            string bankCode,
+            string payDate,
+            bool signatureValid,
+            byte status = 1, // 1=Success, 2=Failed
+            string? failureReason = null)
+        {
+            // Auto-generate PaymentTransactionId: PT00000001, PT00000002...
+            var lastTxn = await _context.PaymentTransactions.AsNoTracking()
+                .OrderByDescending(pt => pt.PaymentTransactionId)
+                .FirstOrDefaultAsync();
+
+            int nextNum = 1;
+            if (lastTxn != null && !string.IsNullOrEmpty(lastTxn.PaymentTransactionId))
+            {
+                var numPart = lastTxn.PaymentTransactionId.Substring(2); // Remove "PT"
+                if (int.TryParse(numPart, out int num))
+                {
+                    nextNum = num + 1;
+                }
+            }
+
+            string txnId = $"PT{nextNum:D8}";
+
+            var transaction = new PaymentTransactions
+            {
+                PaymentTransactionId = txnId,
+                InvoiceId = invoiceId,
+                PaymentMethodId = paymentMethodId,
+                Amount = amount,
+                Currency = "VND",
+                Status = status,
+                ProviderTxnId = providerTxnId,
+                ProviderOrderNo = providerOrderNo,
+                Description = $"VNPay - Bank: {bankCode}, Response: {responseCode}, Status: {transactionStatus}",
+                FailureReason = failureReason,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                PaidAt = status == 1 ? DateTime.UtcNow : null,
+                RefundedAt = null
+            };
+
+            _context.PaymentTransactions.Add(transaction);
+            await _context.SaveChangesAsync();
         }
     }
 

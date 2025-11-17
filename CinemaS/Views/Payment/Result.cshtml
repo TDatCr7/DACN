@@ -3,6 +3,36 @@
     ViewData["Title"] = Model.IsSuccess ? "Thanh toán thành công" : "Kết quả thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var d = Model.Detail;
+    
+    // Parse and format PayDate from VNPay format (yyyyMMddHHmmss) to readable format
+    string formattedPayDate = "";
+    if (!string.IsNullOrEmpty(Model.PayDateRaw) && Model.PayDateRaw.Length == 14)
+    {
+        if (DateTime.TryParseExact(Model.PayDateRaw, "yyyyMMddHHmmss", 
+            System.Globalization.CultureInfo.InvariantCulture, 
+            System.Globalization.DateTimeStyles.None, out DateTime parsedDate))
+        {
+            // Convert parsed date (assumed UTC) to Vietnam time (UTC+7)
+            DateTime? vn = ToVietnamTime(parsedDate);
+            formattedPayDate = (vn ?? parsedDate).ToString("yyyy/MM/dd HH:mm");
+        }
+    }
+    
+    // Helper function to convert UTC to Vietnam time (UTC+7)
+    DateTime? ToVietnamTime(DateTime? utcTime)
+    {
+        if (utcTime == null) return null;
+        try
+        {
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            return TimeZoneInfo.ConvertTimeFromUtc(utcTime.Value, vnTimeZone);
+        }
+        catch
+        {
+            // Fallback: just add 7 hours
+            return utcTime.Value.AddHours(7);
+        }
+    }
 }
 
 <div class="container my-4">
@@ -22,13 +52,13 @@
                         <dt class="col-4">Số tiền</dt>
                         <dd class="col-8">@Model.Amount.ToString("#,0") đ</dd>
                         <dt class="col-4">Ngân hàng</dt>
-                        <dd class="col-8">@Model.BankCode</dd>
+                        <dd class="col-8">@(string.IsNullOrEmpty(Model.BankCode) ? "/" : Model.BankCode)</dd>
                         <dt class="col-4">Mã GD</dt>
-                        <dd class="col-8">@Model.TransactionNo</dd>
+                        <dd class="col-8">@(string.IsNullOrEmpty(Model.TransactionNo) ? "/" : Model.TransactionNo)</dd>
                         <dt class="col-4">Thời gian</dt>
-                        <dd class="col-8">@Model.PayDateRaw</dd>
+                        <dd class="col-8">@(string.IsNullOrEmpty(formattedPayDate) ? "/" : formattedPayDate)</dd>
                         <dt class="col-4">VNP Response</dt>
-                        <dd class="col-8">@Model.VnpResponseCode / @Model.VnpTransactionStatus</dd>
+                        <dd class="col-8">@(string.IsNullOrEmpty(Model.VnpResponseCode) ? "/" : Model.VnpResponseCode) / @(string.IsNullOrEmpty(Model.VnpTransactionStatus) ? "/" : Model.VnpTransactionStatus)</dd>
                         <dt class="col-4">Signature</dt>
                         <dd class="col-8">@((Model.IsValidSignature) ? "OK" : "INVALID")</dd>
                     </dl>
@@ -54,9 +84,9 @@
                                 <div>Ngày: @d.ShowDate?.ToString("dd/MM/yyyy")</div>
                                 <div>Giờ: @d.StartTime?.ToString("HH:mm") - @d.EndTime?.ToString("HH:mm")</div>
                                 <div>Ghế: <strong>@string.Join(", ", d.SeatLabels)</strong></div>
-                                <div class="mt-2 small text-muted">Liên hệ: @d.InvoiceEmail / @d.InvoicePhone</div>
+                                <div class="mt-2 small text-muted">Liên hệ: @(d.InvoiceEmail ?? "/") / @(d.InvoicePhone ?? "/")</div>
                                 <div class="small text-muted">PT thanh toán: @d.PaymentMethod</div>
-                                <div class="small text-muted">Tạo lúc: @d.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
+                                <div class="small text-muted">Tạo lúc: @ToVietnamTime(d.CreatedAt)?.ToString("dd/MM/yyyy HH:mm")</div>
                             </div>
                         </div>
 
@@ -100,7 +130,6 @@
 
     <div class="mt-4 d-flex gap-2">
         <a asp-controller="Home" asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-house me-1"></i>Về trang chủ</a>
-        <a asp-action="ResultById" asp-route-invoiceId="@Model.OrderId" class="btn btn-outline-primary">Xem lại hoá đơn</a>
         <a asp-action="History" class="btn btn-primary">Vé đã đặt</a>
     </div>
 </div>

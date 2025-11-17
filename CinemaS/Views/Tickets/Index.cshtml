@@ -1,54 +1,178 @@
-﻿@model IEnumerable<CinemaS.Models.Tickets>
+@model IEnumerable<CinemaS.Models.Tickets>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Vé";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<link rel="stylesheet" href="~/css/management.css" />
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Price)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedBooking)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Expire)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Price)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedBooking)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Expire)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.TicketId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.TicketId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.TicketId">Delete</a>
-            </td>
-        </tr>
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-ticket-alt"></i> Quản lý Vé</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Tạo mới
+        </a>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Search & Filter Box (still posts to Index and controller handles filtering) -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-white"><i class="fas fa-search"></i> Tìm kiếm</label>
+                        <div class="input-group search-box">
+                            <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control" placeholder="Mã vé, mã hóa đơn, mã ghế, loại vé..." />
+                            <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-white"><i class="fas fa-calendar-alt"></i> Từ ngày</label>
+                        <input type="date" name="fromDate" value="@ViewData["FromDate"]" class="form-control" onchange="this.form.submit()" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-white"><i class="fas fa-calendar-check"></i> Đến ngày</label>
+                        <input type="date" name="toDate" value="@ViewData["ToDate"]" class="form-control" onchange="this.form.submit()" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label text-white"><i class="fas fa-filter"></i> Trạng thái</label>
+                        @{
+                            var currentStatus = ViewData["StatusFilter"]?.ToString();
+                        }
+                        <select name="statusFilter" class="form-control" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            @if (currentStatus == "0") {
+                                <option value="0" selected>Đang chờ</option>
+                            } else {
+                                <option value="0">Đang chờ</option>
+                            }
+                            @if (currentStatus == "1") {
+                                <option value="1" selected>Đã thanh toán</option>
+                            } else {
+                                <option value="1">Đã thanh toán</option>
+                            }
+                            @if (currentStatus == "2") {
+                                <option value="2" selected>Đã hủy</option>
+                            } else {
+                                <option value="2">Đã hủy</option>
+                            }
+                            @if (currentStatus == "3") {
+                                <option value="3" selected>Hết hạn</option>
+                            } else {
+                                <option value="3">Hết hạn</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12">
+                        @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()) || !string.IsNullOrEmpty(ViewData["FromDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["ToDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["StatusFilter"]?.ToString()))
+                        {
+                            <a href="@Url.Action("Index")" class="btn btn-outline-danger"><i class="fas fa-times"></i> Xóa bộ lọc</a>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Simple Tickets Table (only Tickets fields) -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width:12%">Mã vé</th>
+                            <th style="width:12%">Hóa đơn</th>
+                            <th style="width:15%">Suất chiếu</th>
+                            <th style="width:12%">Ghế</th>
+                            <th style="width:12%">Loại vé</th>
+                            <th style="width:12%">Giá vé</th>
+                            <th style="width:13%">Ngày tạo</th>
+                            <th style="width:10%">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var ticket in Model)
+                            {
+                                <tr>
+                                    <td><strong>@ticket.TicketId</strong></td>
+                                    <td>@ticket.InvoiceId</td>
+                                    <td>@ticket.ShowTimeId</td>
+                                    <td>@ticket.SeatId</td>
+                                    <td>@ticket.TicketTypeId</td>
+                                    <td class="text-end">@(ticket.Price?.ToString("N0") ?? "0") đ</td>
+                                    <td>@ticket.CreatedBooking?.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="text-center">
+                                        <a asp-action="Details" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-info" title="Chi tiết"><i class="fas fa-eye"></i></a>
+                                        <a asp-action="Edit" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-warning" title="Chỉnh sửa"><i class="fas fa-edit"></i></a>
+                                        <a asp-action="Delete" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-danger" title="Xóa"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    <strong>Không tìm thấy vé nào</strong>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-secondary" onclick="history.back()"><i class="fas fa-arrow-left"></i> Quay lại</button>
+        @if (Model != null && Model.Any())
+        {
+            <div class="text-white">
+                <i class="fas fa-info-circle"></i>
+                <strong>Tổng số vé: @Model.Count()</strong>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+    </script>
 }
-    </tbody>
-</table>
