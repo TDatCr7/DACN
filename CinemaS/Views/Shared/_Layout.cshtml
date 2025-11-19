@@ -16,16 +16,15 @@
           crossorigin="anonymous" />
 
     <style>
-        /* ======= PALETTE: chỉ xanh biển & đỏ tím ======= */
         :root {
-            --blue-1: #0b1026; /* nền xanh đậm */
-            --blue-2: #15214e; /* xanh đậm hơn */
-            --indigo: #3b5ccc; /* xanh biển sáng */
-            --purple: #7c3aed; /* tím */
-            --magenta: #a21caf; /* đỏ tím */
+            --blue-1: #020617;
+            --blue-2: #0b1026;
+            --indigo: #3b5ccc;
+            --purple: #7c3aed;
+            --magenta: #a21caf;
             --text: #e9ecf6;
             --muted: #9aa5c6;
-            --line: rgba(255,255,255,.10);
+            --line: rgba(255,255,255,.12);
         }
 
         html, body {
@@ -38,83 +37,166 @@
             display: flex;
             flex-direction: column;
             color: var(--text);
-            background: var(--blue-1);
+            background: radial-gradient(1200px 720px at 18% -12%, #111827 0%, #020617 60%, #020617 100%);
             overflow-x: hidden;
         }
 
-        /* ======= LỚP NỀN GLOW CỐ ĐỊNH (KHÔNG ĐÈ FOOTER) ======= */
         #bg-glow {
             position: fixed;
             inset: 0;
-            z-index: 0; /* nằm sau mọi thứ */
+            z-index: 0;
             pointer-events: none;
-            background-image: radial-gradient(1200px 720px at 18% -12%, rgba(59, 92, 204, 0.35) 0%, rgba(59, 92, 204, 0) 60%), radial-gradient(1000px 600px at 82% 10%, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0) 60%), radial-gradient(900px 600px at 70% 92%, rgba(162, 28, 175, 0.20) 0%, rgba(162, 28, 175, 0) 55%), radial-gradient(1400px 900px at 50% 40%, rgba(21, 33, 78, 0.45) 0%, rgba(21, 33, 78, 0) 70%);
+            background-image: radial-gradient(1100px 680px at 18% -10%, rgba(59, 92, 204, 0.45) 0%, rgba(59, 92, 204, 0) 65%), radial-gradient(900px 520px at 82% 0%, rgba(124, 58, 237, 0.38) 0%, rgba(124, 58, 237, 0) 60%), radial-gradient(900px 520px at 70% 100%, rgba(162, 28, 175, 0.26) 0%, rgba(162, 28, 175, 0) 60%);
             background-repeat: no-repeat;
             background-attachment: fixed;
             background-blend-mode: screen;
         }
 
-        /* ======= NAVBAR ======= */
-        .navbar {
-            background: linear-gradient(180deg, #12183f 0%, #0f1440 100%);
-            border-bottom: 1px solid var(--line);
-            box-shadow: 0 4px 20px rgba(0,0,0,.35);
+        .shell-top {
             position: relative;
-            z-index: 2; /* cao hơn glow */
+            z-index: 2;
+            padding-top: 10px;
+            padding-bottom: 6px;
+        }
+
+        .top-island-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 12px;
+        }
+
+        .top-island {
+            border-radius: 999px;
+            background: radial-gradient(circle at 0 0, rgba(59, 130, 246, .55), transparent 60%), radial-gradient(circle at 100% 0, rgba(248, 113, 113, .45), transparent 60%), linear-gradient(145deg, #020617, #020617);
+            border: 1px solid rgba(148, 163, 255, .5);
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .95), 0 0 0 1px rgba(15, 23, 42, .85), 0 0 40px rgba(79, 70, 229, .5);
+            padding: 8px 16px 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(24px);
         }
 
         .navbar-brand img {
-            width: 48px;
-            height: 48px;
+            width: 46px;
+            height: 46px;
             object-fit: contain;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,.65);
         }
 
-        .nav-link {
-            color: #cfd6ff !important;
+        .nav-main {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-pills-shell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px;
+            border-radius: 999px;
+            background: rgba(15,23,42,.92);
+            border: 1px solid rgba(148,163,255,.45);
+        }
+
+        .nav-pill {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
             font-weight: 600;
             letter-spacing: .3px;
-            padding: 10px 14px !important;
-            border-radius: 10px;
-            transition: all .2s ease;
+            color: #cfd6ff;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            transition: color .2s ease;
         }
 
-            .nav-link.active {
-                color: #cfd6ff !important;
-                background: transparent !important;
+            .nav-pill::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(120deg, var(--indigo), var(--purple));
+                transform: translateX(-110%);
+                transition: transform .35s ease;
+                z-index: -1;
             }
 
-            .nav-link:hover, .nav-link:focus {
-                color: #fff !important;
-                background: linear-gradient(90deg, var(--indigo) 0%, var(--purple) 100%);
-                box-shadow: 0 0 0 2px rgba(124,58,237,.25) inset;
+            .nav-pill:hover::before {
+                transform: translateX(0);
             }
 
-        /* ======= MAIN ======= */
-        main {
+            .nav-pill:hover {
+                color: #fff;
+            }
+
+            .nav-pill.active {
+                color: #fff;
+            }
+
+                .nav-pill.active::before {
+                    transform: translateX(0);
+                }
+
+        .nav-side {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow: visible;
+        }
+
+        .nav-admin-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            background: radial-gradient(circle at 0 0, rgba(248,113,113,.6), transparent 60%), rgba(15,23,42,1);
+            border: 1px solid rgba(248,113,113,.7);
+            color: #fee2e2;
+        }
+
+            .nav-admin-chip i {
+                font-size: 12px;
+            }
+
+        .main-shell {
             flex: 1 0 auto;
-            padding: 20px 0;
             position: relative;
             z-index: 1;
+            padding: 18px 0 24px;
         }
 
-        /* ======= FOOTER (nền riêng, không bị ảnh hưởng) ======= */
+        .main-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 12px;
+        }
+
         footer {
             position: relative;
-            z-index: 2; /* cao hơn glow */
-            background-color: #0a0d25; /* nền đặc, không trong suốt */
+            z-index: 2;
+            background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
             border-top: 1px solid var(--line);
             color: var(--text);
-            padding: 48px 0 18px;
+            padding: 38px 0 16px;
         }
 
             footer .footer-title {
                 font-weight: 800;
                 text-transform: uppercase;
-                margin-bottom: 14px;
+                margin-bottom: 12px;
             }
 
         .footer-link {
             color: var(--muted);
+            text-decoration: none;
         }
 
             .footer-link:hover {
@@ -124,17 +206,18 @@
 
         .footer-bottom {
             border-top: 1px solid var(--line);
-            margin-top: 20px;
+            margin-top: 14px;
             padding-top: 10px;
             color: var(--muted);
+            font-size: 13px;
         }
 
-        /* ======= Form / Button ======= */
         .btn-primary {
-            background: linear-gradient(90deg, var(--indigo) 0%, var(--purple) 100%);
+            background: linear-gradient(120deg, var(--indigo), var(--purple));
             border: none;
             color: #fff;
             font-weight: 700;
+            border-radius: 999px;
         }
 
             .btn-primary:hover {
@@ -142,78 +225,115 @@
             }
 
         .form-control, .form-select, textarea {
-            background: #0a1133;
+            background: #020617;
             color: #e6ebff;
             border: 1px solid var(--line);
+            border-radius: 12px;
         }
 
             .form-control:focus, .form-select:focus, textarea:focus {
                 border-color: var(--indigo);
-                box-shadow: 0 0 0 .2rem rgba(59,92,204,.25);
+                box-shadow: 0 0 0 .15rem rgba(59,92,204,.35);
             }
 
-        /* Back to Top */
         #backToTop {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            z-index: 3;
+            z-index: 4;
             display: none;
             border: none;
-            border-radius: 50%;
-            background: linear-gradient(180deg, var(--indigo) 0%, var(--magenta) 100%);
+            border-radius: 999px;
+            background: conic-gradient(from 220deg, var(--indigo), var(--purple), var(--magenta), var(--indigo));
             color: #fff;
-            padding: 10px 12px;
-            box-shadow: 0 0 18px rgba(124,58,237,.35);
+            padding: 9px 11px;
+            box-shadow: 0 0 20px rgba(15,23,42,.95);
         }
 
             #backToTop:hover {
-                filter: brightness(1.05);
+                filter: brightness(1.08);
             }
+
+        @@media (max-width: 991.98px) {
+            .top-island {
+                flex-wrap: wrap;
+                row-gap: 8px;
+            }
+
+            .nav-main {
+                flex: 1 0 100%;
+                justify-content: center;
+            }
+
+            .nav-side {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        @@media (max-width: 575.98px) {
+            .top-island {
+                padding-inline: 10px;
+            }
+
+            .nav-pills-shell {
+                overflow-x: auto;
+                padding-inline: 4px;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <!-- lớp nền glow cố định -->
     <div id="bg-glow"></div>
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                <img src="~/images/logo/Logo.jpg" alt="CinemaS" />
-            </a>
+    <header class="shell-top">
+        <div class="top-island-wrapper">
+            <div class="top-island">
+                <div class="d-flex align-items-center gap-2">
+                    <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                        <img src="~/images/logo/Logo.jpg" alt="CinemaS" />
+                    </a>
+                </div>
 
-            <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+                <div class="nav-main">
+                    <nav class="nav-pills-shell">
+                        <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
+                           asp-controller="Home" asp-action="Index">
+                            Trang chủ
+                        </a>
+                        <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "Payment" ? "active" : "")"
+                           asp-controller="Payment" asp-action="History">
+                            Vé đã đặt
+                        </a>
+                        <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "Movies" ? "active" : "")"
+                           asp-controller="Movies" asp-action="Index">
+                            Phim
+                        </a>
+                    </nav>
+                </div>
 
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav ms-3 me-auto">
-                    <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Payment" asp-action="History">Vé đã đặt</a></li>
+                <div class="nav-side">
                     @if (User?.IsInRole("Admin") == true)
                     {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Admin" asp-action="Index">
-                                <i class="fa-solid fa-screwdriver-wrench me-1"></i> Quản lý hệ thống
-                            </a>
-                        </li>
+                        <a class="nav-admin-chip" asp-controller="Admin" asp-action="Index">
+                            <i class="fa-solid fa-screwdriver-wrench"></i>
+                            <span>Admin</span>
+                        </a>
                     }
-                </ul>
-                <partial name="_LoginPartial" />
+
+                    @await Html.PartialAsync("_LoginPartial")
+                </div>
             </div>
         </div>
-    </nav>
+    </header>
 
-    
-    <main role="main">
-        <div class="container">
+    <main class="main-shell" role="main">
+        <div class="main-inner">
             @RenderBody()
         </div>
     </main>
 
-    <!-- FOOTER -->
     <footer>
         <div class="container">
             <div class="row g-4">
@@ -250,18 +370,17 @@
             </div>
         </div>
     </footer>
-    
+
     <button id="backToTop"><i class="fa-solid fa-arrow-up"></i></button>
+
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script>
-        // Back to Top
         const btnTop = document.getElementById('backToTop');
         window.addEventListener('scroll', () => {
             btnTop.style.display = window.scrollY > 420 ? 'block' : 'none';
         });
         btnTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-
     </script>
     @RenderSection("Scripts", required: false)
 </body>

@@ -1,9 +1,16 @@
-﻿using CinemaS.Models;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Text.Json;
+using CinemaS.Models;
 using CinemaS.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace CinemaS.Controllers
 {
@@ -11,8 +18,8 @@ namespace CinemaS.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly CinemaContext _db;
-
         private readonly IWebHostEnvironment _env;
+
         public HomeController(ILogger<HomeController> logger, CinemaContext db, IWebHostEnvironment env)
         {
             _logger = logger;
@@ -20,12 +27,50 @@ namespace CinemaS.Controllers
             _env = env;
         }
 
+        // ============== CẤU HÌNH HOME (JSON) ==============
+
+        private string GetHomeConfigPath()
+        {
+            var folder = Path.Combine(_env.ContentRootPath, "App_Data");
+            Directory.CreateDirectory(folder);
+            return Path.Combine(folder, "home-config.json");
+        }
+
+        private HomeDisplayConfigVM LoadHomeConfig()
+        {
+            var path = GetHomeConfigPath();
+            if (!System.IO.File.Exists(path))
+                return new HomeDisplayConfigVM();
+
+            try
+            {
+                var json = System.IO.File.ReadAllText(path);
+                var cfg = JsonSerializer.Deserialize<HomeDisplayConfigVM>(json);
+                return cfg ?? new HomeDisplayConfigVM();
+            }
+            catch
+            {
+                return new HomeDisplayConfigVM();
+            }
+        }
+
+        private void SaveHomeConfig(HomeDisplayConfigVM cfg)
+        {
+            var path = GetHomeConfigPath();
+            var json = JsonSerializer.Serialize(cfg, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+            System.IO.File.WriteAllText(path, json);
+        }
+
+        // ============== TRANG CHỦ ==============
+
         public async Task<IActionResult> Index()
         {
-            // Base query
+            var homeCfg = LoadHomeConfig();
             var moviesQ = _db.Movies.AsNoTracking();
 
-            // Project mạnh về MovieCardVM (Poster luôn là Poster; không trộn với Banner)
             IQueryable<MovieCardVM> Project(IQueryable<Movies> src) =>
                 src.Select(m => new MovieCardVM
                 {
@@ -44,18 +89,28 @@ namespace CinemaS.Controllers
                                     .Where(s => s.StatusId == m.StatusId)
                                     .Select(s => s.Name)
                                     .FirstOrDefault(),
-                    // NEW
                     Duration = m.Duration,
                     Country = m.Country,
                     AudioOption = m.AudioOption
                 });
 
-            // HERO (đang/sắp chiếu)
-            var carousel = await Project(
-                                moviesQ.Where(m => m.StatusId == "RELEASED" || m.StatusId == "COMING")
+            // HERO: chỉ phim ĐANG CHIẾU (RELEASED) để đồng bộ với trang EditBanner
+            var heroRaw = await Project(
+                                moviesQ.Where(m => m.StatusId == "RELEASED")
                                        .OrderByDescending(m => m.UpdatedAt ?? m.ReleaseDate)
-                                       .Take(6)
                            ).ToListAsync();
+
+            if (homeCfg.HiddenBannerMovieIds != null && homeCfg.HiddenBannerMovieIds.Any())
+            {
+                heroRaw = heroRaw
+                    .Where(x => !homeCfg.HiddenBannerMovieIds.Contains(x.MoviesId))
+                    .ToList();
+            }
+
+            var carousel = heroRaw
+                .DistinctBy(x => x.MoviesId)
+                .Take(6)
+                .ToList();
 
             // ĐANG CHIẾU
             var nowShowing = await Project(
@@ -71,70 +126,280 @@ namespace CinemaS.Controllers
                                        .Take(18)
                              ).ToListAsync();
 
-            // TRAILERS
+            // TRAILERS cho Home (lọc theo config và cắt 8)
             var trailersRaw = await moviesQ
                                 .Where(m => m.TrailerLink != null)
                                 .OrderByDescending(m => m.ReleaseDate)
                                 .Select(m => new { m.MoviesId, m.Title, m.TrailerLink, m.PosterImage })
-                                .Take(8)
                                 .ToListAsync();
+
+            if (homeCfg.HomeTrailerMovieIds != null && homeCfg.HomeTrailerMovieIds.Any())
+            {
+                trailersRaw = trailersRaw
+                    .Where(t => homeCfg.HomeTrailerMovieIds.Contains(t.MoviesId))
+                    .ToList();
+            }
+
+            trailersRaw = trailersRaw.Take(8).ToList();
 
             var vm = new HomeVM
             {
-                // Nếu project của bạn là .NET < 6 (không có DistinctBy), đổi 3 dòng dưới thành:
-                // Carousel   = carousel.GroupBy(x => x.MoviesId).Select(g => g.First()).ToList();
-                // NowShowing = nowShowing.GroupBy(x => x.MoviesId).Select(g => g.First()).ToList();
-                // ComingSoon = comingSoon.GroupBy(x => x.MoviesId).Select(g => g.First()).ToList();
-                Carousel = carousel.DistinctBy(x => x.MoviesId).ToList(),
+                Carousel = carousel,
                 NowShowing = nowShowing.DistinctBy(x => x.MoviesId).ToList(),
                 ComingSoon = comingSoon.DistinctBy(x => x.MoviesId).ToList(),
-                Trailers = trailersRaw.Select(t => (t.MoviesId, t.Title ?? string.Empty, t.TrailerLink, t.PosterImage)).ToList()
+                Trailers = trailersRaw
+                            .Select(t => (t.MoviesId, t.Title ?? string.Empty, t.TrailerLink, t.PosterImage))
+                            .ToList(),
+                ExtraBanners = homeCfg.ExtraBanners ?? new List<HomeDisplayConfigVM.ExtraBannerItem>()
             };
 
             return View(vm);
         }
-        // ========== QUẢN LÝ ẢNH BANNER ==========
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> EditBanner(string id)
+
+        // ============== DANH SÁCH PHIM THEO STATUS (XEM THÊM) ==============
+
+        [HttpGet]
+        public async Task<IActionResult> ListByStatus(string status)
         {
-            if (string.IsNullOrWhiteSpace(id)) return NotFound();
+            if (string.IsNullOrWhiteSpace(status))
+                return NotFound();
 
-            var movie = await _db.Movies.FindAsync(id);
-            if (movie == null) return NotFound();
+            var moviesQ = _db.Movies.AsNoTracking()
+                                    .Where(m => m.StatusId == status);
 
-            return View(movie);
+            var cards = await moviesQ
+                .Select(m => new MovieCardVM
+                {
+                    MoviesId = m.MoviesId,
+                    Title = m.Title ?? string.Empty,
+                    PosterImage = m.PosterImage,
+                    Summary = m.Summary,
+                    GenreName = (from mg in _db.MoviesGenres
+                                 join g in _db.Genres on mg.GenresId equals g.GenresId
+                                 where mg.MoviesId == m.MoviesId
+                                 select g.Name).FirstOrDefault() ?? "Khác",
+                    ReleaseDate = m.ReleaseDate,
+                    StatusId = m.StatusId,
+                    StatusName = _db.Statuses
+                                    .Where(s => s.StatusId == m.StatusId)
+                                    .Select(s => s.Name)
+                                    .FirstOrDefault(),
+                    Duration = m.Duration,
+                    Country = m.Country,
+                    AudioOption = m.AudioOption
+                })
+                .OrderByDescending(x => x.ReleaseDate)
+                .ToListAsync();
+
+            var genres = cards.Select(c => c.GenreName ?? "Khác")
+                              .Distinct()
+                              .OrderBy(x => x)
+                              .ToList();
+
+            ViewData["Title"] = status switch
+            {
+                "RELEASED" => "Phim đang chiếu",
+                "COMING" => "Phim sắp chiếu",
+                _ => "Danh sách phim"
+            };
+
+            var vm = new MovieListVM
+            {
+                Movies = cards,
+                Genres = genres
+            };
+
+            return View("~/Views/Home/ListByStatus.cshtml", vm);
+        }
+
+        // ============== QUẢN LÝ BANNER HOME (PHÂN TRANG) ==============
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> EditBanner(int page = 1)
+        {
+            const int pageSize = 8;
+            if (page < 1) page = 1;
+
+            var cfg = LoadHomeConfig();
+
+            var movies = await _db.Movies
+                .AsNoTracking()
+                .Where(m => m.StatusId == "RELEASED")
+                .OrderByDescending(m => m.ReleaseDate)
+                .ToListAsync();
+
+            var allBannerItems = movies.Select(m =>
+            {
+                var img = !string.IsNullOrWhiteSpace(m.BannerImage)
+                    ? m.BannerImage
+                    : (string.IsNullOrWhiteSpace(m.PosterImage) ? "/images/no-poster.png" : m.PosterImage);
+
+                return new BannerMovieItemVM
+                {
+                    MoviesId = m.MoviesId,
+                    Title = m.Title ?? string.Empty,
+                    ImageUrl = img,
+                    IsHidden = cfg.HiddenBannerMovieIds.Contains(m.MoviesId)
+                };
+            }).ToList();
+
+            var totalCount = allBannerItems.Count;
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (totalPages == 0) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var pageItems = allBannerItems
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var vm = new BannerManageVM
+            {
+                MovieBanners = pageItems,
+                ExtraBanners = cfg.ExtraBanners ?? new List<HomeDisplayConfigVM.ExtraBannerItem>(),
+                PageIndex = page,
+                TotalPages = totalPages
+            };
+
+            return View(vm);
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> EditBanner(string id, IFormFile? file)
+        public async Task<IActionResult> EditBanner(
+            List<BannerMovieItemVM> MovieBanners,
+            IFormFile? extraBannerFile,
+            string? actionType,
+            int page = 1)
         {
-            if (string.IsNullOrWhiteSpace(id)) return NotFound();
+            const int pageSize = 8;
+            var cfg = LoadHomeConfig();
 
-            var movie = await _db.Movies.FindAsync(id);
-            if (movie == null) return NotFound();
-
-            if (file != null && file.Length > 0)
+            if (string.Equals(actionType, "SaveMovieFlags", StringComparison.OrdinalIgnoreCase))
             {
-                var folder = Path.Combine(_env.WebRootPath, "images", "banners");
-                Directory.CreateDirectory(folder);
+                var set = new HashSet<string>(cfg.HiddenBannerMovieIds ?? new List<string>());
 
-                var fileName = $"{id}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(file.FileName)}";
-                var savePath = Path.Combine(folder, fileName);
+                foreach (var mv in MovieBanners)
+                {
+                    if (mv.IsHidden) set.Add(mv.MoviesId);
+                    else set.Remove(mv.MoviesId);
+                }
 
-                using (var stream = new FileStream(savePath, FileMode.Create))
-                    await file.CopyToAsync(stream);
+                cfg.HiddenBannerMovieIds = set.ToList();
+                SaveHomeConfig(cfg);
+            }
+            else if (string.Equals(actionType, "AddExtra", StringComparison.OrdinalIgnoreCase))
+            {
+                if (extraBannerFile != null && extraBannerFile.Length > 0)
+                {
+                    var folder = Path.Combine(_env.WebRootPath, "images", "extra-banners");
+                    Directory.CreateDirectory(folder);
 
-                movie.BannerImage = $"/images/banners/{fileName}";
-                movie.UpdatedAt = DateTime.Now;
-                await _db.SaveChangesAsync();
+                    var fileName = $"{DateTime.Now:yyyyMMddHHmmssfff}{Path.GetExtension(extraBannerFile.FileName)}";
+                    var fullPath = Path.Combine(folder, fileName);
+                    using (var stream = new FileStream(fullPath, FileMode.Create))
+                        await extraBannerFile.CopyToAsync(stream);
 
-                TempData["Message"] = "Cập nhật banner thành công!";
+                    var list = cfg.ExtraBanners ?? new List<HomeDisplayConfigVM.ExtraBannerItem>();
+                    var nextId = list.Any() ? list.Max(x => x.Id) + 1 : 1;
+
+                    list.Add(new HomeDisplayConfigVM.ExtraBannerItem
+                    {
+                        Id = nextId,
+                        ImagePath = $"/images/extra-banners/{fileName}"
+                    });
+
+                    cfg.ExtraBanners = list;
+                    SaveHomeConfig(cfg);
+                }
             }
 
-            return RedirectToAction("EditBanner", new { id });
+            return RedirectToAction(nameof(EditBanner), new { page });
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public IActionResult DeleteExtraBanner(int deleteExtraId)
+        {
+            var cfg = LoadHomeConfig();
+            if (cfg.ExtraBanners != null && cfg.ExtraBanners.Any())
+            {
+                var item = cfg.ExtraBanners.FirstOrDefault(x => x.Id == deleteExtraId);
+                if (item != null)
+                {
+                    cfg.ExtraBanners.Remove(item);
+                }
+                SaveHomeConfig(cfg);
+            }
+            return RedirectToAction(nameof(EditBanner));
+        }
+
+        // ============== QUẢN LÝ TRAILER HOT (PHÂN TRANG) ==============
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> ManageTrailers(int page = 1)
+        {
+            const int pageSize = 8;
+            if (page < 1) page = 1;
+
+            var cfg = LoadHomeConfig();
+
+            var movies = await _db.Movies
+                .AsNoTracking()
+                .Where(m => m.TrailerLink != null)
+                .OrderByDescending(m => m.ReleaseDate)
+                .ToListAsync();
+
+            var allItems = movies.Select(m => new TrailerManageItemVM
+            {
+                MoviesId = m.MoviesId,
+                Title = m.Title ?? string.Empty,
+                TrailerLink = m.TrailerLink,
+                ShowOnHome = cfg.HomeTrailerMovieIds.Contains(m.MoviesId)
+            }).ToList();
+
+            var totalCount = allItems.Count;
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (totalPages == 0) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var pageItems = allItems
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var vm = new TrailerManageVM
+            {
+                Items = pageItems,
+                PageIndex = page,
+                TotalPages = totalPages
+            };
+
+            return View(vm);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public IActionResult ManageTrailers(TrailerManageVM model, int page = 1)
+        {
+            var cfg = LoadHomeConfig();
+            var set = new HashSet<string>(cfg.HomeTrailerMovieIds ?? new List<string>());
+
+            foreach (var it in model.Items)
+            {
+                if (it.ShowOnHome) set.Add(it.MoviesId);
+                else set.Remove(it.MoviesId);
+            }
+
+            cfg.HomeTrailerMovieIds = set.ToList();
+            SaveHomeConfig(cfg);
+
+            return RedirectToAction(nameof(ManageTrailers), new { page });
+        }
+
+        // ============== ERROR & DETAIL ==============
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
@@ -150,7 +415,6 @@ namespace CinemaS.Controllers
                 .FirstOrDefaultAsync(m => m.MoviesId == id);
             if (movie == null) return NotFound();
 
-            // Lấy danh sách thể loại của phim
             var genres = await (from mg in _db.MoviesGenres
                                 join g in _db.Genres on mg.GenresId equals g.GenresId
                                 where mg.MoviesId == id
@@ -159,7 +423,5 @@ namespace CinemaS.Controllers
 
             return View("~/Views/Home/Detail.cshtml", movie);
         }
-
-
     }
 }

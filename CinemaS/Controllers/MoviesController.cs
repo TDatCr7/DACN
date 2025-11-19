@@ -157,7 +157,13 @@ namespace CinemaS.Controllers
         }
 
         /* ===================== Index (card + filter) ===================== */
-        public async Task<IActionResult> Index(string? genre = null, string? q = null, string? status = null, string? message = null, string? error = null)
+        public async Task<IActionResult> Index(
+            string? genre = null,
+            string? q = null,
+            string? status = null,
+            string? message = null,
+            string? error = null,
+            int page = 1)
         {
             var cards = await GetMovieCardsAsync();
             var genres = cards.Select(c => c.GenreName ?? "Khác").Distinct().OrderBy(s => s).ToList();
@@ -174,9 +180,33 @@ namespace CinemaS.Controllers
                 cards = cards.Where(c => RemoveVietnameseTones(c.Title).ToLowerInvariant().Contains(qLower)).ToList();
             }
 
-            var vm = new MovieListVM { Movies = cards, Genres = genres, Message = message, Error = error };
+            // ===== PHÂN TRANG (8 phim / trang) =====
+            const int pageSize = 8;
+            if (page < 1) page = 1;
+
+            var totalCount = cards.Count;
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (totalPages == 0) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var pagedCards = cards
+                .OrderByDescending(c => c.ReleaseDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var vm = new MovieListVM
+            {
+                Movies = pagedCards,
+                Genres = genres,
+                Message = message,
+                Error = error,
+                PageIndex = page,
+                TotalPages = totalPages
+            };
             return View(vm);
         }
+
 
         /* ===================== Details (kèm đạo diễn & diễn viên) ===================== */
         // using System.Linq;

@@ -469,22 +469,28 @@
 
 <!-- ===== HERO ===== -->
 <div class="container hero section">
-    @if (Model.Carousel.Any())
+    @if (Model.Carousel.Any() || Model.ExtraBanners.Any())
     {
         <div class="swiper" id="swiper-hero">
             <div class="swiper-wrapper">
+                @* Banner từ phim đang chiếu (chịu ảnh hưởng ẩn/hiện trong EditBanner) *@
                 @foreach (var item in Model.Carousel)
                 {
-                    var img = !string.IsNullOrWhiteSpace(item.BannerImage) ? item.BannerImage
+                    var img = !string.IsNullOrWhiteSpace(item.BannerImage)
+                    ? item.BannerImage
                     : (string.IsNullOrWhiteSpace(item.PosterImage) ? "/images/no-poster.png" : item.PosterImage);
+
                     <div class="swiper-slide" style="position:relative;">
                         <img class="slide-img" src="@img" alt="@item.Title" />
                         @if (User.IsInRole("Admin"))
                         {
-                            <a asp-controller="Home" asp-action="EditBanner" asp-route-id="@item.MoviesId"
-                               class="btn btn-sm btn-light" style="position:absolute; right:12px; top:12px; z-index:3; text-decoration:none;">
-                                <i class="fa-solid fa-pen"></i> Sửa banner
-                            </a>
+                            <div style="position:absolute; right:12px; top:12px; z-index:4;">
+                                <a asp-controller="Home" asp-action="EditBanner"
+                                   class="btn btn-sm btn-light rounded-pill px-3"
+                                   style="text-decoration:none;">
+                                    <i class="fa-solid fa-sliders me-1"></i> Banner Home
+                                </a>
+                            </div>
                         }
                         <div class="hero-caption">
                             <h2>@item.Title</h2>
@@ -492,12 +498,29 @@
                             {
                                 <div class="mb-2">@item.Summary</div>
                             }
-                            <!-- [CHANGED] thêm btn-sweep để có hiệu ứng quét tím -->
                             <a asp-controller="Booking" asp-action="Create" asp-route-movieId="@item.MoviesId"
                                class="btn btn-cine btn-sweep">
                                 <i class="fa-solid fa-ticket"></i> Đặt vé
                             </a>
                         </div>
+                    </div>
+                }
+
+                @* Banner thêm ngoài (extra) *@
+                @foreach (var b in Model.ExtraBanners)
+                {
+                    <div class="swiper-slide" style="position:relative;">
+                        <img class="slide-img" src="@b.ImagePath" alt="Banner" />
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <div style="position:absolute; right:12px; top:12px; z-index:4;">
+                                <a asp-controller="Home" asp-action="EditBanner"
+                                   class="btn btn-sm btn-light rounded-pill px-3"
+                                   style="text-decoration:none;">
+                                    <i class="fa-solid fa-sliders me-1"></i> Banner Home
+                                </a>
+                            </div>
+                        }
                     </div>
                 }
             </div>
@@ -507,6 +530,7 @@
         </div>
     }
 </div>
+
 
 <!-- ===== PHIM ĐANG CHIẾU ===== -->
 <section class="rail">
@@ -712,7 +736,16 @@
 @if (Model.Trailers.Any())
 {
     <section class="section" style="padding-top:0;">
-        <h3 class="section-title">Trailer hot</h3>
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="section-title mb-0">Trailer hot</h3>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="Home" asp-action="ManageTrailers"
+                   class="btn btn-outline-info btn-sm me-3">
+                    Quản lý trailer
+                </a>
+            }
+        </div>
         <div class="container">
             <div class="swiper" id="swiper-trailer">
                 <div class="swiper-wrapper">
