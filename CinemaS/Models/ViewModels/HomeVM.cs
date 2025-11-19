@@ -1,15 +1,17 @@
-﻿namespace CinemaS.Models.ViewModels
+﻿using System.Collections.Generic;
+
+namespace CinemaS.Models.ViewModels
 {
     public class HomeVM
     {
-        // Carousel banner (ưu tiên phim đang chiếu có Banner_Image)
         public List<MovieCardVM> Carousel { get; set; } = new();
-
-        // Tabs “Đang chiếu” / “Sắp chiếu”
         public List<MovieCardVM> NowShowing { get; set; } = new();
         public List<MovieCardVM> ComingSoon { get; set; } = new();
 
-        // Trailer hot (link YouTube)
+        // Trailer: MoviesId, Title, TrailerLink, PosterImage
         public List<(string MoviesId, string Title, string? TrailerLink, string? PosterImage)> Trailers { get; set; } = new();
+
+        // Banner ngoài phim
+        public List<HomeDisplayConfigVM.ExtraBannerItem> ExtraBanners { get; set; } = new();
     }
 }

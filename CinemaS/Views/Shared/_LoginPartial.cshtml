@@ -4,25 +4,250 @@
 @inject SignInManager<AppUser> SignInManager
 @inject UserManager<AppUser> UserManager
 
-<ul class="navbar-nav">
-@if (SignInManager.IsSignedIn(User))
-{
-    <li class="nav-item">
-        <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @UserManager.GetUserName(User)!</a>
-    </li>
-    <li class="nav-item">
-        <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-            <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
-        </form>
-    </li>
+@{
+    bool isSignedIn = SignInManager.IsSignedIn(User);
+    string? userName = null;
+    string initials = "U";
+
+    if (isSignedIn)
+    {
+        var user = await UserManager.GetUserAsync(User);
+        userName = await UserManager.GetUserNameAsync(user);
+        if (!string.IsNullOrWhiteSpace(userName))
+        {
+            var parts = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+            {
+                initials = parts[0].Substring(0, 1).ToUpperInvariant();
+            }
+            else
+            {
+                initials = (parts[0].Substring(0, 1) + parts[^1].Substring(0, 1)).ToUpperInvariant();
+            }
+        }
+    }
 }
-else
-{
-    <li class="nav-item">
-        <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
-    </li>
-}
-</ul>
+
+<style>
+    .auth-shell {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .auth-pill-btn {
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid rgba(148,163,255,.45);
+        background: rgba(15,23,42,.85);
+        color: #e5e7eb;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all .2s ease;
+    }
+
+        .auth-pill-btn:hover {
+            color: #fff;
+            border-color: rgba(129,140,248,.9);
+            background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+            box-shadow: 0 0 12px rgba(55,65,81,.8);
+        }
+
+    .auth-avatar-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 0 0, rgba(96,165,250,.45), transparent 55%), rgba(15,23,42,.96);
+        border: 1px solid rgba(148,163,255,.6);
+        color: #e5e7eb;
+        cursor: pointer;
+    }
+
+    .auth-avatar-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 13px;
+        background: radial-gradient(circle at 30% 0%, #4f46e5, #0f172a);
+        color: #e5e7eb;
+        box-shadow: 0 0 12px rgba(59,130,246,.8);
+    }
+
+    .auth-name {
+        max-width: 130px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .auth-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        min-width: 220px;
+        padding: 6px;
+        border-radius: 18px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), #020617;
+        border: 1px solid rgba(148,163,255,.45);
+        box-shadow: 0 18px 45px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.9);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: opacity .18s ease, transform .18s ease;
+        z-index: 30;
+    }
+
+        .auth-menu.auth-menu-show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+    .auth-menu-header {
+        padding: 4px 8px 6px;
+    }
+
+    .auth-menu-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #9ca3af;
+    }
+
+    .auth-menu-username {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e5e7eb;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .auth-menu-divider {
+        margin: 4px 0;
+        border-top: 1px solid rgba(148,163,255,.35);
+    }
+
+    .auth-menu-item {
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #e5e7eb;
+        padding: 7px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        border: none;
+        width: 100%;
+        background: transparent;
+        text-align: left;
+    }
+
+        .auth-menu-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .auth-menu-item:hover {
+            background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+            color: #fff;
+        }
+
+    @@media (max-width: 575.98px) {
+        .auth-name {
+            max-width: 90px;
+        }
+    }
+</style>
+
+<div class="auth-shell" id="auth-shell">
+    @if (isSignedIn)
+    {
+        <button type="button" class="auth-avatar-chip" data-auth-toggle>
+            <div class="auth-avatar-circle">@initials</div>
+            <div class="auth-name">@userName</div>
+            <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
+        </button>
+
+        <div class="auth-menu" data-auth-menu>
+            <div class="auth-menu-header">
+                <div class="auth-menu-title">Tài khoản</div>
+                <div class="auth-menu-username">@userName</div>
+            </div>
+
+            <div class="auth-menu-divider"></div>
+
+            <a class="auth-menu-item" asp-area="Identity" asp-page="/Account/Manage/Index">
+                <i class="fa-regular fa-user"></i>
+                <span>Hồ sơ cá nhân</span>
+            </a>
+
+            <a class="auth-menu-item" asp-controller="Payment" asp-action="History">
+                <i class="fa-solid fa-ticket"></i>
+                <span>Vé đã đặt</span>
+            </a>
+
+            <div class="auth-menu-divider"></div>
+
+            <form asp-area="Identity" asp-page="/Account/Logout"
+                  asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                <button type="submit" class="auth-menu-item">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <a class="auth-pill-btn" asp-area="Identity" asp-page="/Account/Login">
+            <i class="fa-regular fa-circle-user"></i>
+            <span>Đăng nhập</span>
+        </a>
+        <a class="auth-pill-btn"
+           asp-area="Identity" asp-page="/Account/Register"
+           style="background:linear-gradient(120deg,#3b82f6,#8b5cf6);border-color:rgba(129,140,248,.95);color:#fff;">
+            <i class="fa-solid fa-plus"></i>
+            <span>Đăng ký</span>
+        </a>
+    }
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const shell = document.getElementById('auth-shell');
+        if (!shell) return;
+
+        const toggle = shell.querySelector('[data-auth-toggle]');
+        const menu = shell.querySelector('[data-auth-menu]');
+        if (!toggle || !menu) return;
+
+        toggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            menu.classList.toggle('auth-menu-show');
+        });
+
+        menu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click', function () {
+            menu.classList.remove('auth-menu-show');
+        });
+    });
+</script>

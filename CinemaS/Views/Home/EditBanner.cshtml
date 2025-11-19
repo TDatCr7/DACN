@@ -1,38 +1,341 @@
-﻿@model CinemaS.Models.Movies
+﻿@model CinemaS.Models.ViewModels.BannerManageVM
 @{
-    ViewData["Title"] = "Chỉnh sửa ảnh Banner";
+    ViewData["Title"] = "Quản lý banner trang chủ";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-4">
-    <h2 class="text-center mb-4 text-light">Chỉnh sửa ảnh Banner</h2>
-
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-success text-center">@TempData["Message"]</div>
+<style>
+    .island-shell {
+        max-width: 1200px;
+        margin: 0 auto;
     }
 
-    <div class="card bg-dark text-light p-4" style="max-width: 700px; margin: auto;">
-        <h4 class="mb-3">@Model.Title</h4>
+    .island-header {
+        background: radial-gradient(circle at 0 0, rgba(124,58,237,.4), transparent 60%), radial-gradient(circle at 100% 0, rgba(59,92,204,.4), transparent 60%);
+        border-radius: 999px;
+        padding: 14px 22px;
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: 0 16px 40px rgba(0,0,0,.45);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        backdrop-filter: blur(16px);
+    }
 
-        <div class="mb-3 text-center">
-            <p>Ảnh hiện tại:</p>
-            <img src="@(string.IsNullOrWhiteSpace(Model.BannerImage) ? (string.IsNullOrWhiteSpace(Model.PosterImage) ? "/images/no-poster.png" : Model.PosterImage) : Model.BannerImage)"
-                 alt="@Model.Title" class="img-fluid rounded" style="max-height: 300px; object-fit: cover;" />
+    .island-header-title {
+        font-weight: 800;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        color: #fff;
+    }
+
+    .island-header-sub {
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .island-header-actions .btn {
+        border-radius: 999px;
+    }
+
+    .card-island {
+        background: radial-gradient(circle at 0 0, rgba(59,92,204,.25), transparent 60%), linear-gradient(145deg, rgba(8,10,30,.96), rgba(5,8,25,.98));
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,.08);
+        padding: 18px 20px;
+        box-shadow: 0 18px 45px rgba(0,0,0,.6);
+        margin-bottom: 22px;
+    }
+
+    .banner-thumb {
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(0,0,0,.6);
+        border: 1px solid rgba(255,255,255,.16);
+    }
+
+    .chip-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(15, 23, 42, .9);
+        color: #e5e7ff;
+        border: 1px solid rgba(148,163,255,.4);
+    }
+
+        .chip-status span.dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+    .dot-on {
+        background: #22c55e;
+    }
+
+    .dot-off {
+        background: #f97373;
+    }
+
+    .pill-switch input[type="checkbox"] {
+        display: none;
+    }
+
+    .pill-switch-label {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 64px;
+        height: 30px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.45), transparent 70%), rgba(15,23,42,.95);
+        border: 1px solid rgba(148,163,255,.55);
+        cursor: pointer;
+        padding: 2px;
+        transition: all .25s ease;
+    }
+
+    .pill-switch-handle {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: linear-gradient(145deg, #f97373, #fb7185);
+        box-shadow: 0 6px 16px rgba(0,0,0,.6);
+        transform: translateX(0);
+        transition: all .25s ease;
+    }
+
+    .pill-switch-label span.txt {
+        position: absolute;
+        right: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #f97373;
+        letter-spacing: .4px;
+    }
+
+    .pill-switch input[type="checkbox"]:checked + .pill-switch-label {
+        background: radial-gradient(circle at 100% 0, rgba(16,185,129,.45), transparent 70%), rgba(15,23,42,.95);
+        border-color: rgba(52,211,153,.7);
+    }
+
+        .pill-switch input[type="checkbox"]:checked + .pill-switch-label .pill-switch-handle {
+            transform: translateX(32px);
+            background: linear-gradient(145deg, #22c55e, #4ade80);
+        }
+
+        .pill-switch input[type="checkbox"]:checked + .pill-switch-label span.txt {
+            right: auto;
+            left: 10px;
+            color: #a5f3fc;
+        }
+
+    .page-island-nav {
+        display: flex;
+        justify-content: center;
+        margin-top: 18px;
+    }
+
+    .page-island {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 0 0, rgba(59,92,204,.45), transparent 60%), rgba(10,16,40,.98);
+        border: 1px solid rgba(148,163,255,.45);
+        box-shadow: 0 12px 32px rgba(0,0,0,.65);
+    }
+
+        .page-island a,
+        .page-island span {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            text-decoration: none;
+            color: #e5e7ff;
+            font-weight: 600;
+        }
+
+        .page-island .current {
+            background: radial-gradient(circle at 0 0, rgba(248,113,113,.75), transparent 60%), linear-gradient(120deg, #7c3aed, #3b82f6);
+            box-shadow: 0 0 14px rgba(248,113,113,.8);
+        }
+
+        .page-island .disabled {
+            opacity: .4;
+            cursor: default;
+        }
+</style>
+
+<div class="island-shell">
+    <div class="island-header">
+        <div>
+            <div class="island-header-title">
+                Banner trang chủ
+            </div>
+            <div class="island-header-sub">
+                Quản lý banner phim đang chiếu và banner thêm ngoài, phong cách island.
+            </div>
+        </div>
+        <div class="island-header-actions d-flex gap-2">
+            <a asp-controller="Home" asp-action="ManageTrailers" class="btn btn-outline-info btn-sm">
+                <i class="fa-solid fa-clapperboard me-1"></i> Trailer Home
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-light btn-sm">
+                Trang chủ
+            </a>
+        </div>
+    </div>
+
+    <form asp-action="EditBanner" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="page" value="@Model.PageIndex" />
+
+        <div class="card-island mb-4">
+            <h5 class="mb-3">Banner phim đang chiếu</h5>
+            <p class="text-muted small mb-3">
+                Banner gắn với phim không thể xoá, chỉ có thể ẩn/hiện trong slider trang chủ.
+            </p>
+
+            @if (Model.MovieBanners.Any())
+            {
+                <div class="row g-3">
+                    @for (int i = 0; i < Model.MovieBanners.Count; i++)
+                    {
+                        var mv = Model.MovieBanners[i];
+                        <div class="col-md-6 col-lg-3">
+                            <div class="p-2">
+                                <input type="hidden" name="MovieBanners[@i].MoviesId" value="@mv.MoviesId" />
+                                <input type="hidden" name="MovieBanners[@i].Title" value="@mv.Title" />
+                                <input type="hidden" name="MovieBanners[@i].ImageUrl" value="@mv.ImageUrl" />
+
+                                <div class="mb-2">
+                                    <img src="@mv.ImageUrl" class="img-fluid banner-thumb" alt="@mv.Title" />
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="text-truncate" title="@mv.Title">
+                                        <strong>@mv.Title</strong>
+                                    </div>
+                                    <div class="chip-status">
+                                        <span class="dot @(mv.IsHidden ? "dot-off" : "dot-on")"></span>
+                                        <span>@(mv.IsHidden ? "Đang ẩn" : "Đang hiện")</span>
+                                    </div>
+                                </div>
+                                <div class="pill-switch mt-1">
+                                    <input type="checkbox"
+                                           id="hide_@mv.MoviesId"
+                                           name="MovieBanners[@i].IsHidden"
+                                           value="true"
+                                           @(mv.IsHidden ? "checked" : "") />
+                                    <label class="pill-switch-label" for="hide_@mv.MoviesId">
+                                        <div class="pill-switch-handle"></div>
+                                        <span class="txt">Ẩn</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-muted small">Không có phim đang chiếu nào để hiển thị banner.</div>
+            }
+
+            @* phân trang banner *@
+            @if (Model.TotalPages > 1)
+            {
+                <div class="page-island-nav">
+                    <div class="page-island">
+                        @if (Model.HasPreviousPage)
+                        {
+                            <a asp-action="EditBanner" asp-route-page="@(Model.PageIndex - 1)">« Trước</a>
+                        }
+                        else
+                        {
+                            <span class="disabled">« Trước</span>
+                        }
+
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            if (i == Model.PageIndex)
+                            {
+                                <span class="current">@i</span>
+                            }
+                            else
+                            {
+                                <a asp-action="EditBanner" asp-route-page="@i">@i</a>
+                            }
+                        }
+
+                        @if (Model.HasNextPage)
+                        {
+                            <a asp-action="EditBanner" asp-route-page="@(Model.PageIndex + 1)">Sau »</a>
+                        }
+                        else
+                        {
+                            <span class="disabled">Sau »</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="submit" name="actionType" value="SaveMovieFlags" class="btn btn-primary rounded-pill px-4">
+                    Lưu ẩn/hiện banner phim
+                </button>
+            </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data">
-            <input type="hidden" name="id" value="@Model.MoviesId" />
+        <div class="card-island">
+            <h5 class="mb-3">Banner thêm ngoài</h5>
+            <p class="text-muted small mb-3">
+                Banner này không gắn với phim, có thể thêm/xoá. Cũng xuất hiện trong slider Home.
+            </p>
 
             <div class="mb-3">
-                <label for="file" class="form-label">Chọn ảnh mới (tỷ lệ khuyến nghị 16:4 ~ 1920x480)</label>
-                <input type="file" class="form-control" name="file" id="file" accept="image/*" required />
+                <label class="form-label">Thêm banner mới</label>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-6">
+                        <input type="file" name="extraBannerFile" class="form-control" accept="image/*" />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" name="actionType" value="AddExtra" class="btn btn-warning rounded-pill px-4">
+                            Thêm banner
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="d-flex justify-content-between">
-                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">← Về trang chủ</a>
-                <button type="submit" class="btn btn-warning">Cập nhật ảnh</button>
-            </div>
-        </form>
-    </div>
+            @if (Model.ExtraBanners.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var b in Model.ExtraBanners)
+                    {
+                        <div class="col-md-4 col-lg-3">
+                            <div class="p-2">
+                                <img src="@b.ImagePath" class="img-fluid banner-thumb mb-2" />
+                                <button type="submit"
+                                        name="deleteExtraId"
+                                        value="@b.Id"
+                                        class="btn btn-sm btn-outline-danger rounded-pill"
+                                        formaction="@Url.Action("DeleteExtraBanner", "Home")">
+                                    Xoá banner
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-muted small">Chưa có banner ngoài nào.</div>
+            }
+        </div>
+    </form>
 </div>
