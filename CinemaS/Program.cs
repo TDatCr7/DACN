@@ -1,7 +1,10 @@
 using CinemaS.Models;
+using CinemaS.Models.Email;
 using CinemaS.Models.Payments;
+using CinemaS.Services;
 using CinemaS.VNPAY;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,16 +12,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Kết nối đến DB CinemaS
+// Kết nối DB
 builder.Services.AddDbContext<CinemaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CinemaS")));
 
-// Identity dùng CinemaContext
+// Identity
 builder.Services
     .AddIdentity<AppUser, IdentityRole>(options =>
     {
         options.User.RequireUniqueEmail = true;
-        options.SignIn.RequireConfirmedAccount = true; // bật confirm email nếu muốn
+        options.SignIn.RequireConfirmedAccount = true;
         options.Password.RequireDigit = false;
         options.Password.RequireUppercase = false;
         options.Password.RequireLowercase = false;
@@ -29,8 +32,13 @@ builder.Services
     .AddDefaultTokenProviders()
     .AddDefaultUI();
 
+// cấu hình VnPay
 builder.Services.Configure<VnPaySettings>(builder.Configuration.GetSection("VnPay"));
 builder.Services.AddSingleton<VnPayLibrary>();
+
+// cấu hình EmailSender (dùng Gmail)
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddTransient<IEmailSender, GmailEmailSender>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -44,7 +52,7 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-/* --- Seeding Role + Admin (khuyên dùng) --- */
+/* Seed roles + admin */
 using (var scope = app.Services.CreateScope())
 {
     var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -61,8 +69,14 @@ using (var scope = app.Services.CreateScope())
     var admin = await userMgr.FindByEmailAsync(adminEmail);
     if (admin == null)
     {
-        admin = new AppUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true, FullName = "Administrator" };
-        await userMgr.CreateAsync(admin, "Admin@123"); // đổi khi production
+        admin = new AppUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true,
+            FullName = "Administrator"
+        };
+        await userMgr.CreateAsync(admin, "Admin@123");
     }
     if (!await userMgr.IsInRoleAsync(admin, "Admin"))
         await userMgr.AddToRoleAsync(admin, "Admin");
@@ -70,7 +84,7 @@ using (var scope = app.Services.CreateScope())
         await userMgr.AddToRoleAsync(admin, "User");
 }
 
-/* --- pipeline --- */
+/* pipeline */
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -80,16 +94,18 @@ if (!app.Environment.IsDevelopment())
 app.UseSession();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets(); // nếu dùng
+app.MapStaticAssets();
 app.MapRazorPages();
 
 app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 app.Run();

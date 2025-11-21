@@ -18,9 +18,7 @@
         --line: rgba(255,255,255,.12);
     }
 
-    body {
-        background: radial-gradient(1200px 600px at 30% 0%, #1a1f47 0%, #0b0f27 50%, #0b0f27 100%);
-    }
+    /* KHÔNG override body nữa – để body + glow dùng theo _Layout */
 
     .section {
         padding: 32px 0;
@@ -36,13 +34,12 @@
         text-shadow: 0 3px 14px rgba(0,0,0,.35);
     }
 
-    /* CTA cơ bản */
     .btn-cine {
         background: var(--accent);
         border: 0;
         color: #111;
         font-weight: 800;
-        text-decoration: none; /* [CHANGED] bỏ gạch dưới */
+        text-decoration: none;
     }
 
         .btn-cine:hover {
@@ -91,7 +88,8 @@
             font-weight: 900;
         }
 
-    .hero .swiper-button-prev, .hero .swiper-button-next {
+    .hero .swiper-button-prev,
+    .hero .swiper-button-next {
         color: #fff;
     }
 
@@ -120,8 +118,8 @@
             padding-bottom: 16px;
         }
 
-        /* Nav buttons rõ và nổi bật */
-        .rail .swiper-button-prev, .rail .swiper-button-next {
+        .rail .swiper-button-prev,
+        .rail .swiper-button-next {
             width: 56px;
             height: 56px;
             border-radius: 50%;
@@ -132,13 +130,15 @@
             transition: transform .2s ease, filter .2s ease, box-shadow .2s;
         }
 
-            .rail .swiper-button-prev:hover, .rail .swiper-button-next:hover {
+            .rail .swiper-button-prev:hover,
+            .rail .swiper-button-next:hover {
                 transform: scale(1.08);
                 filter: brightness(1.08);
                 box-shadow: 0 0 22px rgba(255,213,77,.55);
             }
 
-            .rail .swiper-button-prev::after, .rail .swiper-button-next::after {
+            .rail .swiper-button-prev::after,
+            .rail .swiper-button-next::after {
                 font-size: 22px;
                 font-weight: 700;
             }
@@ -182,7 +182,6 @@
             box-shadow: 0 18px 40px rgba(0,0,0,.6), 0 0 18px rgba(124,58,237,.25);
         }
 
-    /* Badge */
     .badge-corner {
         position: absolute;
         left: 10px;
@@ -206,7 +205,6 @@
             background: #e57373;
         }
 
-    /* Ảnh + hiệu ứng hover (trái->phải) – hover chỉ trên ảnh */
     .poster .img-wrap {
         position: relative;
         overflow: hidden;
@@ -241,80 +239,75 @@
         background-position: 100% 50%;
     }
 
-    /* Info cơ bản – chỉ hiện khi hover ảnh */
-    /* ================== HOVER INFO (centered, dark bg, purple icons) ================== */
-    /* [CHANGED] căn giữa + nền đen mờ */
-    .poster .hover{
-        position:absolute; 
-        inset:0;
-        padding:16px; 
-        color:#e9ecf6;
-        background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%); 
-        display:flex; 
-        align-items:center; 
-        justify-content:center; 
-        opacity:0;
-        transform:translateY(12px);
-        transition:opacity .35s ease, transform .35s ease;
-        pointer-events:none;
+    .poster .hover {
+        position: absolute;
+        inset: 0;
+        padding: 16px;
+        color: #e9ecf6;
+        background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.55) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(12px);
+        transition: opacity .35s ease, transform .35s ease;
+        pointer-events: none;
     }
-    /* chỉ hiện khi hover ảnh */
-    .poster .img-wrap:hover + .hover{ opacity:1; transform:translateY(0); }
-
-    /* khung nội dung ở giữa */
-    .hover-inner{
-        max-width:85%;
-        text-align:center;
-    }
-
-    /* tiêu đề trong overlay */
-    .hover-title{
-        font-size:18px; font-weight:900; margin:0 0 12px 0; color:#fff;
-        text-shadow:0 3px 12px rgba(0,0,0,.45);
-    }
-
-    /* danh sách meta theo cột, từng dòng riêng */
-    .hover-meta{
-        list-style:none; margin:0; padding:0;
-        display:flex; flex-direction:column; gap:10px; align-items:center;
-    }
-
-    /* item có viền nhẹ + icon tím */
-    .hover-meta li{
-        display:flex; align-items:center; gap:10px;
-        border:1px solid rgba(255,255,255,.18);
-        border-radius:16px; padding:6px 12px; font-size:13px; color:#dbe1ff;
-        backdrop-filter:blur(2px);
-    }
-    .hover-meta li i{ color: var(--purple); } /* [ADDED] icon tím */
-
-    /* mô tả ngắn, 2-3 dòng */
-    .hover-desc{
-        margin-top:12px; font-size:13px; color:#d7dcff;
-        display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
-    }
-
 
     .poster .img-wrap:hover + .hover {
         opacity: 1;
         transform: translateY(0);
     }
 
-    .hover .lines {
-        font-size: 13px;
-        color: #a4a8c9;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
+    .hover-inner {
+        max-width: 85%;
+        text-align: center;
     }
 
-        .hover .lines .chip {
-            border: 1px solid rgba(255,255,255,.12);
+    .hover-title {
+        font-size: 18px;
+        font-weight: 900;
+        margin: 0 0 12px 0;
+        color: #fff;
+        text-shadow: 0 3px 12px rgba(0,0,0,.45);
+    }
+
+    .hover-meta {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+
+        .hover-meta li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255,255,255,.18);
             border-radius: 16px;
-            padding: 2px 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            color: #dbe1ff;
+            backdrop-filter: blur(2px);
         }
 
-    /* Caption – bỏ gạch dưới */
+            .hover-meta li i {
+                color: var(--purple);
+            }
+
+    .hover-desc {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #d7dcff;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
     .poster .caption {
         text-align: center;
         margin-top: 10px;
@@ -334,7 +327,6 @@
                 text-decoration: none !important;
             }
 
-    /* Buttons – không kích hoạt overlay */
     .poster .btns {
         display: flex;
         gap: 10px;
@@ -346,7 +338,8 @@
             text-decoration: none !important;
         }
 
-    .poster .btn-ghost, .poster .btn-primary {
+    .poster .btn-ghost,
+    .poster .btn-primary {
         border-radius: 8px;
         font-weight: 800;
         font-size: 13px;
@@ -379,7 +372,6 @@
             box-shadow: 0 0 12px rgba(124,58,237,.5);
         }
 
-    /* ==== Sweep L→R cho tất cả CTA ==== */
     .btn-sweep {
         position: relative;
         overflow: hidden;
@@ -401,12 +393,16 @@
             transform: translateX(0);
         }
 
-    .btn-cine.btn-sweep, .poster .btn-primary.btn-sweep, .btn-more.btn-sweep {
+    .btn-cine.btn-sweep,
+    .poster .btn-primary.btn-sweep,
+    .btn-more.btn-sweep {
         background: var(--accent);
         color: #111;
     }
 
-        .btn-cine.btn-sweep:hover, .poster .btn-primary.btn-sweep:hover, .btn-more.btn-sweep:hover {
+        .btn-cine.btn-sweep:hover,
+        .poster .btn-primary.btn-sweep:hover,
+        .btn-more.btn-sweep:hover {
             color: #fff;
             box-shadow: 0 0 12px rgba(124,58,237,.5);
         }
@@ -423,8 +419,7 @@
             box-shadow: 0 0 12px rgba(124,58,237,.45);
         }
 
-    /* CTA Xem thêm – căn giữa + khoảng cách dưới rộng */
-    .rail .more-row { /* [ADDED] căn giữa và khoảng cách lớn */
+    .rail .more-row {
         display: flex;
         justify-content: center;
         align-items: center;
@@ -435,7 +430,7 @@
     }
 
     .btn-more {
-        position: relative; /* [ADDED] để overlay hoạt động */
+        position: relative;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -452,14 +447,12 @@
     }
 
         .btn-more:hover {
-            /* khi overlay chạy vào, border sẽ mờ đi */
             color: #fff;
             border-color: transparent;
             box-shadow: 0 0 18px rgba(124,58,237,.5);
             text-decoration: none;
         }
 
-    /* Mobile hero height */
     @@media (max-width:575.98px) {
         .hero .swiper {
             height: 320px;

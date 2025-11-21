@@ -32,21 +32,23 @@
             margin: 0;
         }
 
+        /* Nền body thuần 1 màu, không gradient để tránh đường “cắt” */
         body {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             color: var(--text);
-            background: radial-gradient(1200px 720px at 18% -12%, #111827 0%, #020617 60%, #020617 100%);
+            background-color: var(--blue-1);
             overflow-x: hidden;
         }
 
+        /* Lớp glow phủ rộng hơn viewport để không lộ mép gradient */
         #bg-glow {
             position: fixed;
-            inset: 0;
+            inset: -300px -300px; /* phủ tràn hơn màn hình */
             z-index: 0;
             pointer-events: none;
-            background-image: radial-gradient(1100px 680px at 18% -10%, rgba(59, 92, 204, 0.45) 0%, rgba(59, 92, 204, 0) 65%), radial-gradient(900px 520px at 82% 0%, rgba(124, 58, 237, 0.38) 0%, rgba(124, 58, 237, 0) 60%), radial-gradient(900px 520px at 70% 100%, rgba(162, 28, 175, 0.26) 0%, rgba(162, 28, 175, 0) 60%);
+            background-image: radial-gradient(1600px 1000px at 20% -10%, rgba(59, 92, 204, 0.45) 0%, rgba(59, 92, 204, 0) 70%), radial-gradient(1400px 900px at 85% 0%, rgba(124, 58, 237, 0.38) 0%, rgba(124, 58, 237, 0) 70%), radial-gradient(1400px 900px at 70% 110%, rgba(162, 28, 175, 0.26) 0%, rgba(162, 28, 175, 0) 70%);
             background-repeat: no-repeat;
             background-attachment: fixed;
             background-blend-mode: screen;
