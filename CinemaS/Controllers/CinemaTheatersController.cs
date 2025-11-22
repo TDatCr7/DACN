@@ -151,9 +151,9 @@ namespace CinemaS.Controllers
             try
             {
                 var seatTypesCount = await _context.SeatTypes.CountAsync();
-                if (seatTypesCount < 3)
+                if (seatTypesCount < 1)
                 {
-                    TempData["Error"] = "Cần đủ 3 loại ghế NORMAL, VIP, COUPLE!";
+                    TempData["Error"] = "Cần có ít nhất 1 loại ghế NORMAL!";
                     LoadDropdowns();
                     return View(cinemaTheater);
                 }
@@ -161,18 +161,27 @@ namespace CinemaS.Controllers
                 cinemaTheater.CinemaTheaterId = await GenerateNewTheaterIdAsync();
                 cinemaTheater.Status = 1;
 
-                cinemaTheater.NumOfRows = 6;
-                cinemaTheater.NumOfColumns = 14;
-                cinemaTheater.RegularSeatRow = 3;
-                cinemaTheater.VIPSeatRow = 2;
-                cinemaTheater.DoubleSeatRow = 1;
+                // Admin must input dimensions
+                if (!cinemaTheater.NumOfRows.HasValue || cinemaTheater.NumOfRows.Value < 1)
+                    cinemaTheater.NumOfRows = 6;
+                if (!cinemaTheater.NumOfColumns.HasValue || cinemaTheater.NumOfColumns.Value < 1)
+                    cinemaTheater.NumOfColumns = 14;
+
+                // Clear old fixed row configurations
+                cinemaTheater.RegularSeatRow = null;
+                cinemaTheater.VIPSeatRow = null;
+                cinemaTheater.DoubleSeatRow = null;
 
                 _context.Add(cinemaTheater);
                 await _context.SaveChangesAsync();
-                await CreateSeatsForTheater(cinemaTheater);
 
-                TempData["Message"] = $"✅ Tạo phòng '{cinemaTheater.Name}' thành công!";
-                return RedirectToAction(nameof(Index));
+                // FIRST SAVE: Create base layout with Normal seats only
+                await CreateBaseSeatLayout(cinemaTheater);
+
+                TempData["Message"] = $"✅ Tạo phòng '{cinemaTheater.Name}' thành công! Bây giờ bạn có thể chỉnh sửa bố cục ghế.";
+                
+                // ✅ REDIRECT to Seats/Index for that room
+                return RedirectToAction("Index", "Seats", new { cinemaTheaterId = cinemaTheater.CinemaTheaterId });
             }
             catch (Exception ex)
             {
@@ -261,6 +270,33 @@ namespace CinemaS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ================== AJAX DELETE ==================
+        [HttpPost]
+        [IgnoreAntiforgeryToken] // AJAX call doesn't need anti-forgery for simplicity
+        public async Task<IActionResult> DeleteAjax(string id)
+        {
+            try
+            {
+                var entity = await _context.CinemaTheaters.FindAsync(id);
+                if (entity == null)
+                    return Json(new { success = false, message = "Phòng chiếu không tồn tại." });
+
+                // Kiểm tra xem phòng có đang được sử dụng không
+                var inUse = await _context.ShowTimes.AnyAsync(st => st.CinemaTheaterId == id);
+                if (inUse)
+                    return Json(new { success = false, message = "Phòng này đang được sử dụng trong suất chiếu. Không thể xóa!" });
+
+                _context.CinemaTheaters.Remove(entity);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Xóa phòng chiếu thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
         // ================== HELPERS ==================
         private bool CinemaTheatersExists(string id)
             => _context.CinemaTheaters.Any(e => e.CinemaTheaterId == id);
@@ -282,53 +318,47 @@ namespace CinemaS.Controllers
             return $"CT{(num + 1):D3}";
         }
 
-        private async Task CreateSeatsForTheater(CinemaTheaters theater)
+        // ✅ NEW: Create base seat layout with all Normal seats
+        private async Task CreateBaseSeatLayout(CinemaTheaters theater)
         {
             var seats = new List<Seats>();
             var seatTypes = await _context.SeatTypes.ToListAsync();
 
             var normal = seatTypes.FirstOrDefault(st => st.Name == "NORMAL");
-            var vip = seatTypes.FirstOrDefault(st => st.Name == "VIP");
-            var couple = seatTypes.FirstOrDefault(st => st.Name == "COUPLE");
+            if (normal == null)
+            {
+                // Fallback: use first seat type
+                normal = seatTypes.FirstOrDefault();
+                if (normal == null) return;
+            }
 
             var lastSeat = await _context.Seats.OrderByDescending(s => s.SeatId).FirstOrDefaultAsync();
             int counter = (lastSeat != null && lastSeat.SeatId.StartsWith("S"))
                 ? int.Parse(lastSeat.SeatId.Substring(1)) + 1 : 1;
 
-            for (char row = 'A'; row <= 'C'; row++)
-                for (int col = 1; col <= 14; col++)
+            int rows = theater.NumOfRows ?? 6;
+            int cols = theater.NumOfColumns ?? 14;
+
+            // Generate row labels dynamically: A, B, C, ...
+            for (int r = 0; r < rows; r++)
+            {
+                char rowLabel = (char)('A' + r);
+                
+                for (int col = 1; col <= cols; col++)
+                {
                     seats.Add(new Seats
                     {
                         SeatId = $"S{counter++:D6}",
                         SeatTypeId = normal.SeatTypeId,
                         CinemaTheaterId = theater.CinemaTheaterId,
-                        RowIndex = row.ToString(),
+                        RowIndex = rowLabel.ToString(),
                         ColumnIndex = col,
-                        Label = $"{row}{col}"
+                        Label = $"{rowLabel}{col}",
+                        IsActive = true,
+                        PairId = null  // No pairs initially
                     });
-
-            for (char row = 'D'; row <= 'E'; row++)
-                for (int col = 1; col <= 14; col++)
-                    seats.Add(new Seats
-                    {
-                        SeatId = $"S{counter++:D6}",
-                        SeatTypeId = (col >= 4 && col <= 11) ? vip.SeatTypeId : normal.SeatTypeId,
-                        CinemaTheaterId = theater.CinemaTheaterId,
-                        RowIndex = row.ToString(),
-                        ColumnIndex = col,
-                        Label = $"{row}{col}"
-                    });
-
-            for (int col = 1; col <= 14; col++)
-                seats.Add(new Seats
-                {
-                    SeatId = $"S{counter++:D6}",
-                    SeatTypeId = couple.SeatTypeId,
-                    CinemaTheaterId = theater.CinemaTheaterId,
-                    RowIndex = "F",
-                    ColumnIndex = col,
-                    Label = $"F{col}"
-                });
+                }
+            }
 
             _context.Seats.AddRange(seats);
             await _context.SaveChangesAsync();

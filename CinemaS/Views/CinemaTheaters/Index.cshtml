@@ -72,14 +72,14 @@
                     <table class="table table-hover table-bordered align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width:10%;">Mã phòng</th>
-                                <th style="width:20%;">Tên phòng</th>
-                                <th style="width:15%;">Loại phòng</th>
-                                <th style="width:20%;">Rạp</th>
-                                <th style="width:10%;">Số ghế</th>
-                                <th style="width:15%;">Bố cục</th>
-                                <th style="width:10%;">Trạng thái</th>
-                                <th style="width:10%;">Hành động</th>
+                                <th style="width:8%;">Mã phòng</th>
+                                <th style="width:18%;">Tên phòng</th>
+                                <th style="width:12%;">Loại phòng</th>
+                                <th style="width:18%;">Rạp</th>
+                                <th style="width:8%;">Số ghế</th>
+                                <th style="width:12%;">Bố cục</th>
+                                <th style="width:8%;">Trạng thái</th>
+                                <th style="width:16%;">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -96,10 +96,10 @@
                                         </span>
                                     </td>
                                     <td class="text-muted">
-                                        @item.NumOfRows hàng × @item.NumOfColumns cột
+                                        @item.NumOfRows × @item.NumOfColumns
                                     </td>
                                     <td class="text-center">
-                                        @if (item.Status ==1)
+                                        @if (item.Status == 1)
                                         {
                                             <span class="badge badge-status-active">
                                                 <i class="fas fa-check"></i> Hoạt động
@@ -113,12 +113,27 @@
                                         }
                                     </td>
                                     <td class="text-center">
-                                        <a asp-action="Edit" asp-route-id="@item.CinemaTheaterId"
-                                           class="btn btn-sm btn-info" title="Chỉnh sửa">
+                                        <!-- Nút điều chỉnh ghế -->
+                                        <a asp-controller="Seats" 
+                                           asp-action="Index" 
+                                           asp-route-cinemaTheaterId="@item.CinemaTheaterId"
+                                           class="btn btn-sm btn-warning" 
+                                           title="Điều chỉnh bố cục ghế">
+                                            <i class="fas fa-chair"></i>
+                                        </a>
+                                        
+                                        <!-- Nút chỉnh sửa thông tin phòng -->
+                                        <a asp-action="Edit" 
+                                           asp-route-id="@item.CinemaTheaterId"
+                                           class="btn btn-sm btn-info" 
+                                           title="Chỉnh sửa thông tin">
                                             <i class="fas fa-pencil"></i>
                                         </a>
-                                        <button class="btn btn-sm btn-danger" title="Xóa"
-                                                onclick="showDeletePopup('@item.CinemaTheaterId ')">
+                                        
+                                        <!-- Nút xóa -->
+                                        <button class="btn btn-sm btn-danger" 
+                                                title="Xóa phòng"
+                                                onclick="showDeletePopup('@item.CinemaTheaterId')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -133,19 +148,13 @@
 </div>
 
 <!-- Modal Xác nhận xóa -->
-<div class="modal fade modal-dark" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Xác nhận xóa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="deleteMessage">Bạn có chắc chắn muốn xóa mục này không?</div>
-            <div class="modal-footer" id="deleteButtons">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Xóa</button>
-            </div>
-        </div>
+<div class="modal-backdrop" id="modalBackdrop"></div>
+<div id="deleteModal">
+    <div class="modal-header" style="color: black;">Xác nhận xóa</div>
+    <div class="modal-body" id="deleteMessage" style="color: black;">Bạn có chắc chắn muốn xóa mục này không?</div>
+    <div class="modal-footer" id="deleteButtons">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+        <button type="button" class="btn btn-danger" onclick="confirmDelete()">Xóa</button>
     </div>
 </div>
 
@@ -164,27 +173,110 @@
         function showDeletePopup(id) {
             deleteId = id;
             fetch(`/CinemaTheaters/CheckInUse?id=${id}`)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Không thể kiểm tra trạng thái sử dụng.');
+                    }
+                    return res.json();
+                })
                 .then(data => {
+                    const modal = document.getElementById("deleteModal");
+                    const backdrop = document.getElementById("modalBackdrop");
+                    const deleteMessage = document.getElementById("deleteMessage");
+                    const deleteButtons = document.getElementById("deleteButtons");
+
                     if (data.inUse) {
-                        document.getElementById("deleteMessage").innerText = "Mục này đang được sử dụng. Không thể xóa!";
-                        document.getElementById("deleteButtons").innerHTML =
-                            '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>';
+                        deleteMessage.innerText = "Phòng này đang được sử dụng trong suất chiếu. Không thể xóa!";
+                        deleteButtons.innerHTML = '<button type="button" class="btn btn-secondary" onclick="closeModal()">Đóng</button>';
                     } else {
-                        document.getElementById("deleteMessage").innerText = "Bạn có chắc chắn muốn xóa mục này không?";
-                        document.getElementById("deleteButtons").innerHTML = `
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        deleteMessage.innerText = "Bạn có chắc chắn muốn xóa phòng chiếu này không?";
+                        deleteButtons.innerHTML = `
+                            <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
                             <button type="button" class="btn btn-danger" onclick="confirmDelete()">Xóa</button>`;
                     }
-                    const modal = new bootstrap.Modal(document.getElementById("deleteModal"));
-                    modal.show();
+
+                    modal.style.display = "block";
+                    backdrop.style.display = "block";
+                })
+                .catch(error => {
+                    alert(error.message);
                 });
         }
 
         function confirmDelete() {
-            window.location.href = '/CinemaTheaters/DeleteConfirmed/' + deleteId;
+            // Thực hiện xóa trực tiếp bằng AJAX
+            fetch(`/CinemaTheaters/DeleteAjax/${deleteId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Xóa thành công, reload trang
+                    location.reload();
+                } else {
+                    alert('Lỗi: ' + data.message);
+                    closeModal();
+                }
+            })
+            .catch(error => {
+                alert('Lỗi: ' + error.message);
+                closeModal();
+            });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            modal.style.display = "none";
+            backdrop.style.display = "none";
         }
     </script>
+
+    <style>
+        #deleteModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            z-index: 1051;
+            min-width: 400px;
+        }
+        #deleteModal .modal-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: black;
+        }
+        #deleteModal .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #deleteModal .modal-body {
+            margin-bottom: 15px;
+            color: black;
+        }
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+        }
+    </style>
 }
 
 <div class="d-flex justify-content-between mt-4">
