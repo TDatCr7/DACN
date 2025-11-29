@@ -217,13 +217,41 @@
     padding: 20px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
+    display: inline-flex;
+    flex-direction: column;
+    min-width: min-content;
+}
+
+/* ===== Seat Grid Scroll Wrapper ===== */
+.seat-layout-scroll-wrapper {
+    width: 100%;
+    max-width: calc((40px * 2) + (45px * 40) + (6px * 41) + 60px);
+    max-height: calc(30px + (45px * 30) + (8px * 30) + 80px);
+    overflow-x: auto;
+    overflow-y: auto;
+    padding-bottom: 10px;
+    scrollbar-width: thin;
+    display: flex;
+    justify-content: flex-start; /* ✅ canh trái để nhìn cột 1 */
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Webkit scrollbar styling */
+.seat-layout-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+.seat-layout-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.25);
+    border-radius: 4px;
 }
 
 /* Số cột */
 .column-numbers {
     display: flex;
-    justify-content: center;
     margin-bottom: 10px;
+    min-width: min-content;
 }
 
 .row-label-space {
@@ -241,14 +269,15 @@
     font-weight: bold;
     font-size: 14px;
     margin: 0 3px;
+    flex-shrink: 0;
 }
 
 /* Hàng ghế */
 .seat-row {
     display: flex;
-    justify-content: center;
     align-items: center;
     margin: 8px 0;
+    min-width: min-content;
 }
 
 .row-label {
@@ -266,7 +295,7 @@
 .seats-in-row {
     display: flex;
     gap: 6px;
-    justify-content: center;
+    flex-shrink: 0;
 }
 
 /* ===== Individual Seat ===== */

@@ -138,17 +138,25 @@
     /* Seat layout scroll wrapper - new */
     .seat-layout-scroll-wrapper {
         width: 100%;
-        max-width: 100%;
-        max-height: 550px;
+        /* ✅ Max width cho ~40 cột ghế */
+        max-width: calc((40px * 2) + (45px * 40) + (6px * 41) + 60px); /* 2 row labels + 40 seats + gaps + padding */
+        /* ✅ Max height cho ~30 hàng ghế */
+        max-height: calc(30px + (45px * 30) + (8px * 30) + 80px); /* column header + 30 seats + gaps + padding */
         overflow-x: auto;
         overflow-y: auto;
         padding-bottom: 10px;
         scrollbar-width: thin;
+        display: flex;
+        justify-content: flex-start; /* ✅ canh trái để luôn có thể lướt về mục 1 */
+        margin: 0 auto;
+        box-sizing: border-box;
     }
 
-    /* Prevent the seats grid from wrapping; keep intrinsic width so scrollbars appear when needed */
+    /* ✅ Grid container - inline-flex để không crop */
     .seats-grid-container {
-        min-width: max-content;
+        min-width: min-content;
+        display: inline-flex;
+        flex-direction: column;
     }
 
     /* Webkit scrollbar styling */

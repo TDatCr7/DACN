@@ -686,5 +686,22 @@
                 // refresh trạng thái mỗi 10s
                 setInterval(refreshSeatsStatus, 10000);
             });
+
+        // Auto toggle alignment class based on overflow
+        document.addEventListener('DOMContentLoaded', function() {
+            const wrapper = document.querySelector('.seat-layout-scroll-wrapper');
+            const inner = document.querySelector('.seats-grid-container');
+            function syncOverflowClass() {
+                if (!wrapper || !inner) return;
+                const isOverflowing = inner.scrollWidth > wrapper.clientWidth;
+                wrapper.classList.toggle('overflowing', isOverflowing);
+            }
+            // initial
+            syncOverflowClass();
+            // on resize
+            window.addEventListener('resize', syncOverflowClass);
+            // slight delay after images/fonts
+            setTimeout(syncOverflowClass, 400);
+        });
     </script>
 }
