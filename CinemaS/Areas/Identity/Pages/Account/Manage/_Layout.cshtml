@@ -1,0 +1,10 @@
+@{
+    // Dùng layout chung của website, loại bỏ sidebar điều hướng mặc định của Identity Manage
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+@RenderBody()
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

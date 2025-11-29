@@ -6,16 +6,16 @@
 
 @{
     bool isSignedIn = SignInManager.IsSignedIn(User);
-    string? userName = null;
+    string? displayName = null;
     string initials = "U";
 
     if (isSignedIn)
     {
         var user = await UserManager.GetUserAsync(User);
-        userName = await UserManager.GetUserNameAsync(user);
-        if (!string.IsNullOrWhiteSpace(userName))
+        displayName = user.FullName ?? await UserManager.GetUserNameAsync(user);
+        if (!string.IsNullOrWhiteSpace(displayName))
         {
-            var parts = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var parts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 1)
             {
                 initials = parts[0].Substring(0, 1).ToUpperInvariant();
@@ -179,14 +179,14 @@
     {
         <button type="button" class="auth-avatar-chip" data-auth-toggle>
             <div class="auth-avatar-circle">@initials</div>
-            <div class="auth-name">@userName</div>
+            <div class="auth-name">@displayName</div>
             <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i>
         </button>
 
         <div class="auth-menu" data-auth-menu>
             <div class="auth-menu-header">
                 <div class="auth-menu-title">Tài khoản</div>
-                <div class="auth-menu-username">@userName</div>
+                <div class="auth-menu-username">@displayName</div>
             </div>
 
             <div class="auth-menu-divider"></div>
