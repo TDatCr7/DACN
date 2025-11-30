@@ -1,0 +1,269 @@
+﻿@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
+@{
+    Layout = "_Layout";
+    var isCreate = string.IsNullOrEmpty(Model.Id);
+    ViewData["Title"] = isCreate ? "Thêm tài khoản" : "Chỉnh sửa tài khoản";
+}
+
+<style>
+    .admin-shell {
+        max-width: 1200px;
+        margin: 18px auto 40px;
+    }
+
+    .admin-card {
+        border-radius: 28px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.40), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.35), transparent 55%), linear-gradient(145deg, #020617, #020617);
+        border: 1px solid rgba(148,163,255,.55);
+        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
+        padding: 24px 26px 24px;
+        color: #e5e7f5;
+    }
+
+    .admin-title {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 18px;
+        letter-spacing: .03em;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #cfd6ff;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+
+    .field-group {
+        border-radius: 20px;
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(15,23,42,.96));
+        border: 1px solid rgba(30,64,175,.7);
+        padding: 12px 14px 10px;
+        margin-bottom: 10px;
+    }
+
+    .admin-input {
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.9), rgba(2,6,23,1));
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.35);
+        color: #e5e7f5;
+        font-size: 14px;
+    }
+
+        .admin-input::placeholder {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .admin-input:focus {
+            background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(2,6,23,1));
+            color: #e5e7f5;
+            border-color: #3b5ccc;
+            box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.35);
+        }
+
+    /* --- DROP GIỚI TÍNH DARK MODE, DỄ NHÌN --- */
+    .form-select.admin-input {
+        background-color: #020617;
+        background-image: none;
+        color: #e5e7f5;
+        border-radius: 14px;
+    }
+
+        .form-select.admin-input:focus {
+            background-color: #020617;
+            color: #e5e7f5;
+        }
+
+        .form-select.admin-input option {
+            background-color: #020617;
+            color: #e5e7f5;
+        }
+
+            .form-select.admin-input option:disabled {
+                color: #6b7280;
+            }
+    /* ----------------------------------------- */
+
+    .field-note {
+        font-size: 12px;
+        color: #9ca3c7;
+        margin-top: 2px;
+    }
+
+    .role-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(15,23,42,.95);
+        border: 1px solid rgba(148,163,255,.55);
+        color: #e5e7f5;
+        font-size: 13px;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+
+        .role-chip input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            accent-color: #3b82f6;
+        }
+
+    .btn-gradient {
+        background: linear-gradient(120deg, #3b5ccc, #7c3aed);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        border-radius: 999px;
+        padding-inline: 22px;
+    }
+
+        .btn-gradient:hover {
+            filter: brightness(1.05);
+            color: #fff;
+        }
+
+    .btn-outline-light {
+        border-radius: 999px;
+        padding-inline: 20px;
+        border-color: rgba(148,163,255,.75);
+        color: #e5e7ff;
+        background: rgba(15,23,42,.9);
+    }
+
+        .btn-outline-light:hover {
+            background: rgba(37,99,235,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+
+    .text-danger {
+        font-size: 12px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .action-row {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+
+
+<div class="admin-shell">
+    <div class="admin-card">
+        <div class="admin-title">@ViewData["Title"]</div>
+
+        <form asp-action="@(isCreate ? "Create" : "Edit")" method="post">
+            @if (!isCreate)
+            {
+                <input type="hidden" asp-for="Id" />
+            }
+            <!-- Age không cho sửa, chỉ còn dùng AgeFromBirth => giữ hidden để không mất dữ liệu cũ -->
+            <input type="hidden" asp-for="Age" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="field-group">
+                        <label asp-for="FullName" class="form-label">Họ tên</label>
+                        <input asp-for="FullName" class="form-control admin-input" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="Email" class="form-label">Email / Username</label>
+                        <input asp-for="Email" class="form-control admin-input" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
+                        <input asp-for="PhoneNumber" class="form-control admin-input" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="DateOfBirth" class="form-label">Ngày sinh</label>
+                        <input asp-for="DateOfBirth" type="date" class="form-control admin-input" />
+                        <div class="field-note">
+                            @(Model.AgeFromBirth.HasValue ? $"Tuổi hiện tại: {Model.AgeFromBirth} tuổi" : "Nếu chưa nhập ngày sinh, tuổi sẽ để trống.")
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="field-group">
+                        <label asp-for="Address" class="form-label">Địa chỉ</label>
+                        <input asp-for="Address" class="form-control admin-input" />
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="Gender" class="form-label">Giới tính</label>
+                        <select asp-for="Gender" class="form-select admin-input">
+                            <option value="">-- Chưa chọn --</option>
+                            <option value="1">Nam</option>
+                            <option value="2">Nữ</option>
+                            <option value="3">Khác</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-danger"></span>
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="SavePoint" class="form-label">Điểm thưởng</label>
+                        <input asp-for="SavePoint" type="number" min="0" class="form-control admin-input" />
+                        <span asp-validation-for="SavePoint" class="text-danger"></span>
+                    </div>
+
+                    @if (isCreate)
+                    {
+                        <div class="field-group">
+                            <label asp-for="Password" class="form-label">Mật khẩu khởi tạo</label>
+                            <input asp-for="Password" class="form-control admin-input" />
+                            <div class="field-note">
+                                Nếu để trống, hệ thống dùng mật khẩu mặc định <code>CinemaS@123</code>.
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="col-12">
+                    <div class="field-group">
+                        <label class="form-label">Phân quyền (Roles)</label>
+                        <div class="d-flex flex-wrap">
+                            @foreach (var role in Model.AllRoles)
+                            {
+                                var checkedRole = Model.SelectedRoles?.Contains(role) == true;
+                                <label class="role-chip">
+                                    <input type="checkbox"
+                                           name="SelectedRoles"
+                                           value="@role"
+                                           @(checkedRole ? "checked" : "") />
+                                    <span>@role</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex justify-content-between align-items-center action-row">
+                <a asp-action="Index" class="btn btn-outline-light">
+                    <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+                </a>
+                <button type="submit" class="btn btn-gradient">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

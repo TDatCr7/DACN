@@ -1,23 +1,79 @@
 ﻿@page
-@model RegisterConfirmationModel
+@model CinemaS.Areas.Identity.Pages.Account.RegisterConfirmationModel
 @{
-    ViewData["Title"] = "Register confirmation";
+    ViewData["Title"] = "Đăng ký thành công";
 }
 
-<h1>@ViewData["Title"]</h1>
-@{
-    if (@Model.DisplayConfirmAccountLink)
-    {
-<p>
-    This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
-    Normally this would be emailed: <a id="confirm-link" href="@Model.EmailConfirmationUrl">Click here to confirm your account</a>
-</p>
+<style>
+    :root {
+        --panel: #020617;
+        --panel-soft: #040b1f;
+        --indigo: #3b5ccc;
+        --purple: #7c3aed;
+        --accent: #ffd54d;
+        --text: #e5e7f5;
+        --muted: #9ca3c7;
+        --line: rgba(148, 163, 255, .35);
     }
-    else
-    {
-<p>
-        Please check your email to confirm your account.
-</p>
-    }
-}
 
+    .register-shell {
+        min-height: calc(100vh - 140px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px 60px;
+    }
+
+    .register-card {
+        width: 100%;
+        max-width: 560px;
+        border-radius: 28px;
+        background: radial-gradient(circle at 0 0, rgba(59, 130, 246, .35), transparent 55%), radial-gradient(circle at 100% 0, rgba(162, 28, 175, .28), transparent 55%), linear-gradient(145deg, #020617, #020617);
+        border: 1px solid rgba(148, 163, 255, .45);
+        box-shadow: 0 22px 60px rgba(15, 23, 42, .95), 0 0 0 1px rgba(15, 23, 42, .85);
+        padding: 32px 32px 28px;
+        color: var(--text);
+        text-align: center;
+    }
+
+    .success-title {
+        font-size: 26px;
+        font-weight: 900;
+        margin-bottom: 8px;
+    }
+
+    .success-text {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 24px;
+    }
+
+    .btn-main {
+        display: inline-block;
+        padding: 11px 26px;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(120deg, var(--indigo), var(--purple));
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        text-decoration: none;
+    }
+
+        .btn-main:hover {
+            filter: brightness(1.05);
+            box-shadow: 0 18px 40px rgba(59, 130, 246, .65);
+        }
+</style>
+
+<div class="register-shell">
+    <div class="register-card">
+        <div class="success-title">Tạo tài khoản thành công</div>
+        <div class="success-text">
+            Tài khoản với email <strong>@Model.Email</strong> đã được tạo và đăng nhập thành công.
+        </div>
+        <a class="btn-main" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+    </div>
+</div>
