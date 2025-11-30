@@ -13,5 +13,6 @@ namespace CinemaS.Models.ViewModels
         public bool IsCouple { get; set; }
         public bool IsVIP { get; set; }
         public bool IsActive { get; set; } = true; // Thêm thuộc tính IsActive
+        public string? PairId { get; set; }
     }
 }

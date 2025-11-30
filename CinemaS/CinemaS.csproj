@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Models\Enums\" />
     <Folder Include="wwwroot\Images\Movies\" />
     <Folder Include="wwwroot\Images\Snacks\" />
   </ItemGroup>

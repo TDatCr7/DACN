@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CinemaS.Models;
 
 namespace CinemaS.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class ProvincesController : Controller
     {
         private readonly CinemaContext _context;

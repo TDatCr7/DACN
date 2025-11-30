@@ -131,19 +131,60 @@
         background: linear-gradient(90deg, transparent, #fff, transparent);
     }
 
-/* Sơ đồ ghế */
+/* ===== Sơ đồ ghế - ✅ SCROLL WRAPPER với max-width/height cho 40x30 ghế ===== */
 .seats-grid-container {
     margin: 30px 0;
     padding: 20px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
+    /* ✅ Cho phép scroll ngang và dọc */
+    overflow-x: auto;
+    overflow-y: auto;
+    /* ✅ Max height cho ~30 hàng ghế */
+    max-height: calc(30px + (45px * 30) + (8px * 30) + 40px);
+    /* ✅ Max width cho ~40 cột ghế */
+    max-width: calc((40px * 2) + (45px * 40) + (6px * 41) + 40px);
+    width: 100%;
+    box-sizing: border-box;
+    /* ✅ Căn giữa container - nhưng cho phép scroll đầy đủ */
+    display: flex;
+    justify-content: flex-start; /* ✅ canh trái để luôn thấy cột 1 */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+    .seats-grid-container::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+    }
+
+    .seats-grid-container::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 4px;
+    }
+
+    .seats-grid-container::-webkit-scrollbar-thumb {
+        background: rgba(255,215,0,0.4);
+        border-radius: 4px;
+    }
+
+    .seats-grid-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,215,0,0.6);
+    }
+
+/* Wrapper nội dung ghế */
+.seats-grid-wrapper {
+    display: inline-flex;
+    flex-direction: column;
+    min-width: min-content;
 }
 
 /* Số cột */
 .column-numbers {
     display: flex;
-    justify-content: center;
     margin-bottom: 10px;
+    min-width: min-content;
+    flex-shrink: 0;
 }
 
 .row-label-space {
@@ -161,14 +202,16 @@
     font-weight: bold;
     font-size: 14px;
     margin: 0 3px;
+    flex-shrink: 0;
 }
 
 /* Hàng ghế */
 .seat-row {
     display: flex;
-    justify-content: center;
     align-items: center;
     margin: 8px 0;
+    min-width: min-content;
+    flex-shrink: 0;
 }
 
 .row-label {
@@ -186,7 +229,7 @@
 .seats-in-row {
     display: flex;
     gap: 6px;
-    justify-content: center;
+    flex-shrink: 0;
 }
 
 /* Ghế thường và VIP */

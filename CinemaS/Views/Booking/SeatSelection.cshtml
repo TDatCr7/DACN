@@ -31,113 +31,152 @@
     </div>
 
     <!-- Sơ đồ ghế -->
-    <div class="seats-grid-container">
-        <!-- Số cột -->
-        <div class="column-numbers">
-            <div class="row-label-space"></div>
-            @for (int col = 1; col <= Model.NumOfColumns; col++)
-            {
-                <div class="column-number">@col</div>
+    <div class="seat-layout-scroll-wrapper">
+        <div class="seats-grid-container">
+            <!-- Số cột -->
+            <div class="column-numbers">
+                @for (int col = 1; col <= Model.NumOfColumns; col++)
+                {
+                    <div class="column-number">@col</div>
+                }
+            </div>
+
+            <!-- Các hàng ghế -->
+            @{
+                var rows = Model.Seats.GroupBy(s => s.RowIndex).OrderBy(g => g.Key);
             }
-        </div>
 
-        <!-- Các hàng ghế -->
-        @{
-            var rows = Model.Seats.GroupBy(s => s.RowIndex).OrderBy(g => g.Key);
-        }
+            @foreach (var row in rows)
+            {
+                <div class="seat-row">
+                    <div class="row-label">@row.Key</div>
 
-        @foreach (var row in rows)
-        {
-            <div class="seat-row">
-                <div class="row-label">@row.Key</div>
+                    <div class="seats-in-row">
+                        @{
+                            var seatsInRow = row.OrderBy(s => s.ColumnIndex).ToList();
+                            var processedSeats = new HashSet<string>();
+                        }
 
-                <div class="seats-in-row">
-                    @{
-                        var seatsInRow = row.OrderBy(s => s.ColumnIndex).ToList();
-                        var isCoupleSeat = seatsInRow.FirstOrDefault()?.IsCouple ?? false;
-                    }
-
-                    @* ===== GHẾ ĐÔI: hiển thị theo cặp nhưng dữ liệu là 2 ghế riêng lẻ ===== *@
-                    @if (isCoupleSeat)
-                    {
-                        for (int i = 0; i < seatsInRow.Count; i += 2)
+                        @foreach (var seat in seatsInRow)
                         {
-                            var seat1 = seatsInRow[i];
-                            var seat2 = i + 1 < seatsInRow.Count ? seatsInRow[i + 1] : null;
+                            if (processedSeats.Contains(seat.SeatId))
+                            {
+                                continue; // Skip if already processed as part of a couple
+                            }
 
-                            var isBookedOrInactive = seat1.Status == "Booked" || seat2?.Status == "Booked"
-                            || !seat1.IsActive || (seat2 != null && !seat2.IsActive);
-                            var cssClass = isBookedOrInactive ? "booked" : "";
+                            if (!string.IsNullOrEmpty(seat.PairId))
+                            {
+                                // This is a couple seat, find its pair
+                                var pairSeat = seatsInRow.FirstOrDefault(s => s.PairId == seat.PairId && s.SeatId != seat.SeatId);
+                                if (pairSeat != null)
+                                {
+                                    // Mark both as processed
+                                    processedSeats.Add(seat.SeatId);
+                                    processedSeats.Add(pairSeat.SeatId);
 
-                            <div class="couple-seat-wrapper @cssClass"
-                                 data-seat-ids="@(seat2 != null ? $"{seat1.SeatId},{seat2.SeatId}" : seat1.SeatId)"
-                                 data-seat-labels="@(seat2 != null ? $"{seat1.Label},{seat2.Label}" : seat1.Label)"
-                                 data-seat-prices="@(seat2 != null ? $"{(seat1.SeatTypePrice ?? 0)},{(seat2.SeatTypePrice ?? 0)}" : (seat1.SeatTypePrice ?? 0).ToString())"
-                                 data-is-active="@(seat1.IsActive && (seat2?.IsActive ?? true))"
-                                 onclick="toggleSeat(this, true)">
-                                <div class="couple-seat">
-                                    <span class="seat-badge"></span>
-                                    @if (seat1.Status == "Booked" || seat2?.Status == "Booked")
+                                    // Determine if booked or inactive
+                                    var isBookedOrInactive = seat.Status == "Booked" || pairSeat.Status == "Booked" || !seat.IsActive || !pairSeat.IsActive;
+                                    var cssClass = isBookedOrInactive ? "booked" : "";
+
+                                    <div class="couple-seat-wrapper @cssClass"
+                                         data-seat-ids="@seat.SeatId,@pairSeat.SeatId"
+                                         data-seat-labels="@seat.Label,@pairSeat.Label"
+                                         data-seat-prices="@(seat.SeatTypePrice ?? 0),@(pairSeat.SeatTypePrice ?? 0)"
+                                         data-is-active="@(seat.IsActive && pairSeat.IsActive)"
+                                         onclick="toggleSeat(this, true)">
+                                        <div class="couple-seat">
+                                            @if (seat.Status == "Booked" || pairSeat.Status == "Booked")
+                                            {
+                                                <i class="fas fa-check" style="color: white; font-size: 20px;"></i>
+                                            }
+                                            else if (!seat.IsActive || !pairSeat.IsActive)
+                                            {
+                                                <span class="broken-icon" style="color: black;">✗</span>
+                                            }
+                                            else
+                                            {
+                                                <div class="user-icons" style="display:none;">
+                                                    <img src="~/images/user.png" alt="user" class="user-icon" />
+                                                    <img src="~/images/user.png" alt="user" class="user-icon" />
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    // Pair not found, treat as single (shouldn't happen but handle gracefully)
+                                    processedSeats.Add(seat.SeatId);
+                                    var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
+                                    seatClass += seat.IsVIP ? " vip" : " normal";
+
+                                    <div class="seat @seatClass"
+                                         data-seat-id="@seat.SeatId"
+                                         data-seat-price="@(seat.SeatTypePrice ?? 0)"
+                                         data-seat-label="@seat.Label"
+                                         data-is-active="@seat.IsActive"
+                                         onclick="toggleSeat(this, false)">
+                                        @if (seat.Status == "Booked")
+                                        {
+                                            <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
+                                        }
+                                        else if (seat.IsVIP)
+                                        {
+                                            <span class="seat-badge">V</span>
+                                        }
+                                        @if (!seat.IsActive && seat.Status != "Booked")
+                                        {
+                                            <span class="broken-icon" style="color: white;">✗</span>
+                                        }
+                                        @if (seat.Status != "Booked")
+                                        {
+                                            <div class="user-icon-wrapper" style="display:none;">
+                                                <img src="~/images/user.png" alt="user" class="user-icon" />
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                // Single seat
+                                processedSeats.Add(seat.SeatId);
+                                var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
+                                seatClass += seat.IsVIP ? " vip" : " normal";
+
+                                <div class="seat @seatClass"
+                                     data-seat-id="@seat.SeatId"
+                                     data-seat-price="@(seat.SeatTypePrice ?? 0)"
+                                     data-seat-label="@seat.Label"
+                                     data-is-active="@seat.IsActive"
+                                     onclick="toggleSeat(this, false)">
+                                    @if (seat.Status == "Booked")
                                     {
-                                        <i class="fas fa-check" style="color: white; font-size: 20px;"></i>
+                                        <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
                                     }
-                                    else if (!seat1.IsActive || (seat2 != null && !seat2.IsActive))
+                                    else if (seat.IsVIP)
                                     {
-                                        <span class="broken-icon" style="color: black;">✗</span>
+                                        <span class="seat-badge">V</span>
                                     }
-                                    else
+                                    @if (!seat.IsActive && seat.Status != "Booked")
                                     {
-                                        <div class="user-icons" style="display:none;">
-                                            <img src="~/images/user.png" alt="user" class="user-icon" />
+                                        <span class="broken-icon" style="color: white;">✗</span>
+                                    }
+                                    @if (seat.Status != "Booked")
+                                    {
+                                        <div class="user-icon-wrapper" style="display:none;">
                                             <img src="~/images/user.png" alt="user" class="user-icon" />
                                         </div>
                                     }
                                 </div>
-                                <div class="couple-seat-label">
-                                    @(seat2 != null ? $"{seat1.Label}-{seat2.Label}" : seat1.Label)
-                                </div>
-                            </div>
+                            }
                         }
-                    }
-                    else
-                    {
-                        foreach (var seat in seatsInRow)
-                        {
-                            var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
-                            seatClass += seat.IsVIP ? " vip" : " normal";
+                    </div>
 
-                            <div class="seat @seatClass"
-                                 data-seat-id="@seat.SeatId"
-                                 data-seat-price="@(seat.SeatTypePrice ?? 0)"
-                                 data-seat-label="@seat.Label"
-                                 data-is-active="@seat.IsActive"
-                                 onclick="toggleSeat(this, false)">
-                                @if (seat.Status == "Booked")
-                                {
-                                    <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
-                                }
-                                else if (seat.IsVIP)
-                                {
-                                    <span class="seat-badge">V</span>
-                                }
-                                @if (!seat.IsActive && seat.Status != "Booked")
-                                {
-                                    <span class="broken-icon" style="color: white;">✗</span>
-                                }
-                                @if (seat.Status != "Booked")
-                                {
-                                    <div class="user-icon-wrapper" style="display:none;">
-                                        <img src="~/images/user.png" alt="user" class="user-icon" />
-                                    </div>
-                                }
-                            </div>
-                        }
-                    }
+                    <div class="row-label">@row.Key</div>
                 </div>
-
-                <div class="row-label">@row.Key</div>
-            </div>
-        }
+            }
+        </div>
     </div>
 
     <!-- Chú thích -->
@@ -174,7 +213,7 @@
             </div>
             <div class="legend-item">
                 <div class="couple-seat-wrapper">
-                    <div class="couple-seat"><span class="seat-badge"></span></div>
+                    <div class="couple-seat"></div>
                 </div>
                 <span>Ghế Đôi</span>
             </div>
@@ -647,5 +686,22 @@
                 // refresh trạng thái mỗi 10s
                 setInterval(refreshSeatsStatus, 10000);
             });
+
+        // Auto toggle alignment class based on overflow
+        document.addEventListener('DOMContentLoaded', function() {
+            const wrapper = document.querySelector('.seat-layout-scroll-wrapper');
+            const inner = document.querySelector('.seats-grid-container');
+            function syncOverflowClass() {
+                if (!wrapper || !inner) return;
+                const isOverflowing = inner.scrollWidth > wrapper.clientWidth;
+                wrapper.classList.toggle('overflowing', isOverflowing);
+            }
+            // initial
+            syncOverflowClass();
+            // on resize
+            window.addEventListener('resize', syncOverflowClass);
+            // slight delay after images/fonts
+            setTimeout(syncOverflowClass, 400);
+        });
     </script>
 }

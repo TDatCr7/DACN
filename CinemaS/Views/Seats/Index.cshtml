@@ -1,263 +1,395 @@
-﻿@model IEnumerable<CinemaS.Models.Seats>
+﻿@model CinemaS.Models.ViewModels.SeatLayoutEditorVM
+
+@using CinemaS.Models
+@using CinemaS.Models.ViewModels
 
 @{
-	ViewData["Title"] = "Quản Lý Ghế";
-	Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chỉnh sửa bố cục ghế";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/management.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/seat-layout-editor.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/seat-management.css" asp-append-version="true" />
 
+<style>
+    /* Hide delete buttons by default and only show on last column and last row (explicit classes) */
+    .column-number .delete-btn,
+    .row-label .delete-btn {
+        display: none !important;
+    }
 
-<div class="seat-selection-container">
-	<div class="header-section">
-		<h1><i class="fas fa-chair"></i> Quản Lý Ghế Phòng Chiếu</h1>
-		<p class="subtitle">Click vào ghế để báo hỏng hoặc phục hồi</p>
-	</div>
+    /* Show delete X only for the explicitly marked last column */
+    .column-number.last-column .delete-btn {
+        display: inline-block !important;
+    }
 
-	<!-- Chọn phòng chiếu -->
-	<div class="theater-selector">
-		<label for="theaterSelect">
-			<i class="fas fa-door-open"></i> Chọn Phòng Chiếu:
-		</label>
-		<select id="theaterSelect" class="form-select" onchange="changeTheater()">
-			@if (ViewBag.CinemaTheaters != null)
-			{
-				@foreach (var theater in ViewBag.CinemaTheaters)
-				{
-					var selected = theater.CinemaTheaterId == ViewBag.SelectedTheaterId ? "selected" : "";
-					<option value="@theater.CinemaTheaterId" selected="@selected">
-						@theater.Name
-					</option>
-				}
-			}
-		</select>
-	</div>
+    /* Show delete X only for the explicitly marked last seat-row (both left/right row-label) */
+    .seat-row.last-row .row-label .delete-btn {
+        display: inline-block !important;
+    }
 
-	@if (Model != null && Model.Any())
-	{
-		<!-- Thông tin phòng chiếu -->
-		<div class="movie-info">
-			<div class="movie-details">
-				<h2><i class="fas fa-film"></i> @ViewBag.TheaterName</h2>
-				<p><i class="fas fa-chair"></i> <strong>Tổng số ghế:</strong> @Model.Count()</p>
-				<p><i class="fas fa-check-circle"></i> <strong>Ghế hoạt động:</strong> @Model.Count(s => s.IsActive)</p>
-				<p><i class="fas fa-times-circle"></i> <strong>Ghế hỏng:</strong> @Model.Count(s => !s.IsActive)</p>
-			</div>
-		</div>
+    .column-number .delete-btn, .row-label .delete-btn {
+        background: rgba(0,0,0,0.45);
+        border: none;
+        color: #fff;
+        padding: 4px 6px;
+        border-radius: 4px;
+    }
 
-		<!-- Màn hình -->
-		<div class="screen-container">
-			<div class="screen">MÀN HÌNH</div>
-		</div>
+    /* Confirm modal styles */
+    #confirmBackdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 2000;
+    }
+    #confirmModal {
+        display: none;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 360px;
+        max-width: 92%;
+        background: linear-gradient(180deg, #1b1b1f, #151517);
+        color: #fff;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        z-index: 2100;
+        border: 1px solid rgba(255,255,255,0.04);
+    }
+    #confirmModal .modal-title {
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    #confirmModal .modal-body {
+        color: #e6e6e6;
+        margin-bottom: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    #confirmModal .modal-body .icon {
+        font-size: 22px;
+        color: #ffd43b;
+    }
+    #confirmModal .modal-actions {
+        display:flex;
+        justify-content:flex-end;
+        gap:10px;
+    }
+    #confirmModal .btn {
+        border-radius: 8px;
+    }
+    #confirmModal .btn-primary {
+        background: linear-gradient(90deg,#caa2ff,#7c3aed);
+        border: none;
+        color: #111;
+        padding: 8px 16px;
+    }
+    #confirmModal .btn-secondary {
+        background: rgba(255,255,255,0.06);
+        border: none;
+        color: #fff;
+        padding: 8px 14px;
+    }
 
-		<!-- Sơ đồ ghế -->
-		<div class="seats-grid-container">
-			<!-- Số cột -->
-			<div class="column-numbers">
-				<div class="row-label-space"></div>
-				@for (int col = 1; col <= ViewBag.NumOfColumns; col++)
-				{
-					<div class="column-number">@col</div>
-				}
-			</div>
+    /* ✅ Showtime Section Styles */
+    .showtime-section {
+        background: var(--dark-card);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+    }
 
-			<!-- Các hàng ghế -->
-			@{
-				var rows = Model.GroupBy(s => s.RowIndex).OrderBy(g => g.Key);
-				var seatTypes = ViewBag.SeatTypes as List<CinemaS.Models.SeatTypes>;
-			}
+    .showtime-header {
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid rgba(124, 58, 237, 0.3);
+    }
 
-			@foreach (var row in rows)
-			{
-				<div class="seat-row">
-					<!-- Ký hiệu hàng -->
-					<div class="row-label">@row.Key</div>
+    .showtime-header h5 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+    }
 
-					<!-- Ghế trong hàng -->
-					<div class="seats-in-row">
-						@foreach (var seat in row.OrderBy(s => s.ColumnIndex))
-						{
-							var seatType = seatTypes?.FirstOrDefault(st => st.SeatTypeId == seat.SeatTypeId);
-							var seatClass = seat.IsActive ? "" : "inactive";
+    .showtime-section .alert-info {
+        background-color: rgba(59, 92, 204, 0.2);
+        border: 1px solid rgba(59, 92, 204, 0.3);
+        color: var(--text-muted);
+        padding: 16px;
+        border-radius: 8px;
+    }
 
-							if (seatType?.Name == "VIP")
-							{
-								seatClass += " vip";
-							}
-							else if (seatType?.Name == "COUPLE")
-							{
-								seatClass += " couple";
-							}
-							else
-							{
-								seatClass += " normal";
-							}
+    .showtime-scroll-container {
+        max-height: 220px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
 
-							<div class="seat @seatClass"
-								 data-seat-id="@seat.SeatId"
-								 data-seat-label="@seat.Label"
-								 data-is-active="@seat.IsActive.ToString().ToLower()"
-								 onclick="toggleSeatStatus('@seat.SeatId')">
-								@if (seatType?.Name == "VIP")
-								{
-									<span class="seat-badge">V</span>
-								}
-								else if (seatType?.Name == "COUPLE")
-								{
-									<span class="seat-badge">CP</span>
-								}
-								@if (!seat.IsActive)
-								{
-									<span class="broken-icon">✗</span>
-								}
-								<div class="seat-label-small">@seat.Label</div>
-							</div>
-						}
-					</div>
+    /* Seat layout scroll wrapper - new */
+    .seat-layout-scroll-wrapper {
+        width: 100%;
+        /* ✅ Max width cho ~40 cột ghế */
+        max-width: calc((40px * 2) + (45px * 40) + (6px * 41) + 60px); /* 2 row labels + 40 seats + gaps + padding */
+        /* ✅ Max height cho ~30 hàng ghế */
+        max-height: calc(30px + (45px * 30) + (8px * 30) + 80px); /* column header + 30 seats + gaps + padding */
+        overflow-x: auto;
+        overflow-y: auto;
+        padding-bottom: 10px;
+        scrollbar-width: thin;
+        display: flex;
+        justify-content: flex-start; /* ✅ canh trái để luôn có thể lướt về mục 1 */
+        margin: 0 auto;
+        box-sizing: border-box;
+    }
 
-					<!-- Ký hiệu hàng bên phải -->
-					<div class="row-label">@row.Key</div>
-				</div>
-			}
-		</div>
+    /* ✅ Grid container - inline-flex để không crop */
+    .seats-grid-container {
+        min-width: min-content;
+        display: inline-flex;
+        flex-direction: column;
+    }
 
-		<!-- Danh sách suất chiếu -->
-		@if (ViewBag.ShowTimes != null && ((List<CinemaS.Models.ViewModels.ShowTimeVM>)ViewBag.ShowTimes).Any())
-		{
-			<div class="showtimes-section custom-showtimes table-container">
-				<h3>
-					<i class="fas fa-clock"></i> Danh Sách Suất Chiếu Sắp Tới
-				</h3>
-				<table class="table table-dark table-hover">
-					<thead>
-						<tr>
-							<th>Phim</th>
-							<th>Ngày Chiếu</th>
-							<th>Giờ Bắt Đầu</th>
-							<th>Giờ Kết Thúc</th>
-						</tr>
-					</thead>
-					<tbody>
-						@foreach (var showTime in (List<CinemaS.Models.ViewModels.ShowTimeVM>)ViewBag.ShowTimes)
-						{
-							<tr>
-								<td>@showTime.MovieTitle</td>
-								<td>@showTime.ShowDate?.ToString("dd-MM-yyyy")</td>
-								<td>@showTime.StartTime?.ToString("HH:mm")</td>
-								<td>@showTime.EndTime?.ToString("HH:mm")</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
+    /* Webkit scrollbar styling */
+    .seat-layout-scroll-wrapper::-webkit-scrollbar {
+        height: 6px;
+        width: 6px;
+    }
+    .seat-layout-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.25);
+        border-radius: 4px;
+    }
 
-		}
-		else
-		{
-			<div class="no-showtimes-message">
-				<i class="fas fa-exclamation-circle"></i>
-				<p>Không có suất chiếu nào sắp tới cho phòng này.</p>
-			</div>
-		}
-	}
-	else
-	{
-		<div class="no-seats-message">
-			<i class="fas fa-exclamation-triangle"></i>
-			<h3>Chưa có ghế nào trong phòng chiếu này</h3>
-			<p>Ghế sẽ được tạo tự động khi bạn tạo suất chiếu mới cho phòng này.</p>
-		</div>
-	}
+</style>
+
+@Html.Raw("<style>@media (max-width: 768px) { .seat-layout-scroll-wrapper { width: 100%; } }</style>")
+
+<div class="seat-editor-container">
+    <!-- Header -->
+    <div class="editor-header">
+        <div class="header-content">
+            <h1><i class="fas fa-th"></i> Chỉnh sửa bố cục ghế - @Model.TheaterName</h1>
+        </div>
+        <div class="header-actions">
+            <a href="@Url.Action("Index", "CinemaTheaters")" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.CinemaTheaterId))
+    {
+        <input type="hidden" id="theaterSelect" value="@Model.CinemaTheaterId" />
+
+        <select id="seatTypeSelector" style="display:none;">
+            @foreach (var seatType in Model.SeatTypeOptions)
+            {
+                <option value="@seatType.SeatTypeId" data-name="@seatType.Name" data-price="@seatType.Price">
+                    @seatType.Name
+                </option>
+            }
+        </select>
+
+        <!-- Toolbar with Edit Mode Selection -->
+        <div class="toolbar">
+            <div class="tool-section">
+                <h5><i class="fas fa-paint-brush"></i> Chế độ chỉnh sửa</h5>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-primary active" data-edit-mode="normal">
+                        <i class="fas fa-chair"></i> Ghế thường
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-edit-mode="vip">
+                        <i class="fas fa-star"></i> Ghế VIP
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-edit-mode="couple">
+                        <i class="fas fa-users"></i> Ghế đôi
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" data-edit-mode="broken">
+                        <i class="fas fa-exclamation-triangle"></i> Ghế hỏng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen -->
+        <div class="screen-container">
+            <div class="screen">MÀN HÌNH</div>
+        </div>
+
+        <!-- Seat Grid -->
+        <div class="seat-layout-scroll-wrapper">
+            <div class="seats-grid-container">
+                <!-- Column Numbers -->
+                <div class="column-numbers">
+                    <div class="row-label-space"></div>
+                    @for (int col = 1; col <= Model.NumOfColumns; col++)
+                    {
+                        var isLastCol = col == Model.NumOfColumns;
+                        <div class="column-number @(isLastCol ? "last-column" : "")" data-col-index="@col">
+                            <span class="col-label-text">@col</span>
+                            <button class="delete-btn" title="Xóa cột @col">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    }
+                    <div class="add-column-btn" onclick="addColumnAtEnd()">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                </div>
+
+                <!-- Rows -->
+                @for (int r = 0; r < Model.Rows.Count; r++)
+                {
+                    var row = Model.Rows[r];
+                    var isLastRow = r == Model.Rows.Count - 1;
+                    <div class="seat-row @(isLastRow ? "last-row" : "")" data-row-number="@row.RowNumber">
+                        <div class="row-label" data-row-index="@row.RowNumber">
+                            <span class="row-label-text">@row.RowLabel</span>
+                            <button class="delete-btn" title="Xóa hàng @row.RowLabel">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div class="seats-in-row">
+                            @foreach (var seat in row.Seats)
+                            {
+                                var seatClass = "seat";
+                                if (!seat.IsActive) seatClass += " inactive";
+                                
+                                var badge = "";
+                                if (seat.SeatTypeName == "VIP") badge = "V";
+                                else if (seat.SeatTypeName == "COUPLE" || seat.IsLeftOfPair || seat.IsRightOfPair) badge = "CP";
+
+                                var dataAttrs = $"data-seat-id='{seat.SeatId}' data-seat-type-id='{seat.SeatTypeId}' data-seat-type-name='{seat.SeatTypeName}' data-row-number='{seat.RowNumber}' data-column-index='{seat.ColumnIndex}' data-is-active='{seat.IsActive.ToString().ToLower()}' data-pair-id='{seat.PairId}'";
+
+                                <div class="@seatClass seat-type-@(seat.SeatTypeName?.ToLower() ?? "normal")" @Html.Raw(dataAttrs) onclick="onSeatClick(this)">
+                                    @if (!string.IsNullOrEmpty(badge))
+                                    {
+                                        <span class="seat-badge">@badge</span>
+                                    }
+                                    @if (!seat.IsActive)
+                                    {
+                                        <span class="broken-icon">✗</span>
+                                    }
+                                    <div class="seat-label-small">@seat.Label</div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="row-label" data-row-index="@row.RowNumber">
+                            <span class="row-label-text">@row.RowLabel</span>
+                            <button class="delete-btn" title="Xóa hàng @row.RowLabel">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+                
+                <!-- Add Row Button -->
+                <div class="add-row-section">
+                    <button class="btn btn-success btn-add-row" onclick="addRowAtEnd()">
+                        <i class="fas fa-plus"></i> Thêm hàng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title"><i class="fas fa-info-circle"></i> Chú thích</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="seat seat-type-normal"></div>
+                    <span>Ghế thường</span>
+                </div>
+                <div class="legend-item">
+                    <div class="seat seat-type-vip"><span class="seat-badge">V</span></div>
+                    <span>Ghế VIP</span>
+                </div>
+                <div class="legend-item">
+                    <div class="seat seat-type-couple"><span class="seat-badge">CP</span></div>
+                    <span>Ghế đôi</span>
+                </div>
+                <div class="legend-item">
+                    <div class="seat inactive"><span class="broken-icon">✗</span></div>
+                    <span>Ghế hỏng</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Suất chiếu đang có ở phòng này -->
+        <div class="showtime-section" style="margin-top: 40px;">
+            <div class="showtime-header">
+                <h5><i class="fas fa-calendar-alt"></i> Suất chiếu đang có ở phòng này</h5>
+            </div>
+            @if (ViewBag.ShowTimes != null && ViewBag.ShowTimes.Count > 0)
+            {
+                var sortedShowtimes = (ViewBag.ShowTimes as IEnumerable<ShowTimeVM>).OrderBy(x => x.StartTime).ToList();
+                <div class="showtime-scroll-container">
+                    <div class="table-container">
+                        <table class="table table-hover table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width:8%;"><i class="fa-solid fa-hashtag"></i> Mã</th>
+                                    <th style="width:25%;"><i class="fa-solid fa-film"></i> Phim</th>
+                                    <th style="width:12%;"><i class="fa-solid fa-calendar"></i> Ngày chiếu</th>
+                                    <th style="width:10%;"><i class="fa-solid fa-clock"></i> Bắt đầu</th>
+                                    <th style="width:10%;"><i class="fa-regular fa-hourglass-half"></i> Kết thúc</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var showTime in sortedShowtimes)
+                                {
+                                    <tr>
+                                        <td><strong>@showTime.ShowTimeId</strong></td>
+                                        <td>@showTime.MovieTitle</td>
+                                        <td>@showTime.ShowDate?.ToString("dd/MM/yyyy")</td>
+                                        <td>@showTime.StartTime?.ToString("HH:mm")</td>
+                                        <td>@showTime.EndTime?.ToString("HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Chưa có suất chiếu nào cho phòng này.
+                </div>
+            }
+        </div>
+    }
 </div>
 
+<!-- Confirm modal markup -->
+<div id="confirmBackdrop"></div>
+<div id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal-title" id="confirmModalTitle">Xác nhận</div>
+    <div class="modal-body">
+        <div class="icon">⚠️</div>
+        <div id="confirmModalMessage">Bạn có chắc chắn?</div>
+    </div>
+    <div class="modal-actions">
+        <button id="confirmCancelBtn" class="btn btn-secondary">Hủy</button>
+        <button id="confirmOkBtn" class="btn btn-primary">OK</button>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="booking-toast" id="bookingToast"></div>
+
 @section Scripts {
-	<script src="~/js/toast-notification.js" asp-append-version="true"></script>
-	<script>
-		 function changeTheater() {
-		 var theaterId = document.getElementById('theaterSelect').value;
-		 if (theaterId) {
-		window.location.href = '@Url.Action("Index", "Seats")?cinemaTheaterId=' + theaterId;
-		 }
-		 }
-
-		 function toggleSeatStatus(seatId) {
-		 if (!seatId) return;
-
-		 const seatElement = document.querySelector(`[data-seat-id="${seatId}"]`);
-		 if (!seatElement) {
-		 showToast('Không tìm thấy ghế', 'error');
-		 return;
-		 }
-
-		 // Gọi API để toggle trạng thái
-		 fetch('@Url.Action("ToggleActive", "Seats")', {
-		 method: 'POST',
-		 headers: {
-		 'Content-Type': 'application/json'
-		 },
-		 body: JSON.stringify(seatId)
-		 })
-		 .then(response => response.json())
-		 .then(data => {
-		 if (data.success) {
-		// Cập nhật UI ngay lập tức
-		 if (data.isActive) {
-		 seatElement.classList.remove('inactive');
-		 // Xóa icon hỏng nếu có
-		 const brokenIcon = seatElement.querySelector('.broken-icon');
-		 if (brokenIcon) brokenIcon.remove();
-		 } else {
-		 seatElement.classList.add('inactive');
-		 // Thêm icon hỏng nếu chưa có
-		 if (!seatElement.querySelector('.broken-icon')) {
-		 const icon = document.createElement('span');
-		 icon.className = 'broken-icon';
-		 icon.textContent = '✗';
-		 seatElement.insertBefore(icon, seatElement.querySelector('.seat-label-small'));
-		 }
-		 }
-
-		 // Cập nhật attribute
-		 seatElement.setAttribute('data-is-active', data.isActive.toString());
-
-		 // Hiển thị thông báo thành công
-		 showToast(data.message, 'success');
-
-		 // Cập nhật số liệu thống kê
-		 updateStatistics();
-		 } else {
-		 showToast(data.message, 'error');
-		 }
-		 })
-		 .catch(error => {
-		 console.error('Error:', error);
-		 showToast('Có lỗi xảy ra khi cập nhật trạng thái ghế', 'error');
-		 });
-		 }
-
-		 // Cập nhật số liệu thống kê
-		 function updateStatistics() {
-		 const allSeats = document.querySelectorAll('.seat');
-		 const inactiveSeats = document.querySelectorAll('.seat.inactive');
-
-		 const total = allSeats.length;
-		 const broken = inactiveSeats.length;
-		 const active = total - broken;
-
-
-		 // Cập nhật hiển thị
-		 const movieDetails = document.querySelector('.movie-details');
-		 if (movieDetails) {
-		 const paragraphs = movieDetails.querySelectorAll('p');
-		 if (paragraphs.length >= 3) {
-		 paragraphs[1].innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> <strong>Ghế hoạt động:</strong> ' + active;
-		 paragraphs[2].innerHTML = '<i class="fas fa-times-circle" style="color: #ef4444;"></i> <strong>Ghế hỏng:</strong> ' + broken;
-		 }
-		 }
-		 }
-	</script>
+    <script src="~/js/toast-notification.js" asp-append-version="true"></script>
+    <script src="~/js/seat-layout-editor.js" asp-append-version="true"></script>
 }

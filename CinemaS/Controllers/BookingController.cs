@@ -62,7 +62,8 @@ namespace CinemaS.Controllers
                     Status = paidSeatIds.Contains(s.SeatId) ? "Booked" : "Available",
                     IsCouple = string.Equals(st?.Name, "COUPLE", StringComparison.OrdinalIgnoreCase),
                     IsVIP = string.Equals(st?.Name, "VIP", StringComparison.OrdinalIgnoreCase),
-                    IsActive = s.IsActive
+                    IsActive = s.IsActive,
+                    PairId = s.PairId
                 };
             }).ToList();
 

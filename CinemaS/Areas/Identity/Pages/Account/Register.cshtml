@@ -164,6 +164,23 @@
         font-size: 12px;
     }
 
+    .footer-actions {
+        margin-top: 12px;
+        text-align: center;
+    }
+
+    .login-text-link {
+        display: inline-block;
+        color: #93c5fd;
+        text-decoration: underline;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+        .login-text-link:hover {
+            color: #bfdbfe;
+        }
+
     @@media (max-width: 575.98px) {
         .register-card {
             padding-inline: 18px;
@@ -252,8 +269,9 @@
 
             <button type="submit" class="btn-register-main">Đăng ký</button>
 
-            <div class="register-footer-text">
-                Hoặc dùng tài khoản khác để đăng ký.
+			<div class="footer-actions">
+				Đã có tài khoản?
+                <a class="login-text-link" asp-page="./Login">Đăng nhập</a>
             </div>
         </form>
     </div>

@@ -4,50 +4,513 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container my-4">
-    <h3 class="mb-3">Vé/Hóa đơn của tôi</h3>
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --card-bg: rgba(15, 23, 42, 0.95);
+        --card-border: rgba(148, 163, 255, 0.3);
+        --text-primary: #e5e7eb;
+        --text-secondary: #9ca3af;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --shadow-glow: 0 8px 32px rgba(59, 130, 246, 0.15);
+    }
 
-    <div class="table-responsive">
-        <table class="table table-dark table-striped align-middle">
-            <thead>
-                <tr>
-                    <th>Mã hóa đơn</th>
-                    <th>Phim</th>
-                    <th>Phòng</th>
-                    <th>Ngày</th>
-                    <th>Giờ</th>
-                    <th class="text-end">Tổng tiền</th>
-                    <th>Trạng thái</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
+    .history-container {
+        min-height: calc(100vh - 140px);
+        padding: 40px 20px 60px;
+        background:
+            radial-gradient(circle at 20% 10%, rgba(99, 102, 241, 0.1), transparent 40%),
+            radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 40%);
+    }
+
+    .history-header {
+        max-width: 1200px;
+        margin: 0 auto 32px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .history-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    .history-title {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(120deg, #60a5fa, #a78bfa, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .history-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Card-based design for mobile */
+    .invoice-card {
+        background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15), transparent 50%),
+                    var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow-glow);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .invoice-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .invoice-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(59, 130, 246, 0.25);
+        border-color: rgba(148, 163, 255, 0.5);
+    }
+
+    .invoice-card:hover::before {
+        opacity: 1;
+    }
+
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .invoice-id {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .invoice-id i {
+        color: #60a5fa;
+        font-size: 14px;
+    }
+
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-badge.paid {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #10b981;
+    }
+
+    .status-badge.unpaid {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        color: #f59e0b;
+    }
+
+    .status-badge i {
+        font-size: 10px;
+    }
+
+    .invoice-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .info-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-size: 14px;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .info-value.movie {
+        color: #60a5fa;
+        font-weight: 700;
+    }
+
+    .info-value.price {
+        font-size: 18px;
+        background: linear-gradient(120deg, #fbbf24, #f59e0b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+    }
+
+    .invoice-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(148, 163, 255, 0.2);
+    }
+
+    .btn-detail {
+        flex: 1;
+        padding: 10px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 255, 0.4);
+        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+        color: white;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-detail:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        color: white;
+    }
+
+    .btn-detail i {
+        font-size: 12px;
+    }
+
+    /* Table view for desktop */
+    .desktop-table {
+        display: none;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: var(--shadow-glow);
+    }
+
+    .desktop-table table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+    }
+
+    .desktop-table thead {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+    }
+
+    .desktop-table th {
+        padding: 16px 20px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #a5b4fc;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--card-border);
+        text-align: left;
+    }
+
+    .desktop-table th:last-child {
+        text-align: right;
+    }
+
+    .desktop-table td {
+        padding: 16px 20px;
+        color: var(--text-primary);
+        border-bottom: 1px solid rgba(148, 163, 255, 0.1);
+        font-size: 14px;
+    }
+
+    .desktop-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .desktop-table tbody tr:hover {
+        background: rgba(59, 130, 246, 0.08);
+    }
+
+    .desktop-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .desktop-table .movie-title {
+        color: #60a5fa;
+        font-weight: 600;
+    }
+
+    .desktop-table .price-value {
+        font-weight: 700;
+        color: #fbbf24;
+        text-align: right;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        box-shadow: var(--shadow-glow);
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: #60a5fa;
+    }
+
+    .empty-text {
+        font-size: 18px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .empty-subtext {
+        font-size: 14px;
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    /* Responsive breakpoints */
+    @@media (min-width: 768px) {
+        .history-container {
+            padding: 50px 30px 70px;
+        }
+
+        .invoice-info {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @@media (min-width: 992px) {
+        .mobile-cards {
+            display: none;
+        }
+
+        .desktop-table {
+            display: block;
+        }
+
+        .history-title {
+            font-size: 32px;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .history-header {
+            margin-bottom: 24px;
+        }
+
+        .history-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+        }
+
+        .history-title {
+            font-size: 22px;
+        }
+
+        .invoice-card {
+            padding: 16px;
+            border-radius: 16px;
+        }
+
+        .invoice-info {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .info-value.price {
+            font-size: 16px;
+        }
+    }
+</style>
+
+<div class="history-container">
+    <div class="history-header">
+        <div class="history-icon">
+            <i class="fa-solid fa-ticket"></i>
+        </div>
+        <h1 class="history-title">Lịch sử đặt vé</h1>
+    </div>
+
+    <div class="history-content">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fa-solid fa-inbox"></i>
+                </div>
+                <div class="empty-text">Chưa có vé nào</div>
+                <div class="empty-subtext">Hãy đặt vé xem phim để hiển thị ở đây</div>
+            </div>
+        }
+        else
+        {
+            <!-- Mobile Card View -->
+            <div class="mobile-cards">
                 @foreach (var i in Model)
                 {
-                    <tr>
-                        <td>@i.InvoiceId</td>
-                        <td>@(i.MovieTitle ?? "-")</td>
-                        <td>@(i.Room ?? "-")</td>
-                        <td>@i.ShowDate?.ToString("dd/MM/yyyy")</td>
-                        <td>@i.StartTime?.ToString("HH:mm")</td>
-                        <td class="text-end">@i.TotalPrice.ToString("#,0") đ</td>
-                        <td>
+                    <div class="invoice-card">
+                        <div class="invoice-header">
+                            <div class="invoice-id">
+                                <i class="fa-solid fa-hashtag"></i>
+                                <span>@i.InvoiceId</span>
+                            </div>
                             @if (i.Status == 1)
                             {
-                                <span class="badge bg-success">ĐÃ THANH TOÁN</span>
+                                <span class="status-badge paid">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    <span>Đã thanh toán</span>
+                                </span>
                             }
                             else
                             {
-
-                                <span class="badge bg-warning text-dark">CHƯA THANH TOÁN</span>
+                                <span class="status-badge unpaid">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <span>Chưa thanh toán</span>
+                                </span>
                             }
-                        </td>
-                        <td>
-                            <a asp-action="ResultById" asp-route-invoiceId="@i.InvoiceId" class="btn btn-sm btn-outline-light">Xem chi tiết</a>
-                        </td>
-                    </tr>
+                        </div>
+
+                        <div class="invoice-info">
+                            <div class="info-item">
+                                <div class="info-label">Phim</div>
+                                <div class="info-value movie">@(i.MovieTitle ?? "N/A")</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Phòng</div>
+                                <div class="info-value">@(i.Room ?? "N/A")</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Ngày chiếu</div>
+                                <div class="info-value">@(i.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A")</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Giờ chiếu</div>
+                                <div class="info-value">@(i.StartTime?.ToString("HH:mm") ?? "N/A")</div>
+                            </div>
+                        </div>
+
+                        <div class="invoice-actions">
+                            <div class="info-item" style="flex: 1;">
+                                <div class="info-label">Tổng tiền</div>
+                                <div class="info-value price">@i.TotalPrice.ToString("#,0") đ</div>
+                            </div>
+                            <a asp-action="ResultById" asp-route-invoiceId="@i.InvoiceId" class="btn-detail">
+                                <i class="fa-solid fa-eye"></i>
+                                <span>Chi tiết</span>
+                            </a>
+                        </div>
+                    </div>
                 }
-            </tbody>
-        </table>
+            </div>
+
+            <!-- Desktop Table View -->
+            <div class="desktop-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã hóa đơn</th>
+                            <th>Phim</th>
+                            <th>Phòng</th>
+                            <th>Ngày chiếu</th>
+                            <th>Giờ chiếu</th>
+                            <th style="text-align: right;">Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th style="text-align: right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var i in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-hashtag" style="color: #60a5fa; font-size: 12px;"></i>
+                                        <span style="font-weight: 600;">@i.InvoiceId</span>
+                                    </div>
+                                </td>
+                                <td class="movie-title">@(i.MovieTitle ?? "N/A")</td>
+                                <td>@(i.Room ?? "N/A")</td>
+                                <td>@(i.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                <td>@(i.StartTime?.ToString("HH:mm") ?? "N/A")</td>
+                                <td class="price-value">@i.TotalPrice.ToString("#,0") đ</td>
+                                <td>
+                                    @if (i.Status == 1)
+                                    {
+                                        <span class="status-badge paid">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span>Đã thanh toán</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge unpaid">
+                                            <i class="fa-solid fa-clock"></i>
+                                            <span>Chưa thanh toán</span>
+                                        </span>
+                                    }
+                                </td>
+                                <td style="text-align: right;">
+                                    <a asp-action="ResultById" asp-route-invoiceId="@i.InvoiceId" class="btn-detail" style="display: inline-flex; flex: none;">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span>Chi tiết</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>

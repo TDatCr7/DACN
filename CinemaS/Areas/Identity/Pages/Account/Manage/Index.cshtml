@@ -1,0 +1,277 @@
+@page
+@using CinemaS.Areas.Identity.Pages.Account.Manage
+@model IndexModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    // Xóa layout riêng của khu vực Manage nếu có, ép dùng layout chung từ _Layout.cshtml trong Views/Shared qua _ViewStart của Areas
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    :root {
+        --panel: #020617;
+        --panel-soft: #040b1f;
+        --indigo: #3b5ccc;
+        --purple: #7c3aed;
+        --accent: #ffd54d;
+        --text: #e5e7f5;
+        --muted: #9ca3c7;
+        --line: rgba(148, 163, 255, .35);
+    }
+
+    /* Reset toàn bộ style mặc định */
+    * {
+        box-sizing: border-box;
+    }
+
+    .profile-shell {
+        min-height: calc(100vh - 140px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px 60px;
+    }
+
+    .profile-card {
+        width: 100%;
+        max-width: 780px;
+        border-radius: 30px;
+        background:
+            radial-gradient(circle at 10% 10%, rgba(59, 130, 246, .4), transparent 50%),
+            radial-gradient(circle at 90% 10%, rgba(124, 58, 237, .35), transparent 50%),
+            radial-gradient(circle at 50% 100%, rgba(162, 28, 175, .25), transparent 55%),
+            linear-gradient(145deg, #020617, #030921);
+        border: 1px solid rgba(148, 163, 255, .5);
+        box-shadow:
+            0 25px 70px rgba(15, 23, 42, .98),
+            0 0 0 1px rgba(15, 23, 42, .9),
+            0 0 50px rgba(79, 70, 229, .6);
+        padding: 38px 42px 36px;
+        color: var(--text);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Hiệu ứng glow phía sau card */
+    .profile-card::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 30px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, .3), rgba(124, 58, 237, .3), rgba(162, 28, 175, .2));
+        z-index: -1;
+        opacity: 0.5;
+        filter: blur(20px);
+    }
+
+    .profile-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 32px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(148, 163, 255, .3);
+    }
+
+    .avatar-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 28px;
+        background: radial-gradient(circle at 30% 20%, #6366f1, #4f46e5, #0f172a);
+        color: #fff;
+        box-shadow: 
+            0 0 30px rgba(99, 102, 241, .9),
+            0 8px 20px rgba(0, 0, 0, .6);
+        margin-right: 18px;
+        border: 2px solid rgba(148, 163, 255, .4);
+    }
+
+    .header-info {
+        flex: 1;
+    }
+
+    .header-name {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--text);
+        margin-bottom: 4px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, .5);
+    }
+
+    .header-email {
+        font-size: 14px;
+        color: var(--muted);
+        opacity: 0.9;
+    }
+
+    .profile-title {
+        font-size: 24px;
+        font-weight: 900;
+        margin-bottom: 8px;
+        background: linear-gradient(120deg, #60a5fa, #a78bfa, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(59, 130, 246, .4), rgba(124, 58, 237, .4));
+        border: 1px solid rgba(148, 163, 255, .6);
+        color: #93c5fd;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, .4);
+    }
+
+    .profile-subtitle {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 28px;
+        line-height: 1.6;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #cfd6ff;
+        margin-bottom: 8px;
+        display: block;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .field-row {
+        margin-bottom: 20px;
+    }
+
+    .cine-input {
+        width: 100%;
+        font-size: 15px;
+        padding: 13px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: radial-gradient(circle at 5% 5%, rgba(15, 23, 42, .95), rgba(2, 6, 23, .98));
+        color: var(--text);
+        outline: none;
+        transition: all .18s ease;
+        cursor: text;
+        user-select: all;
+        -webkit-user-select: all;
+        -moz-user-select: all;
+        -ms-user-select: all;
+    }
+
+    .cine-input::placeholder { color: #6b7280; font-size: 13px; font-style: italic; }
+
+    .cine-input:hover {
+        border-color: rgba(148, 163, 255, .6);
+        background: radial-gradient(circle at 5% 5%, rgba(15, 23, 42, 1), rgba(2, 6, 23, 1));
+        box-shadow: 0 0 0 1px rgba(148, 163, 255, .3);
+    }
+
+    .cine-input:focus {
+        border-color: var(--indigo);
+        background: radial-gradient(circle at 5% 5%, rgba(15, 23, 42, 1), rgba(2, 6, 23, 1));
+        box-shadow: 0 0 0 2px rgba(59, 92, 204, .5), 0 0 0 6px rgba(59, 130, 246, .2);
+    }
+
+    .btn-change-password {
+        width: 100%; margin-top: 20px; border-radius: 999px; border: none; padding: 14px 20px; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; background: linear-gradient(120deg, var(--indigo), var(--purple)); color: #fff; box-shadow: 0 16px 40px rgba(56, 189, 248, .45), 0 0 20px rgba(124, 58, 237, .3); transition: all .2s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+    }
+    .btn-change-password:hover { filter: brightness(1.08); transform: scale(1.03); box-shadow: 0 20px 50px rgba(59, 130, 246, .6), 0 0 30px rgba(124, 58, 237, .5); color: #fff; }
+
+    .alert {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+        color: white;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+        border-radius: 16px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .alert i { color: #fff; }
+
+    @@media (max-width: 575.98px) {
+        .profile-card { padding: 28px 22px 26px; border-radius: 24px; }
+        .avatar-circle { width: 56px; height: 56px; font-size: 22px; }
+        .header-name { font-size: 18px; }
+        .profile-title { font-size: 20px; }
+    }
+</style>
+
+<div class="profile-shell">
+    <div class="profile-card">
+        <div class="profile-header">
+            @{
+                var initials = "U";
+                if (!string.IsNullOrWhiteSpace(Model.Input?.FullName))
+                {
+                    var parts = Model.Input.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    initials = parts.Length == 1 ? parts[0].Substring(0,1).ToUpperInvariant() : (parts[0].Substring(0,1) + parts[^1].Substring(0,1)).ToUpperInvariant();
+                }
+            }
+            <div class="avatar-circle">@initials</div>
+            <div class="header-info">
+                <div class="header-name">@(Model.Input?.FullName ?? Model.Username ?? "Người dùng")</div>
+                <div class="header-email">@Model.Input?.Email</div>
+            </div>
+        </div>
+
+        <h1 class="profile-title">
+            <span class="info-icon"><i class="fa-solid fa-user"></i></span>
+            Thông tin tài khoản
+        </h1>
+
+        @if (TempData["Message"] != null)
+        {
+            <div id="alert-message" class="alert">
+                <i class="fas fa-check-circle"></i>
+                @TempData["Message"]
+            </div>
+        }
+
+        <form method="post">
+            <div class="field-row">
+                <label asp-for="Input.FullName" class="form-label">Họ và tên</label>
+                <input asp-for="Input.FullName" class="cine-input" />
+            </div>
+            <div class="field-row">
+                <label asp-for="Input.Email" class="form-label">Địa chỉ Email</label>
+                <input asp-for="Input.Email" class="cine-input" readonly tabindex="0" />
+            </div>
+            <div class="field-row">
+                <label asp-for="Input.PhoneNumber" class="form-label">Số điện thoại</label>
+                <input asp-for="Input.PhoneNumber" class="cine-input" type="tel" pattern="[0-9\s\-\+\(\)]*" placeholder="Chưa cập nhật số điện thoại" />
+            </div>
+
+            <button type="submit" class="btn-change-password"><i class="fas fa-save"></i><span>Lưu thay đổi</span></button>
+        </form>
+
+        <a asp-page="./ChangePassword" class="btn-change-password"><i class="fa-solid fa-key"></i><span>Đổi mật khẩu</span></a>
+    </div>
+</div>
+
+@section Scripts { 
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById('alert-message');
+            if (alert) {
+                alert.style.display = 'none';
+            }
+        }, 3000);
+    </script>
+}

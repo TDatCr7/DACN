@@ -2,76 +2,268 @@
 @model LoginModel
 
 @{
-    ViewData["Title"] = "Log in";
+    ViewData["Title"] = "Đăng nhập";
 }
 
-<h1>@ViewData["Title"]</h1>
-<div class="row">
-    <div class="col-md-4">
-        <section>
-            <form id="account" method="post">
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label asp-for="Input.Email" class="form-label">Email</label>
-                    <span asp-validation-for="Input.Email" class="text-danger"></span>
-                </div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label asp-for="Input.Password" class="form-label">Password</label>
-                    <span asp-validation-for="Input.Password" class="text-danger"></span>
-                </div>
-                <div class="checkbox mb-3">
-                    <label asp-for="Input.RememberMe" class="form-label">
-                        <input class="form-check-input" asp-for="Input.RememberMe" />
+<style>
+    :root {
+        --panel: #020617;
+        --panel-soft: #040b1f;
+        --indigo: #3b5ccc;
+        --purple: #7c3aed;
+        --accent: #ffd54d;
+        --text: #e5e7f5;
+        --muted: #9ca3c7;
+        --line: rgba(148, 163, 255, .35);
+    }
+
+    /* Inline alert (single message area) */
+    .auth-inline {
+        margin: 10px 0 16px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,255,.45);
+        background: #0b1227;
+        color: var(--text);
+        display: none;
+        opacity: 1;
+        transition: opacity .5s ease;
+    }
+    .auth-inline.show { display: block; }
+    .auth-inline.error {
+        border-color: rgba(248,113,113,.65);
+        box-shadow: inset 0 0 0 1px rgba(248,113,113,.25);
+    }
+    .auth-inline.info {
+        border-color: rgba(148,163,255,.65);
+    }
+    .auth-inline.fade { opacity: 0; }
+
+    .login-shell {
+        min-height: calc(100vh - 140px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 16px 60px;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 720px;
+        border-radius: 28px;
+        background:
+            radial-gradient(circle at 0 0, rgba(59, 130, 246, .35), transparent 55%),
+            radial-gradient(circle at 100% 0, rgba(162, 28, 175, .28), transparent 55%),
+            linear-gradient(145deg, #020617, #020617);
+        border: 1px solid rgba(148, 163, 255, .45);
+        box-shadow:
+            0 22px 60px rgba(15, 23, 42, .95),
+            0 0 0 1px rgba(15, 23, 42, .85);
+        padding: 28px 32px 26px;
+        color: var(--text);
+    }
+
+    .login-title {
+        font-size: 26px;
+        font-weight: 900;
+        margin-bottom: 4px;
+    }
+
+    .login-subtitle {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 10px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #cfd6ff;
+        margin-bottom: 6px;
+    }
+
+    .cine-input {
+        width: 100%;
+        font-size: 14px;
+        padding: 11px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: radial-gradient(circle at 0 0, rgba(15, 23, 42, .9), rgba(2, 6, 23, 1));
+        color: var(--text);
+        outline: none;
+        transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+
+        .cine-input::placeholder {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .cine-input:focus {
+            border-color: var(--indigo);
+            box-shadow: 0 0 0 1px rgba(59, 92, 204, .7), 0 0 0 6px rgba(37, 99, 235, .35);
+            background: radial-gradient(circle at 0 0, rgba(15, 23, 42, 1), rgba(2, 6, 23, 1));
+        }
+
+    .field-row { margin-bottom: 16px; }
+
+    .remember-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: var(--text);
+    }
+    .remember-forgot-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .remember-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .forgot-link {
+        color: #93c5fd;
+        text-decoration: none;
+        font-size: 13px;
+    }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+    .btn-login-main {
+        width: 100%;
+        margin-top: 10px;
+        border-radius: 999px;
+        border: none;
+        padding: 11px 18px;
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        background: linear-gradient(120deg, var(--indigo), var(--purple));
+        color: #fff;
+        box-shadow: 0 14px 38px rgba(56, 189, 248, .4);
+        transition: filter .18s ease, transform .1s ease, box-shadow .18s ease;
+    }
+
+        .btn-login-main:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 18px 40px rgba(59,130,246,.65); }
+
+    .footer-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-register-alt {
+        flex: 1 1 auto; border-radius: 999px; border: 1px solid var(--line); padding: 11px 18px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; background: radial-gradient(circle at 0 0, rgba(15,23,42,.9), rgba(2,6,23,1)); color: var(--text); text-align: center; text-decoration: none; transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+    }
+
+        .btn-register-alt:hover { border-color: var(--indigo); box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.25); }
+
+    .links-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; }
+    .links-row a { color: #93c5fd; text-decoration: none; }
+    .links-row a:hover { text-decoration: underline; }
+
+    .text-danger { font-size: 12px; }
+
+    @@media (max-width: 575.98px) { .login-card { padding-inline: 18px; } }
+</style>
+
+<div class="login-shell">
+    <div class="login-card">
+        <h1 class="login-title">Đăng nhập vào tài khoản</h1>
+        <div class="login-subtitle">Nhập email và mật khẩu để tiếp tục.</div>
+
+        <form id="account" method="post">
+            <!-- Remove header validation summary to avoid duplicate messages -->
+            
+            <div class="field-row">
+                <label asp-for="Input.Email" class="form-label">Email</label>
+                <input asp-for="Input.Email" class="cine-input" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <!-- Remove field-level duplicate rendering -->
+            </div>
+
+            <div class="field-row">
+                <label asp-for="Input.Password" class="form-label">Mật khẩu</label>
+                <input asp-for="Input.Password" class="cine-input" autocomplete="current-password" aria-required="true" placeholder="password" />
+                <!-- Remove field-level duplicate rendering -->
+            </div>
+
+            <!-- Single message area: general message above submit button -->
+            @{ 
+                var tempMsg = TempData["AuthMessage"] as string; 
+                var tempType = (TempData["AuthMessageType"] as string ?? "").ToLowerInvariant();
+                string? modelError = null;
+                if (!ViewData.ModelState.IsValid)
+                {
+                    // Pick first model-level error or first error in any field
+                    foreach (var kvp in ViewData.ModelState)
+                    {
+                        var entry = kvp.Value;
+                        if (entry?.Errors?.Count > 0)
+                        {
+                            modelError = entry.Errors[0].ErrorMessage;
+                            break;
+                        }
+                    }
+                }
+                var message = tempMsg ?? modelError;
+                var cssClass = (string.Equals(tempType, "error") || (message != null && tempMsg == null)) ? "error" : "info";
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    @:<div class="auth-inline @cssClass show" id="login-error">@message</div>
+                }
+            }
+
+            <div class="remember-forgot-row">
+                <div class="remember-left">
+                    <input class="form-check-input" asp-for="Input.RememberMe" id="rememberMe" />
+                    <label asp-for="Input.RememberMe" for="rememberMe" class="form-label" style="margin:0;">
                         @Html.DisplayNameFor(m => m.Input.RememberMe)
                     </label>
                 </div>
-                <div>
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
+
+                <a id="forgot-password" asp-page="./ForgotPassword" class="forgot-link">
+                    Quên mật khẩu?
+                </a>
+            </div>
+
+            <button id="login-submit" type="submit" class="btn-login-main">Đăng nhập</button>
+
+            <div class="links-row">
+                Chưa có tài khoản? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl"> Đăng ký</a>
+            </div>
+        </form>
+
+        @if ((Model.ExternalLogins?.Count ?? 0) > 0)
+        {
+            <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                <div class="footer-actions">
+                    @foreach (var provider in Model.ExternalLogins!)
+                    {
+                        <button type="submit" class="btn-register-alt" name="provider" value="@provider.Name" title="Đăng nhập bằng @provider.DisplayName">@provider.DisplayName</button>
+                    }
                 </div>
             </form>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                }
-                else
-                {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                                }
-                            </p>
-                        </div>
-                    </form>
-                }
-            }
-        </section>
+        }
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const err = document.getElementById('login-error');
+            if (!err) return;
+            setTimeout(() => {
+                err.classList.add('fade');
+                err.addEventListener('transitionend', () => {
+                    err.style.display = 'none';
+                }, { once: true });
+            }, 3000);
+        });
+    </script>
 }

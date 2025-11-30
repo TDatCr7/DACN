@@ -1,0 +1,604 @@
+/* =========================================
+   DYNAMIC SEAT LAYOUT EDITOR - STYLES
+   ========================================= */
+
+:root {
+    --editor-primary: #3b82f6;
+    --editor-success: #22c55e;
+    --editor-warning: #f59e0b;
+    --editor-danger: #ef4444;
+    --editor-dark: #1e293b;
+    --editor-light: #f1f5f9;
+}
+
+/* ===== Container ===== */
+.seat-editor-container {
+    max-width: 1600px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+/* ===== Header ===== */
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.editor-header h1 {
+    margin: 0;
+    color: #ffd700;
+    font-size: 28px;
+}
+
+.editor-header .subtitle {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #e0e0e0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+.btn-save:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    transform: translateY(-2px);
+}
+
+/* ===== Theater Selector ===== */
+.theater-selector-section {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.theater-selector-section label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffd700;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.theater-selector-section .form-select {
+    flex: 1;
+    max-width: 400px;
+    padding: 10px 15px;
+    font-size: 16px;
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    background: #2d3748;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theater-selector-section .form-select:hover {
+    background: #3d4758;
+    border-color: #ffed4e;
+}
+
+.theater-selector-section .form-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+}
+
+/* ===== Theater Info Card ===== */
+.theater-info-card {
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.theater-info-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.theater-info-card p {
+    margin: 0;
+    font-size: 16px;
+    color: #e0e0e0;
+}
+
+/* ===== Toolbar ===== */
+.toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.tool-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.tool-section h5 {
+    color: #ffd700;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.tool-section .hint {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+/* Edit Mode Buttons */
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-group .btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.btn-group .btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-color: #3b82f6;
+    color: white;
+}
+
+.btn-group .btn:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.btn-group .btn:not(.active):hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== Screen ===== */
+.screen-container {
+    text-align: center;
+    margin: 40px 0 30px 0;
+}
+
+.screen {
+    display: inline-block;
+    padding: 12px 100px;
+    background: linear-gradient(180deg, #ffffff 0%, #cccccc 100%);
+    color: #333;
+    font-weight: bold;
+    font-size: 18px;
+    letter-spacing: 8px;
+    border-radius: 0 0 50px 50px;
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+.screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+}
+
+/* ===== Seat Grid ===== */
+.seats-grid-container {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    display: inline-flex;
+    flex-direction: column;
+    min-width: min-content;
+}
+
+/* ===== Seat Grid Scroll Wrapper ===== */
+.seat-layout-scroll-wrapper {
+    width: 100%;
+    max-width: calc((40px * 2) + (45px * 40) + (6px * 41) + 60px);
+    max-height: calc(30px + (45px * 30) + (8px * 30) + 80px);
+    overflow-x: auto;
+    overflow-y: auto;
+    padding-bottom: 10px;
+    scrollbar-width: thin;
+    display: flex;
+    justify-content: flex-start; /* ✅ canh trái để nhìn cột 1 */
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Webkit scrollbar styling */
+.seat-layout-scroll-wrapper::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+.seat-layout-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.25);
+    border-radius: 4px;
+}
+
+/* Số cột */
+.column-numbers {
+    display: flex;
+    margin-bottom: 10px;
+    min-width: min-content;
+}
+
+.row-label-space {
+    width: 40px;
+    flex-shrink: 0;
+}
+
+.column-number {
+    width: 45px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 0 3px;
+    flex-shrink: 0;
+}
+
+/* Hàng ghế */
+.seat-row {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    min-width: min-content;
+}
+
+.row-label {
+    width: 40px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.seats-in-row {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* ===== Individual Seat ===== */
+.seat {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    border: 2px solid #718096;
+    border-radius: 8px 8px 2px 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.seat:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Ghế VIP */
+.seat.seat-type-vip {
+    border-color: #ffd700;
+    background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
+}
+
+/* Ghế Couple */
+.seat.seat-type-couple {
+    border-color: #ec4899;
+    background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+}
+
+/* Ghế hỏng (inactive) */
+.seat.inactive {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    border-color: #9ca3af;
+    opacity: 0.6;
+}
+
+.seat.inactive:hover {
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);
+}
+
+/* Badge trên ghế (V, CP) */
+.seat-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+/* Icon ghế hỏng */
+.broken-icon {
+    position: absolute;
+    font-size: 24px;
+    color: #ef4444;
+    font-weight: bold;
+    z-index: 5;
+}
+
+/* Label nhỏ trên ghế */
+.seat-label-small {
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: #222;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 1px 4px;
+    border-radius: 3px;
+    opacity: 0.9;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* ===== Legend ===== */
+.legend {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.legend-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.legend-item .seat {
+    transform: scale(0.8);
+}
+
+.legend-item span {
+    font-size: 14px;
+    color: #e0e0e0;
+}
+
+/* ===== Instructions Card ===== */
+.instructions-card {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(34, 197, 94, 0.1);
+    border-left: 4px solid #22c55e;
+    border-radius: 8px;
+}
+
+.instructions-card h5 {
+    margin: 0 0 15px 0;
+    font-size: 20px;
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.instructions-card ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.instructions-card li {
+    margin: 8px 0;
+    font-size: 15px;
+    color: #e0e0e0;
+}
+
+/* ===== No Theater Message ===== */
+.no-theater-message {
+    text-align: center;
+    padding: 60px 20px;
+    color: #9ca3af;
+}
+
+.no-theater-message i {
+    color: #fbbf24;
+    margin-bottom: 20px;
+    font-size: 48px;
+}
+
+.no-theater-message h3 {
+    margin: 20px 0 10px 0;
+    color: #e0e0e0;
+}
+
+.no-theater-message p {
+    margin: 0;
+    font-size: 16px;
+}
+
+/* ===== Row and Column Actions (Click-based with persist) ===== */
+.row-label, .column-number {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.row-label:hover, .column-number:hover {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+/* Text label */
+.row-label-text, .col-label-text {
+    transition: opacity 0.2s ease;
+}
+
+/* Delete button - ẩn mặc định */
+.delete-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.delete-btn:hover {
+    background: #dc2626;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.delete-btn i {
+    font-size: 12px;
+}
+
+/* Hiện nút X khi hover vào row/column */
+.row-label:hover .row-label-text,
+.column-number:hover .col-label-text {
+    opacity: 0;
+}
+
+.row-label:hover .delete-btn,
+.column-number:hover .delete-btn {
+    display: flex;
+}
+
+/* Add Row/Column Buttons */
+.add-row-section {
+    text-align: center;
+    padding: 20px;
+}
+
+.btn-add-row {
+    padding: 10px 30px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.add-column-btn {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34, 197, 94, 0.2);
+    border: 2px dashed #22c55e;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #22c55e;
+    font-size: 20px;
+}
+
+.add-column-btn:hover {
+    background: rgba(34, 197, 94, 0.4);
+    transform: scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .seat-editor-container {
+        padding: 15px;
+    }
+
+    .editor-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .editor-header h1 {
+        font-size: 24px;
+    }
+
+    .toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .theater-selector-section {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .theater-selector-section .form-select {
+        max-width: 100%;
+    }
+
+    .seat {
+        transform: scale(0.9);
+    }
+
+    .column-number,
+    .row-label {
+        font-size: 12px;
+    }
+}
