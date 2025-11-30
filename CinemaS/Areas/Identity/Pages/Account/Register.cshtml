@@ -192,10 +192,10 @@
     <div class="register-card">
         <h1 class="register-title">Tạo tài khoản mới</h1>
         <div class="register-subtitle">
-            Nhập thông tin bên dưới để đăng ký và nhận mã xác nhận qua email.
+            Bước 1: Nhập họ tên, email và xác thực email bằng mã OTP.
         </div>
 
-        <form method="post">
+        <form method="post" asp-page="./Register">
             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 
             <div class="field-row">
@@ -210,18 +210,6 @@
                 <span asp-validation-for="Input.Email" class="text-danger"></span>
             </div>
 
-            <div class="field-row">
-                <label asp-for="Input.Password" class="form-label"></label>
-                <input asp-for="Input.Password" class="cine-input" autocomplete="new-password" placeholder="Mật khẩu" />
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
-            </div>
-
-            <div class="field-row">
-                <label asp-for="Input.ConfirmPassword" class="form-label"></label>
-                <input asp-for="Input.ConfirmPassword" class="cine-input" autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-            </div>
-
             <div class="field-row-inline">
                 <div class="otp-input-wrap">
                     <label asp-for="Input.OtpCode" class="form-label"></label>
@@ -229,48 +217,31 @@
                     <span asp-validation-for="Input.OtpCode" class="text-danger"></span>
                 </div>
 
-                @* Nút gửi mã – tách làm 2 nhánh để không dùng C# trong attribute list *@
-                @if (Model.OtpCountdownSeconds > 0)
-                {
-                    <button id="btnSendOtp"
-                            type="submit"
-                            asp-page-handler="SendOtp"
-                            formnovalidate
-                            class="btn-otp"
-                            disabled>
-                        Gửi lại (@Model.OtpCountdownSeconds s)
-                    </button>
-                }
-                else
-                {
-                    <button id="btnSendOtp"
-                            type="submit"
-                            asp-page-handler="SendOtp"
-                            formnovalidate
-                            class="btn-otp">
-                        Gửi mã
-                    </button>
-                }
+                <!-- Nút GỬI MÃ luôn render, JS sẽ ẩn/hiện -->
+                <button id="btnSendOtp"
+                        type="submit"
+                        asp-page-handler="SendOtp"
+                        formnovalidate
+                        class="btn-otp">
+                    GỬI MÃ
+                </button>
             </div>
-
 
             <div class="otp-hint">
                 <span id="otpStatus"
                       data-base="@Model.OtpStatusMessage">
                     @Model.OtpStatusMessage
-                    @if (Model.OtpCountdownSeconds > 0 && string.IsNullOrWhiteSpace(Model.OtpStatusMessage))
-                    {
-                        @:Bạn có thể gửi lại mã sau @Model.OtpCountdownSeconds s.
-                    }
                 </span>
             </div>
 
             <input type="hidden" id="otpCountdownInit" value="@Model.OtpCountdownSeconds" />
 
-            <button type="submit" class="btn-register-main">Đăng ký</button>
 
-			<div class="footer-actions">
-				Đã có tài khoản?
+            <!-- Nút này sẽ chạy OnPostAsync (không handler) -->
+            <button type="submit" class="btn-register-main">TIẾP TỤC</button>
+
+            <div class="footer-actions">
+                Đã có tài khoản?
                 <a class="login-text-link" asp-page="./Login">Đăng nhập</a>
             </div>
         </form>
@@ -284,40 +255,66 @@
             const btn = document.getElementById('btnSendOtp');
             const statusSpan = document.getElementById('otpStatus');
             const hidden = document.getElementById('otpCountdownInit');
+            const emailInput = document.getElementById('Input_Email'); // asp-for="Input.Email"
 
             if (!btn || !statusSpan || !hidden) return;
 
             let seconds = parseInt(hidden.value || '0', 10);
             const baseMsg = statusSpan.dataset.base || '';
+            const originalEmail = emailInput ? emailInput.value.trim() : '';
+
+            function showButton() {
+                btn.style.display = 'inline-block';
+                btn.disabled = false;
+            }
+
+            function hideButton() {
+                btn.style.display = 'none';
+                btn.disabled = true;
+            }
 
             function renderText() {
                 if (seconds > 0) {
                     const extra = `Bạn có thể gửi lại mã sau ${seconds}s`;
                     statusSpan.textContent = baseMsg
-                        ? `${baseMsg} (${extra})`
+                        ? `${baseMsg} ${extra}`
                         : extra;
                 } else {
-                    statusSpan.textContent = baseMsg || 'Bạn có thể gửi lại mã.';
+                    statusSpan.textContent = baseMsg || '';
                 }
             }
 
             function tick() {
                 if (seconds <= 0) {
-                    btn.disabled = false;
+                    showButton();
                     renderText();
                     return;
                 }
-                btn.disabled = true;
+                hideButton();
                 renderText();
                 seconds--;
                 setTimeout(tick, 1000);
             }
 
+            // chạy countdown nếu còn thời gian
             if (seconds > 0) {
                 tick();
-            } else if (baseMsg) {
-                statusSpan.textContent = baseMsg;
+            } else {
+                renderText();
+            }
+
+            // nếu đổi email khác email ban đầu → cho hiện nút lại ngay
+            if (emailInput) {
+                emailInput.addEventListener('input', function () {
+                    const current = emailInput.value.trim();
+                    if (current && current !== originalEmail) {
+                        seconds = 0;
+                        showButton();
+                        statusSpan.textContent = 'Bạn có thể gửi mã cho email mới này.';
+                    }
+                });
             }
         });
     </script>
 }
+

@@ -1,0 +1,214 @@
+﻿@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Thông tin tài khoản";
+}
+
+<style>
+    .admin-shell {
+        max-width: 1200px;
+        margin: 18px auto 40px;
+    }
+
+    .admin-card {
+        border-radius: 28px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.40), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.35), transparent 55%), linear-gradient(145deg, #020617, #020617);
+        border: 1px solid rgba(148,163,255,.55);
+        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
+        padding: 24px 26px 24px;
+        color: #e5e7f5;
+    }
+
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 18px;
+    }
+
+    .admin-name {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: .03em;
+    }
+
+    .admin-email {
+        font-size: 14px;
+        color: #a5b4fc;
+    }
+
+    .badge-role {
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(37,99,235,.15);
+        color: #bfdbfe;
+        border: 1px solid rgba(59,130,246,.7);
+    }
+
+    .badge-email-ok,
+    .badge-email-no {
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .badge-email-ok {
+        background: rgba(22,163,74,.12);
+        color: #bbf7d0;
+        border: 1px solid rgba(34,197,94,.6);
+    }
+
+    .badge-email-no {
+        background: rgba(148,163,184,.12);
+        color: #e5e7eb;
+        border: 1px solid rgba(148,163,184,.6);
+    }
+
+    .info-block {
+        border-radius: 20px;
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(15,23,42,.96));
+        border: 1px solid rgba(30,64,175,.7);
+        padding: 18px 20px;
+        margin-bottom: 10px;
+    }
+
+    .field-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #9ca3c7;
+        text-transform: uppercase;
+        letter-spacing: .09em;
+        margin-bottom: 2px;
+    }
+
+    .field-value {
+        font-size: 15px;
+        color: #f9fafb;
+    }
+
+    .details-actions .btn {
+        border-radius: 999px;
+        padding-inline: 18px;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(120deg, #3b5ccc, #7c3aed);
+        border: none;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .btn-outline-danger {
+        border-radius: 999px;
+        border-width: 1px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .admin-header {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .details-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+
+<div class="admin-shell">
+    <div class="admin-card">
+        <div class="admin-header">
+            <div>
+                <div class="admin-name">@Model.FullName</div>
+                <div class="admin-email">@Model.Email</div>
+                <div class="mt-2">
+                    @if (Model.EmailConfirmed)
+                    {
+                        <span class="badge-email-ok">Đã xác thực email</span>
+                    }
+                    else
+                    {
+                        <span class="badge-email-no">Chưa xác thực email</span>
+                    }
+                </div>
+            </div>
+            <div>
+                @if (Model.SelectedRoles?.Any() == true)
+                {
+                    foreach (var r in Model.SelectedRoles)
+                    {
+                        <span class="badge-role me-1">@r</span>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="info-block">
+                    <div class="field-label">Username</div>
+                    <div class="field-value">@Model.UserName</div>
+                </div>
+
+                <div class="info-block">
+                    <div class="field-label">Điện thoại</div>
+                    <div class="field-value">@Model.PhoneNumber</div>
+                </div>
+
+                <div class="info-block">
+                    <div class="field-label">Tuổi</div>
+                    <div class="field-value">
+                        @((Model.AgeFromBirth.HasValue ? $"{Model.AgeFromBirth} tuổi" : ""))
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="info-block">
+                    <div class="field-label">Địa chỉ</div>
+                    <div class="field-value">@Model.Address</div>
+                </div>
+
+                <div class="info-block">
+                    <div class="field-label">Ngày sinh</div>
+                    <div class="field-value">
+                        @(Model.DateOfBirth.HasValue
+                                                ? Model.DateOfBirth.Value.ToString("dd/MM/yyyy")
+                                                : "")
+                    </div>
+                </div>
+
+                <div class="info-block">
+                    <div class="field-label">Giới tính</div>
+                    <div class="field-value">@Model.Gender</div>
+                </div>
+
+                <div class="info-block">
+                    <div class="field-label">Điểm thưởng</div>
+                    <div class="field-value">@Model.SavePoint</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center details-actions mt-3">
+            <a asp-action="Index" class="btn btn-outline-light">
+                <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+            </a>
+            <div>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-gradient me-2">
+                    <i class="fa-solid fa-pen me-1"></i> Chỉnh sửa
+                </a>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger"
+                            onclick="return confirm('Xoá tài khoản này?');">
+                        <i class="fa-solid fa-trash-can me-1"></i> Xoá
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

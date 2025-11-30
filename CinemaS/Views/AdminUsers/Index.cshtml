@@ -1,0 +1,373 @@
+﻿@model IEnumerable<CinemaS.ViewModels.AdminUsers.AdminUserListItemVm>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Quản lý tài khoản";
+}
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+    :root {
+        --bg-panel: #020617;
+        --bg-panel-soft: #050c1f;
+        --bg-row: #050b1f;
+        --bg-row-alt: #071027;
+        --bg-row-hover: #0b1535;
+        --bg-header: #050816;
+        --border-soft: rgba(148,163,255,.55);
+        --text-main: #f9fafb;
+        --text-muted: #a0aecb;
+        --accent-blue: #3b82f6;
+        --accent-purple: #7c3aed;
+        --accent-green: #22c55e;
+        --accent-red: #ef4444;
+    }
+
+    .admin-shell {
+        max-width: 1200px;
+        margin: 26px auto 40px;
+    }
+
+    .admin-panel {
+        border-radius: 28px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.40), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.35), transparent 55%), linear-gradient(145deg, var(--bg-panel), var(--bg-panel-soft));
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
+        padding: 26px 28px 24px;
+        color: var(--text-main);
+    }
+
+    .admin-heading {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+        .admin-heading h1 {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .admin-heading span {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .admin-heading i {
+            margin-right: 8px;
+            color: #60a5fa;
+        }
+
+    .admin-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+
+    .btn-add-account {
+        border-radius: 999px;
+        padding: 9px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        background: linear-gradient(120deg, var(--accent-blue), var(--accent-purple));
+        border: none;
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(59,130,246,.55);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        transition: .18s ease;
+    }
+
+        .btn-add-account:hover {
+            filter: brightness(1.07);
+            transform: translateY(-1px);
+        }
+
+    .admin-search-shell {
+        flex: 1;
+    }
+
+    .admin-search-input {
+        background: rgba(5, 12, 31, .96);
+        border-radius: 18px 0 0 18px;
+        border: 1px solid var(--border-soft);
+        color: var(--text-main);
+        padding: 11px 14px;
+        font-size: 14px;
+    }
+
+        .admin-search-input::placeholder {
+            color: #6b7280;
+        }
+
+    .admin-search-btn {
+        border-radius: 0 18px 18px 0;
+        border: 1px solid var(--border-soft);
+        background: #020617;
+        color: var(--text-main);
+        padding-inline: 16px;
+        font-size: 15px;
+    }
+
+        .admin-search-btn:hover {
+            background: #111827;
+        }
+
+    /* bảng */
+    .admin-table-wrap {
+        border-radius: 22px;
+        overflow: hidden;
+        background: linear-gradient(145deg, #050816, #020617);
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 18px 45px rgba(15,23,42,.95);
+    }
+
+    .admin-table {
+        --bs-table-bg: transparent;
+        --bs-table-striped-bg: transparent;
+        --bs-table-hover-bg: transparent;
+        margin-bottom: 0;
+        color: var(--text-main);
+        border-color: transparent;
+        font-size: 15px;
+    }
+
+        .admin-table thead {
+            background: var(--bg-header);
+        }
+
+            .admin-table thead th {
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: .12em;
+                padding: 12px 16px;
+                border-bottom: 1px solid rgba(148,163,255,.35);
+                color: #e5e7ff;
+                vertical-align: middle;
+                white-space: nowrap;
+            }
+
+                .admin-table thead th i {
+                    margin-right: 6px;
+                    font-size: 13px;
+                    opacity: .9;
+                }
+
+        .admin-table tbody tr {
+            background: var(--bg-row);
+            transition: background .16s ease, transform .12s ease, box-shadow .12s ease;
+        }
+
+            .admin-table tbody tr:nth-child(even) {
+                background: var(--bg-row-alt);
+            }
+
+            .admin-table tbody tr:hover {
+                background: var(--bg-row-hover);
+                box-shadow: inset 0 0 0 1px rgba(148,163,255,.35);
+                transform: translateY(-1px);
+            }
+
+        .admin-table tbody td {
+            padding: 14px 16px;
+            border-top: 1px solid #020617;
+            font-size: 15px;
+            vertical-align: middle;
+            color: var(--text-main);
+        }
+
+            .admin-table tbody td:first-child,
+            .admin-table thead th:first-child {
+                padding-left: 20px;
+            }
+
+    .admin-text-muted {
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    .badge-role {
+        border-radius: 999px;
+        padding: 4px 11px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(59,130,246,.16);
+        border: 1px solid rgba(59,130,246,.7);
+        color: #dbeafe;
+    }
+
+    .badge-email-ok {
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(34,197,94,.18);
+        border: 1px solid rgba(34,197,94,.7);
+        color: #bbf7d0;
+        white-space: nowrap;
+    }
+
+    .badge-email-no {
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(148,163,184,.16);
+        border: 1px solid rgba(148,163,184,.7);
+        color: #e5e7eb;
+        white-space: nowrap;
+    }
+
+    .admin-icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: 1px solid rgba(30,64,175,.9);
+        background: radial-gradient(circle at 30% 0, #2563eb, #020617);
+        color: #f9fafb;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        margin-left: 6px;
+        transition: .15s ease;
+    }
+
+        .admin-icon-btn:hover {
+            filter: brightness(1.2);
+            transform: translateY(-1px);
+        }
+
+    .admin-icon-btn-danger {
+        border-color: rgba(248,113,113,.95);
+        background: radial-gradient(circle at 30% 0, var(--accent-red), #111827);
+        color: #fee2e2;
+    }
+
+    @@media (max-width: 767.98px) {
+        .admin-panel {
+            padding-inline: 18px;
+        }
+
+        .admin-table {
+            font-size: 14px;
+        }
+    }
+</style>
+
+
+<div class="admin-shell">
+    <div class="admin-panel">
+        <div class="admin-heading">
+            <h1>
+                <i class="fa-solid fa-users"></i>
+                Quản lý tài khoản
+            </h1>
+            <span>Thêm, sửa, xoá và phân quyền người dùng trong hệ thống</span>
+        </div>
+
+        <div class="admin-toolbar">
+            <form method="get" class="admin-search-shell">
+                <div class="input-group">
+                    <input type="text"
+                           name="search"
+                           class="form-control admin-search-input"
+                           placeholder="Tìm theo tên, email, username"
+                           value="@Context.Request.Query["search"]" />
+                    <button class="admin-search-btn" type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+            </form>
+
+            <a asp-controller="AdminUsers" asp-action="Create" class="btn-add-account">
+                <i class="fa-solid fa-plus"></i>
+                Thêm tài khoản
+            </a>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="table admin-table align-middle">
+                <thead>
+                    <tr>
+                        <th><i class="fa-solid fa-id-card"></i>Họ tên</th>
+                        <th><i class="fa-solid fa-envelope"></i>Email</th>
+                        <th><i class="fa-solid fa-user-gear"></i>Role</th>
+                        <th><i class="fa-solid fa-shield-halved"></i>Xác thực email</th>
+                        <th style="width:130px; text-align:right;">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>Thao tác
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center admin-text-muted py-4">
+                                Không tìm thấy tài khoản nào.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var u in Model)
+                        {
+                            <tr>
+                                <td>@u.FullName</td>
+                                <td>@u.Email</td>
+                                <td>
+                                    @if (u.Roles.Any())
+                                    {
+                                        foreach (var r in u.Roles)
+                                        {
+                                            <span class="badge-role me-1">@r</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="admin-text-muted">Chưa gán</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (u.EmailConfirmed)
+                                    {
+                                        <span class="badge-email-ok">Đã xác thực</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-email-no">Chưa</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-controller="AdminUsers" asp-action="Details" asp-route-id="@u.Id"
+                                       class="admin-icon-btn" title="Xem chi tiết">
+                                        <i class="fa-regular fa-eye"></i>
+                                    </a>
+                                    <a asp-controller="AdminUsers" asp-action="Edit" asp-route-id="@u.Id"
+                                       class="admin-icon-btn" title="Chỉnh sửa">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <form asp-controller="AdminUsers" asp-action="Delete" asp-route-id="@u.Id"
+                                          method="post" class="d-inline">
+                                        <button type="submit"
+                                                class="admin-icon-btn admin-icon-btn-danger"
+                                                onclick="return confirm('Xoá tài khoản này?');"
+                                                title="Xoá">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

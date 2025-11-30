@@ -41,6 +41,7 @@ namespace CinemaS.Models
         public DbSet<PaymentTransactions> PaymentTransactions => Set<PaymentTransactions>();
 
         public string DefaultMembershipRankId { get; set; } = "MR00000001"; // cấu hình/seed id hợp lệ
+
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             // 1) AppUser vừa được thêm => tạo Users tương ứng
@@ -51,13 +52,12 @@ namespace CinemaS.Models
 
             foreach (var au in newUsers)
             {
-                // Tạo mã User_ID 10 ký tự (VD: "U" + 9 ký tự)
                 string userId = "U" + Guid.NewGuid().ToString("N").Substring(0, 9).ToUpper();
 
                 var u = new Users
                 {
                     UserId = userId,
-                    MembershipRankId = DefaultMembershipRankId,   // PHẢI tồn tại trong bảng Membership_Rank
+                    MembershipRankId = DefaultMembershipRankId,   // phải tồn tại trong MembershipRank
                     Email = au.Email,
                     PhoneNumber = au.PhoneNumber,
                     FullName = au.FullName,
@@ -67,10 +67,11 @@ namespace CinemaS.Models
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
+
                 Users.Add(u);
             }
 
-            // 2) AppUser cập nhật => cập nhật Users (khớp theo Email nếu có)
+            // 2) AppUser cập nhật => cập nhật Users (khớp theo Email)
             var modUsers = ChangeTracker.Entries<AppUser>()
                 .Where(e => e.State == EntityState.Modified)
                 .Select(e => e.Entity)
@@ -92,8 +93,27 @@ namespace CinemaS.Models
                 }
             }
 
+            // 3) AppUser bị xoá => xoá bản ghi Users tương ứng
+            var deletedUsers = ChangeTracker.Entries<AppUser>()
+                .Where(e => e.State == EntityState.Deleted)
+                .Select(e => e.Entity)
+                .ToList();
+
+            foreach (var au in deletedUsers)
+            {
+                if (!string.IsNullOrEmpty(au.Email))
+                {
+                    var u = await Users.FirstOrDefaultAsync(x => x.Email == au.Email, cancellationToken);
+                    if (u != null)
+                    {
+                        Users.Remove(u);
+                    }
+                }
+            }
+
             return await base.SaveChangesAsync(cancellationToken);
         }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
