@@ -4,35 +4,91 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     bool isAdmin = User.IsInRole("Admin");
     bool isLoggedIn = User.Identity?.IsAuthenticated ?? false;
+
+    // đọc lại giá trị filter hiện tại từ query
+    var currentGenre = Context.Request.Query["genre"].ToString();
+    if (string.IsNullOrWhiteSpace(currentGenre)) currentGenre = "all";
+
+    var currentStatus = Context.Request.Query["status"].ToString();
+    if (string.IsNullOrWhiteSpace(currentStatus)) currentStatus = "all";
+
+    var currentSearch = Context.Request.Query["q"].ToString() ?? "";
 }
 
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
 <h1 style="text-align: center;">
     <i class="fas fa-film"></i> Danh sách Phim
 </h1>
-<marquee style="color:#fff;font-style:italic;margin-bottom:10px;border:1px solid #007bff;background-color:#007bff;padding:5px;border-radius:5px;">
-    <i class="fas fa-star"></i> Trải nghiệm điện ảnh – Kết nối cảm xúc.
+<marquee style="
+    color:#e5e7f5;
+    font-style:italic;
+    margin-bottom:14px;
+    padding:10px 14px;
+    border-radius:12px;
+
+    /* Nền chuẩn layout */
+    background: radial-gradient(circle at 0% 0%,
+                rgba(59,130,246,0.25),
+                rgba(30,41,59,0.85)),
+                radial-gradient(circle at 100% 0%,
+                rgba(124,58,237,0.25),
+                rgba(30,41,59,0.85));
+
+    border: 1px solid rgba(148,163,255,0.4);
+    backdrop-filter: blur(12px);
+">
+    <i class="fas fa-star" style="color:#facc15;"></i>
+    Kho tàng điện ảnh – Kết nối cảm xúc.
 </marquee>
 
-<!-- Bộ lọc + tìm kiếm -->
-<div class="filter-container" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+<!-- Lọc + tìm kiếm: gửi GET lên Movies/Index -->
+<form method="get" asp-action="Index"
+      class="filter-container"
+      style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
     <div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <label for="categoryFilter"><i class="fas fa-filter"></i> Thể loại: </label>
-        <select id="categoryFilter" onchange="filterByCategory()" style="padding:5px;border-radius:5px;border:1px solid #007bff;">
-            <option value="all">Tất cả</option>
+        <select id="categoryFilter"
+                name="genre"
+                style="padding:5px;border-radius:5px;border:1px solid #007bff;"
+                onchange="this.form.submit()">
+            <option value="all"
+                    selected="@(currentGenre == "all" ? "selected" : null)">
+                Tất cả
+            </option>
             @foreach (var cat in Model.Genres)
             {
-                <option value="@cat">@cat</option>
+                <option value="@cat"
+                        selected="@(currentGenre == cat ? "selected" : null)">
+                    @cat
+                </option>
             }
         </select>
 
-        <label for="statusFilter" style="margin-left:12px;"><i class="fas fa-clock"></i> Trạng thái: </label>
-        <select id="statusFilter" onchange="filterByStatus()" style="padding:5px;border-radius:5px;border:1px solid #007bff;">
-            <option value="all">Tất cả</option>
-            <option value="RELEASED">Đang chiếu</option>
-            <option value="COMING">Sắp chiếu</option>
+        <label for="statusFilter" style="margin-left:12px;">
+            <i class="fas fa-clock"></i> Trạng thái:
+        </label>
+        <select id="statusFilter"
+                name="status"
+                style="padding:5px;border-radius:5px;border:1px solid #007bff;"
+                onchange="this.form.submit()">
+            <option value="all"
+                    selected="@(currentStatus == "all" ? "selected" : null)">
+                Tất cả
+            </option>
+            <option value="RELEASED"
+                    selected="@(currentStatus == "RELEASED" ? "selected" : null)">
+                Đang chiếu
+            </option>
+            <option value="COMING"
+                    selected="@(currentStatus == "COMING" ? "selected" : null)">
+                Sắp chiếu
+            </option>
+            <option value="ENDED"
+                    selected="@(currentStatus == "ENDED" ? "selected" : null)">
+                Không còn chiếu
+            </option>
         </select>
 
         @if (isAdmin)
@@ -40,13 +96,16 @@
             <a asp-action="Create" class="btn btn-primary" style="white-space:nowrap;margin-left:10px;">
                 <i class="fas fa-plus-circle"></i> Thêm phim
             </a>
-            <button type="button" id="deleteButton" class="btn btn-danger simple" style="white-space:nowrap;margin-left:10px;" onclick="toggleDeleteMode()">
+            <button type="button" id="deleteButton" class="btn btn-danger simple"
+                    style="white-space:nowrap;margin-left:10px;" onclick="toggleDeleteMode()">
                 <i class="fas fa-trash-alt"></i> Xóa phim
             </button>
-            <button type="button" id="confirmDeleteButton" class="btn btn-primary simple" style="white-space:nowrap;margin-left:20px;display:none;" onclick="deleteSelectedMovies()">
+            <button type="button" id="confirmDeleteButton" class="btn btn-primary simple"
+                    style="white-space:nowrap;margin-left:20px;display:none;" onclick="deleteSelectedMovies()">
                 <i class="fas fa-check-circle"></i> Xác nhận xóa
             </button>
-            <button type="button" id="cancelDeleteButton" class="btn btn-secondary" style="white-space:nowrap;margin-left:10px;display:none;" onclick="cancelDeleteMode()">
+            <button type="button" id="cancelDeleteButton" class="btn btn-secondary"
+                    style="white-space:nowrap;margin-left:10px;display:none;" onclick="cancelDeleteMode()">
                 <i class="fas fa-times-circle"></i> Hủy
             </button>
         }
@@ -54,9 +113,15 @@
 
     <div style="display:inline-flex;align-items:center;gap:10px;">
         <label for="searchInput"><i class="fas fa-search"></i> Tìm kiếm: </label>
-        <input type="text" id="searchInput" onkeyup="searchByName()" placeholder="Nhập tên phim..." style="padding:5px;border-radius:5px;border:1px solid #007bff;width:220px;">
+        <input type="text"
+               id="searchInput"
+               name="q"
+               value="@currentSearch"
+               placeholder="Nhập tên phim..."
+               style="padding:5px;border-radius:5px;border:1px solid #007bff;width:220px;"
+               onkeypress="if(event.key==='Enter'){this.form.submit();}" />
     </div>
-</div>
+</form>
 
 <!-- Thông báo -->
 @if (!string.IsNullOrEmpty(Model.Message))
@@ -82,50 +147,78 @@
             {
                 @foreach (var mv in Model.Movies)
                 {
-                    <div class="col-md-3 mb-3 movie-item" data-category="@mv.GenreName" data-status="@mv.StatusId">
+                    <div class="col-md-3 mb-3 movie-item"
+                         data-category="@mv.GenreName"
+                         data-status="@mv.StatusId">
                         <div class="card">
                             <div class="content">
                                 <div class="front">
                                     <div class="image-container">
                                         @{
-                                            var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
+                                            var poster = string.IsNullOrWhiteSpace(mv.PosterImage)
+                                            ? "/images/no-poster.png"
+                                            : mv.PosterImage;
                                         }
-                                        <img src="@poster" alt="@mv.Title" class="card-img-top" title="@mv.Title" />
+                                        <img src="@poster" alt="@mv.Title"
+                                             class="card-img-top" title="@mv.Title" />
                                     </div>
                                 </div>
                                 <div class="back">
                                     <div class="back-content">
                                         <h5 class="card-title">
-                                            <a asp-action="Details" asp-route-id="@mv.MoviesId" class="movie-link movie-title" title="@mv.Title">
+                                            <a asp-action="Details" asp-route-id="@mv.MoviesId"
+                                               class="movie-link movie-title"
+                                               title="@mv.Title">
                                                 <i class="fas fa-tag"></i> @mv.Title
                                             </a>
                                         </h5>
+
                                         @if (!string.IsNullOrWhiteSpace(mv.Summary))
                                         {
-                                            <p class="card-text movie-description"><i class="fas fa-info-circle"></i> @mv.Summary</p>
+                                            <p class="card-text movie-description">
+                                                <i class="fas fa-info-circle"></i> @mv.Summary
+                                            </p>
                                         }
+
                                         @if (mv.ReleaseDate.HasValue)
                                         {
-                                            <p class="card-text movie-release"><strong><i class="fas fa-calendar-day"></i></strong> @mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</p>
+                                            <p class="card-text movie-release">
+                                                <strong><i class="fas fa-calendar-day"></i></strong>
+                                                @mv.ReleaseDate.Value.ToString("dd/MM/yyyy")
+                                            </p>
+                                        }
+
+                                        @* badge trạng thái *@
+                                        @if (!string.IsNullOrWhiteSpace(mv.StatusName))
+                                        {
+                                            <span class="badge bg-success"
+                                                  style="margin-bottom:6px;">
+                                                @mv.StatusName
+                                            </span>
                                         }
 
                                         @if (isAdmin)
                                         {
                                             <div class="form-check delete-checkbox" style="display: none;">
-                                                <input type="checkbox" class="form-check-input movie-checkbox" name="movie_ids" value="@mv.MoviesId" />
+                                                <input type="checkbox"
+                                                       class="form-check-input movie-checkbox"
+                                                       name="movie_ids"
+                                                       value="@mv.MoviesId" />
                                                 <label class="form-check-label">Chọn để xóa</label>
                                             </div>
                                         }
 
                                         @if (isLoggedIn)
                                         {
-                                            <a asp-action="Details" asp-route-id="@mv.MoviesId" class="btn-sm action-btn">
+                                            <a asp-action="Details" asp-route-id="@mv.MoviesId"
+                                               class="btn-sm action-btn">
                                                 <button type="button"><span>Xem chi tiết</span></button>
                                             </a>
                                         }
                                         else
                                         {
-                                            <a asp-area="Identity" asp-page="/Account/Login" class="btn-sm action-btn">
+                                            <a asp-area="Identity" asp-page="/Account/Login"
+                                               class="btn-sm action-btn">
                                                 <button type="button"><span>Đăng nhập</span></button>
                                             </a>
                                         }
@@ -138,10 +231,56 @@
             }
             else
             {
-                <div class="col-12 text-center"><p>Không có phim để hiển thị.</p></div>
+                <div class="col-12 text-center">
+                    <p>Không có phim để hiển thị.</p>
+                </div>
             }
         </div>
     </form>
+
+    <!-- PHÂN TRANG -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang phim" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-page="@(Model.PageIndex - 1)"
+                       asp-route-genre="@currentGenre"
+                       asp-route-status="@currentStatus"
+                       asp-route-q="@currentSearch">
+                        «
+                    </a>
+                </li>
+
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-page="@i"
+                           asp-route-genre="@currentGenre"
+                           asp-route-status="@currentStatus"
+                           asp-route-q="@currentSearch">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-page="@(Model.PageIndex + 1)"
+                       asp-route-genre="@currentGenre"
+                       asp-route-status="@currentStatus"
+                       asp-route-q="@currentSearch">
+                        »
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
 </div>
 
 <style>
@@ -356,7 +495,6 @@
         }
     }
 
-    // viền đỏ khi chọn xóa
     document.addEventListener('change', function (e) {
         if (e.target.classList.contains('movie-checkbox')) {
             const card = e.target.closest('.card');
@@ -364,51 +502,4 @@
             else card.classList.remove('selected-for-delete');
         }
     });
-
-    function removeVietnameseTones(str) {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
-    }
-    function levenshteinDistance(a, b) {
-        const matrix = [];
-        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                matrix[i][j] = b[i - 1] === a[j - 1] ? matrix[i - 1][j - 1]
-                    : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
-            }
-        }
-        return matrix[b.length][a.length];
-    }
-
-    function filterByCategory() { filterCombined(); }
-    function filterByStatus() { filterCombined(); }
-
-    function filterCombined() {
-        const catSel = document.getElementById('categoryFilter').value;   // all or category
-        const stSel = document.getElementById('statusFilter').value;      // all / RELEASED / COMING
-        const items = document.getElementsByClassName('movie-item');
-        for (let i = 0; i < items.length; i++) {
-            const cat = items[i].getAttribute('data-category') || 'Khác';
-            const st = items[i].getAttribute('data-status') || 'all';
-            const okCat = (catSel === 'all' || cat === catSel);
-            const okSt = (stSel === 'all' || st === stSel);
-            items[i].style.display = (okCat && okSt) ? 'block' : 'none';
-        }
-    }
-
-    // Tìm kiếm bỏ dấu + Levenshtein nhẹ
-    function searchByName() {
-        const valRaw = document.getElementById('searchInput').value.toLowerCase().trim();
-        const items = document.getElementsByClassName('movie-item');
-        const maxDistance = 3;
-        for (let i = 0; i < items.length; i++) {
-            const titleRaw = items[i].querySelector('.movie-link').textContent.toLowerCase().trim();
-            const title = removeVietnameseTones(titleRaw);
-            if (valRaw === '') { items[i].style.display = 'block'; continue; }
-            const distance = levenshteinDistance(valRaw, title);
-            const isMatch = title.includes(valRaw) || distance <= maxDistance;
-            items[i].style.display = isMatch ? 'block' : 'none';
-        }
-    }
 </script>

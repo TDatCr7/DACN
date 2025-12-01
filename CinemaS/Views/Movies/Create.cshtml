@@ -2,7 +2,9 @@
 @{
     ViewData["Title"] = "Tạo phim";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
     var participants = (List<CinemaS.Models.Participants>)ViewBag.Participants ?? new();
+    var genres = (List<CinemaS.Models.Genres>)ViewBag.Genres ?? new();
 }
 
 <style>
@@ -16,22 +18,18 @@
         --accent: #ffd54d;
         --line: rgba(255,255,255,.12);
     }
+
     @@media (prefers-color-scheme: light) {
-        : root
-
-    {
-        --bg: #f4f6ff;
-        --panel: #ffffff;
-        --text: #101327;
-        --muted: #4b5470;
-        --line: rgba(0,0,0,.08);
+        : root {
+            --bg: #f4f6ff;
+            --panel: #ffffff;
+            --text: #101327;
+            --muted: #4b5470;
+            --line: rgba(0,0,0,.08);
+        }
     }
 
-    }
-
-    body {
-        background: radial-gradient(1200px 700px at 25% -10%, rgba(60,90,200,.3), transparent 60%), radial-gradient(1100px 650px at 90% 0%, rgba(124,58,237,.25), transparent 60%), linear-gradient(180deg,var(--bg),var(--bg));
-    }
+    
 
     .page {
         padding: 34px 0 60px;
@@ -57,18 +55,102 @@
         font-weight: 800;
     }
 
+    .btn-outline-light {
+        border-radius: 999px;
+        padding-inline: 20px;
+        border-color: rgba(148,163,255,.75);
+        color: #e5e7ff;
+        background: rgba(15,23,42,.9);
+    }
+
+        .btn-outline-light:hover {
+            background: rgba(37,99,235,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+
     .form-label {
         font-weight: 700;
+        font-size: 13px;
+        color: #c7d2fe;
     }
 
     .text-muted {
         color: var(--muted) !important;
     }
+
+    .movie-input,
+    .movie-select,
+    .form-control,
+    .form-select {
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.35);
+        color: #e5e7f5;
+        font-size: 14px;
+    }
+
+        .movie-input::placeholder {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .movie-input:focus,
+        .movie-select:focus,
+        .form-control:focus,
+        .form-select:focus {
+            background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(2,6,23,1));
+            color: #e5e7f5;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.35);
+        }
+
+        .movie-select option,
+        .form-select option {
+            background: #020617;
+            color: #e5e7f5;
+        }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 16px;
+        margin-bottom: 8px;
+    }
+
+    .chip-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .chip {
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 13px;
+        border: 1px solid rgba(148,163,255,.4);
+        background: rgba(15,23,42,.8);
+        color: #e5e7f5;
+        cursor: pointer;
+        transition: background .15s ease, border-color .15s ease, transform .1s ease;
+    }
+
+        .chip:hover {
+            transform: translateY(-1px);
+            border-color: rgba(96,165,250,1);
+        }
+
+    .chip-selected {
+        background: linear-gradient(120deg, #2563eb, #7c3aed);
+        border-color: rgba(191,219,254,1);
+        color: #f9fafb;
+    }
 </style>
 
 <div class="container page">
-    <div class="row g-4">
-        <div class="col-lg-8">
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-9 col-md-11">
             <div class="card">
                 <h3>Tạo phim</h3>
                 <form asp-action="Create" enctype="multipart/form-data">
@@ -78,82 +160,215 @@
                     <div class="row">
                         <div class="col-md-4 mb-2">
                             <label asp-for="MoviesId" class="form-label">Mã</label>
-                            <input asp-for="MoviesId" class="form-control" />
+                            <input asp-for="MoviesId" class="form-control movie-input" />
                         </div>
                         <div class="col-md-8 mb-2">
                             <label asp-for="Title" class="form-label">Tên phim</label>
-                            <input asp-for="Title" class="form-control" />
+                            <input asp-for="Title" class="form-control movie-input" />
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label asp-for="StatusId" class="form-label">Trạng thái</label>
-                            <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-control"></select>
+                            <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-select movie-select"></select>
                         </div>
                         <div class="col-md-6 mb-2">
                             <label asp-for="ReleaseDate" class="form-label">Khởi chiếu</label>
-                            <input asp-for="ReleaseDate" type="date" class="form-control" />
+                            <input asp-for="ReleaseDate" type="date" class="form-control movie-input" />
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4 mb-2"><label asp-for="Duration" class="form-label"></label><input asp-for="Duration" class="form-control" /></div>
-                        <div class="col-md-4 mb-2"><label asp-for="Age" class="form-label"></label><input asp-for="Age" class="form-control" /></div>
-                        <div class="col-md-4 mb-2"><label asp-for="Rating" class="form-label"></label><input asp-for="Rating" type="number" step="0.1" min="0" max="10" class="form-control" /></div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Duration" class="form-label">Thời lượng (phút)</label>
+                            <input asp-for="Duration" class="form-control movie-input" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Age" class="form-label">Độ tuổi</label>
+                            <input asp-for="Age" class="form-control movie-input" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Rating" class="form-label">Điểm IMDb /10</label>
+                            <input asp-for="Rating" type="number" step="0.1" min="0" max="10" class="form-control movie-input" />
+                        </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4 mb-2"><label asp-for="Language" class="form-label"></label><input asp-for="Language" class="form-control" /></div>
-                        <div class="col-md-4 mb-2"><label asp-for="Country" class="form-label"></label><input asp-for="Country" class="form-control" /></div>
-                        <div class="col-md-4 mb-2"><label asp-for="AudioOption" class="form-label"></label><input asp-for="AudioOption" class="form-control" /></div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Language" class="form-label">Ngôn ngữ</label>
+                            <input asp-for="Language" class="form-control movie-input" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="Country" class="form-label">Quốc gia</label>
+                            <input asp-for="Country" class="form-control movie-input" />
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label asp-for="AudioOption" class="form-label">Âm thanh</label>
+                            <input asp-for="AudioOption" class="form-control movie-input" />
+                        </div>
                     </div>
 
-                    <div class="mb-2"><label asp-for="TrailerLink" class="form-label">Trailer (YouTube)</label><input asp-for="TrailerLink" class="form-control" /></div>
-                    <div class="mb-2"><label asp-for="Summary" class="form-label">Mô tả ngắn</label><textarea asp-for="Summary" class="form-control" rows="2"></textarea></div>
-                    <div class="mb-2"><label asp-for="DetailDescription" class="form-label">Nội dung</label><textarea asp-for="DetailDescription" class="form-control" rows="5"></textarea></div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-2"><label for="posterFile" class="form-label">Poster</label><input type="file" name="posterFile" id="posterFile" accept="image/*" class="form-control" /></div>
-                        <div class="col-md-6 mb-2"><label for="bannerFile" class="form-label">Banner</label><input type="file" name="bannerFile" id="bannerFile" accept="image/*" class="form-control" /></div>
-                    </div>
-
-                    <hr />
-                    <h5 class="mb-2">Người tham gia</h5>
                     <div class="mb-2">
-                        <label class="form-label">Đạo diễn</label>
-                        <select name="selectedDirectors" multiple class="form-control">
+                        <label asp-for="TrailerLink" class="form-label">Trailer (YouTube)</label>
+                        <input asp-for="TrailerLink" class="form-control movie-input" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="Summary" class="form-label">Mô tả ngắn</label>
+                        <textarea asp-for="Summary" class="form-control movie-input" rows="2"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="DetailDescription" class="form-label">Nội dung</label>
+                        <textarea asp-for="DetailDescription" class="form-control movie-input" rows="5"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label for="posterFile" class="form-label">Poster</label>
+                            <input type="file" name="posterFile" id="posterFile" accept="image/*" class="form-control movie-input" />
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="bannerFile" class="form-label">Banner</label>
+                            <input type="file" name="bannerFile" id="bannerFile" accept="image/*" class="form-control movie-input" />
+                        </div>
+                    </div>
+
+                    <!-- ===== Thể loại ===== -->
+                    <div class="section-title">Thể loại</div>
+                    <label class="form-label">Thể loại đang chọn</label>
+                    <input id="genresDisplay" class="form-control movie-input mb-2" readonly />
+
+                    <div class="chip-container" id="genresChips">
+                        @foreach (var g in genres)
+                        {
+                            <button type="button"
+                                    class="chip"
+                                    data-type="genre"
+                                    data-id="@g.GenresId"
+                                    data-name="@g.Name">
+                                @g.Name
+                            </button>
+                        }
+                    </div>
+                    <div id="hidden-genre"></div>
+
+                    <!-- ===== Người tham gia ===== -->
+                    <div class="section-title">Người tham gia</div>
+
+                    <label class="form-label">Đạo diễn đang chọn</label>
+                    <input id="directorsDisplay" class="form-control movie-input mb-2" readonly />
+
+                    <div class="chip-container" id="directorsChips">
+                        @foreach (var p in participants)
+                        {
+                            var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
+                            <button type="button"
+                                    class="chip"
+                                    data-type="director"
+                                    data-id="@p.ParticipantsId"
+                                    data-name="@name">
+                                @name
+                            </button>
+                        }
+                    </div>
+                    <div id="hidden-director"></div>
+
+                    <small class="form-label d-block mt-3">Thêm đạo diễn mới (cách nhau bằng dấu phẩy):</small>
+                    <input type="text"
+                           name="newDirectors"
+                           class="form-control movie-input"
+                           placeholder="Ví dụ: Christopher Nolan, Denis Villeneuve" />
+
+                    <div class="mt-4">
+                        <label class="form-label">Diễn viên đang chọn</label>
+                        <input id="actorsDisplay" class="form-control movie-input mb-2" readonly />
+
+                        <div class="chip-container" id="actorsChips">
                             @foreach (var p in participants)
                             {
                                 var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
-                                <option value="@p.ParticipantsId">@name</option>
+                                <button type="button"
+                                        class="chip"
+                                        data-type="actor"
+                                        data-id="@p.ParticipantsId"
+                                        data-name="@name">
+                                    @name
+                                </button>
                             }
-                        </select>
-                        <small class="text-muted">Giữ Ctrl/⌘ để chọn nhiều</small>
+                        </div>
+                        <div id="hidden-actor"></div>
+
+                        <small class="form-label d-block mt-3">Thêm diễn viên mới (cách nhau bằng dấu phẩy):</small>
+                        <input type="text"
+                               name="newActors"
+                               class="form-control movie-input"
+                               placeholder="Ví dụ: Tom Cruise, Emily Blunt" />
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Diễn viên</label>
-                        <select name="selectedActors" multiple class="form-control">
-                            @foreach (var p in participants)
-                            {
-                                var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
-                                <option value="@p.ParticipantsId">@name</option>
-                            }
-                        </select>
+                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                        <a asp-action="Index" class="btn btn-outline-light">
+                            <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-plus me-1"></i> Tạo
+                        </button>
                     </div>
-
-                    <button class="btn btn-primary">Tạo</button>
-                    <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
+
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <script>
+        function updateDisplay(type) {
+            const chips = document.querySelectorAll('.chip[data-type="' + type + '"].chip-selected');
+            const names = Array.from(chips).map(c => c.dataset.name);
+
+            const displayId = type === 'genre'
+                ? 'genresDisplay'
+                : type === 'director'
+                    ? 'directorsDisplay'
+                    : 'actorsDisplay';
+
+            const hiddenId = 'hidden-' + type;
+
+            const displayInput = document.getElementById(displayId);
+            if (displayInput) displayInput.value = names.join(', ');
+
+            const hiddenContainer = document.getElementById(hiddenId);
+            if (!hiddenContainer) return;
+
+            hiddenContainer.innerHTML = '';
+
+            const fieldName =
+                type === 'genre' ? 'selectedGenres' :
+                    type === 'director' ? 'selectedDirectors' : 'selectedActors';
+
+            Array.from(chips).forEach(c => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = fieldName;
+                inp.value = c.dataset.id;
+                hiddenContainer.appendChild(inp);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chip.classList.toggle('chip-selected');
+                    const type = chip.dataset.type;
+                    updateDisplay(type);
+                });
+            });
+
+            ['genre', 'director', 'actor'].forEach(updateDisplay);
+        });
+    </script>
 }

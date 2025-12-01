@@ -21,7 +21,7 @@ namespace CinemaS.Models
     [MaxLength(500)]
     public string? Summary { get; set; }
     [Column("Detail_Description")]
-    [MaxLength(500)]
+    [MaxLength(1000)]
     public string? DetailDescription { get; set; }
     [Column("Release_Date")]
     public DateTime? ReleaseDate { get; set; }
