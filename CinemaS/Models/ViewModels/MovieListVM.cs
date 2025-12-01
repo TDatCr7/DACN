@@ -8,11 +8,14 @@
         public string? Message { get; set; }
         public string? Error { get; set; }
 
-        // ===== Phân trang =====
-        public int PageIndex { get; set; } = 1;   // trang hiện tại
-        public int TotalPages { get; set; } = 1;  // tổng số trang
-
+        public int PageIndex { get; set; } = 1;
+        public int TotalPages { get; set; } = 1;
         public bool HasPreviousPage => PageIndex > 1;
         public bool HasNextPage => PageIndex < TotalPages;
+
+        // filter hiện tại
+        public string? SelectedGenre { get; set; }
+        public string? SelectedStatus { get; set; }
+        public string? SearchText { get; set; }
     }
 }

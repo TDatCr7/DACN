@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Authorization;
 using CinemaS.Models;
 using CinemaS.Models.ViewModels;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 
 namespace CinemaS.Controllers
 {
@@ -51,6 +53,27 @@ namespace CinemaS.Controllers
         }
 
         /* ===================== Helpers ===================== */
+        private string GenerateNextMovieId()
+        {
+            const string prefix = "MV";
+            const int width = 7; // số chữ số: MV0000001
+
+            var numericParts = _context.Movies
+                .Where(m => m.MoviesId != null && m.MoviesId.StartsWith(prefix))
+                .Select(m => m.MoviesId.Substring(prefix.Length))
+                .ToList();
+
+            int max = 0;
+            foreach (var part in numericParts)
+            {
+                if (int.TryParse(part, out var n) && n > max)
+                    max = n;
+            }
+
+            var next = max + 1;
+            return prefix + next.ToString($"D{width}");
+        }
+
         private void LoadStatuses(object? selected = null)
         {
             var statuses = _context.Statuses
@@ -59,6 +82,73 @@ namespace CinemaS.Controllers
                 .ToList();
             ViewBag.StatusId = new SelectList(statuses, "StatusId", "Name", selected);
         }
+
+        private void LoadGenres(string? movieId = null)
+        {
+            var allGenres = _context.Genres
+                .OrderBy(g => g.Name)
+                .ToList();
+
+            ViewBag.Genres = allGenres;
+
+            if (!string.IsNullOrEmpty(movieId))
+            {
+                var current = _context.MoviesGenres
+                    .Where(mg => mg.MoviesId == movieId)
+                    .Select(mg => mg.GenresId)
+                    .ToList();
+
+                ViewBag.CurrentGenres = current;
+            }
+            else
+            {
+                ViewBag.CurrentGenres = new List<string>();
+            }
+        }
+
+        private void LoadParticipants(string? movieId,
+    out List<string> currentDirectors, out List<string> currentActors)
+        {
+            var all = _context.Participants
+                .OrderBy(p => p.NickName ?? p.BirthName)
+                .ToList();
+
+            ViewBag.Participants = all;
+
+            currentDirectors = new List<string>();
+            currentActors = new List<string>();
+
+            if (string.IsNullOrEmpty(movieId))
+            {
+                ViewBag.CurrentDirectors = currentDirectors;
+                ViewBag.CurrentActors = currentActors;
+                return;
+            }
+
+            var roleIds = GetRoleIdsAsync().GetAwaiter().GetResult();
+            var dirRoleId = roleIds.DirectorRoleId;
+            var actRoleId = roleIds.ActorRoleId;
+
+            if (dirRoleId != null)
+            {
+                currentDirectors = _context.MoviesParticipants
+                    .Where(mp => mp.MoviesId == movieId && mp.MovieRoleId == dirRoleId)
+                    .Select(mp => mp.ParticipantsId)
+                    .ToList();
+            }
+
+            if (actRoleId != null)
+            {
+                currentActors = _context.MoviesParticipants
+                    .Where(mp => mp.MoviesId == movieId && mp.MovieRoleId == actRoleId)
+                    .Select(mp => mp.ParticipantsId)
+                    .ToList();
+            }
+
+            ViewBag.CurrentDirectors = currentDirectors;
+            ViewBag.CurrentActors = currentActors;
+        }
+
 
         private async Task<string?> SaveImageAsync(IFormFile file, string subFolder)
         {
@@ -98,21 +188,28 @@ namespace CinemaS.Controllers
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
             var normalized = input.Normalize(System.Text.NormalizationForm.FormD);
-            var chars = normalized.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray();
-            return new string(chars).Normalize(System.Text.NormalizationForm.FormC).Replace('đ', 'd').Replace('Đ', 'D');
+            var chars = normalized
+                .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                            != System.Globalization.UnicodeCategory.NonSpacingMark)
+                .ToArray();
+            return new string(chars)
+                .Normalize(System.Text.NormalizationForm.FormC)
+                .Replace('đ', 'd')
+                .Replace('Đ', 'D');
         }
 
         private async Task<(string? DirectorRoleId, string? ActorRoleId)> GetRoleIdsAsync()
         {
-            // MovieRoles (DbSet tên đúng là số nhiều)
             var roles = await _context.MovieRoles.ToListAsync();
 
             string? dirId = roles
-                .FirstOrDefault(r => (r.Name ?? "").ToLower().Contains("đạo") || (r.Name ?? "").ToLower().Contains("director"))
+                .FirstOrDefault(r => (r.Name ?? "").ToLower().Contains("đạo")
+                                  || (r.Name ?? "").ToLower().Contains("director"))
                 ?.MovieRoleId;
 
             string? actId = roles
-                .FirstOrDefault(r => (r.Name ?? "").ToLower().Contains("diễn") || (r.Name ?? "").ToLower().Contains("actor"))
+                .FirstOrDefault(r => (r.Name ?? "").ToLower().Contains("diễn")
+                                  || (r.Name ?? "").ToLower().Contains("actor"))
                 ?.MovieRoleId;
 
             return (dirId, actId);
@@ -126,37 +223,54 @@ namespace CinemaS.Controllers
                              from mg in gj.DefaultIfEmpty()
                              join g in _context.Genres on mg.GenresId equals g.GenresId into gj2
                              from g in gj2.DefaultIfEmpty()
-                             select new { m, GenreName = g != null ? g.Name : null, st.StatusId, StatusName = st.Name })
-                            .ToListAsync();
+                             select new
+                             {
+                                 Movie = m,
+                                 GenreName = g != null ? g.Name : null,
+                                 st.StatusId,
+                                 StatusName = st.Name
+                             }).ToListAsync();
 
-            var cards = raw.GroupBy(x => x.m.MoviesId)
-                           .Select(gr => {
-                               var first = gr.First();
-                               return new MovieCardVM
-                               {
-                                   MoviesId = first.m.MoviesId,
-                                   Title = first.m.Title ?? "(No Title)",
-                                   PosterImage = first.m.PosterImage,
-                                   Summary = first.m.Summary,
-                                   GenreName = gr.Select(x => x.GenreName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? "Khác",
-                                   ReleaseDate = first.m.ReleaseDate,
-                                   StatusId = first.StatusId,
-                                   StatusName = first.StatusName,
-                                   Duration = first.m.Duration,
-                                   Language = first.m.Language,
-                                   Rating = first.m.Rating?.ToString(),
-                                   Age = first.m.Age?.ToString(),
-                                   // bổ sung cho hover card
-                                   // 2 field sau để hiển thị như bạn yêu cầu
-                                   // (không bắt buộc nếu view không dùng)
-                                   // Country & AudioOption đã có trong Movies
-                               };
-                           })
-                           .ToList();
+            var cards = raw
+                .GroupBy(x => x.Movie.MoviesId)
+                .Select(gr =>
+                {
+                    var first = gr.First();
+
+                    var genreList = gr
+                        .Select(x => x.GenreName)
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .Distinct()
+                        .ToList();
+
+                    var genreDisplay = genreList.Any() ? string.Join(", ", genreList) : "Khác";
+
+                    return new MovieCardVM
+                    {
+                        MoviesId = first.Movie.MoviesId,
+                        Title = first.Movie.Title ?? "(Không có tên)",
+                        Summary = first.Movie.Summary,
+                        PosterImage = first.Movie.PosterImage,
+                        BannerImage = first.Movie.BannerImage,
+                        Genres = genreList,
+                        GenreName = genreDisplay,
+                        ReleaseDate = first.Movie.ReleaseDate,
+                        StatusId = first.StatusId,
+                        StatusName = first.StatusName,
+                        Duration = first.Movie.Duration,
+                        Language = first.Movie.Language,
+                        Rating = first.Movie.Rating?.ToString(),
+                        Age = first.Movie.Age?.ToString(),
+                        Country = first.Movie.Country,
+                        AudioOption = first.Movie.AudioOption
+                    };
+                })
+                .ToList();
+
             return cards;
         }
 
-        /* ===================== Index (card + filter) ===================== */
+        /* ===================== Index ===================== */
         public async Task<IActionResult> Index(
             string? genre = null,
             string? q = null,
@@ -166,21 +280,40 @@ namespace CinemaS.Controllers
             int page = 1)
         {
             var cards = await GetMovieCardsAsync();
-            var genres = cards.Select(c => c.GenreName ?? "Khác").Distinct().OrderBy(s => s).ToList();
+
+            var allGenres = cards
+                .SelectMany(c => c.Genres != null && c.Genres.Any()
+                                ? c.Genres
+                                : new List<string> { "Khác" })
+                .Distinct()
+                .OrderBy(s => s)
+                .ToList();
 
             if (!string.IsNullOrWhiteSpace(status) && status != "all")
-                cards = cards.Where(c => string.Equals(c.StatusId, status, StringComparison.OrdinalIgnoreCase)).ToList();
+            {
+                cards = cards
+                    .Where(c => string.Equals(c.StatusId, status, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
 
             if (!string.IsNullOrWhiteSpace(genre) && genre != "all")
-                cards = cards.Where(c => string.Equals(c.GenreName, genre, StringComparison.OrdinalIgnoreCase)).ToList();
+            {
+                cards = cards
+                    .Where(c => c.Genres != null && c.Genres.Contains(genre))
+                    .ToList();
+            }
 
             if (!string.IsNullOrWhiteSpace(q))
             {
                 var qLower = RemoveVietnameseTones(q).ToLowerInvariant();
-                cards = cards.Where(c => RemoveVietnameseTones(c.Title).ToLowerInvariant().Contains(qLower)).ToList();
+                cards = cards
+                    .Where(c =>
+                        RemoveVietnameseTones(c.Title)
+                            .ToLowerInvariant()
+                            .Contains(qLower))
+                    .ToList();
             }
 
-            // ===== PHÂN TRANG (8 phim / trang) =====
             const int pageSize = 8;
             if (page < 1) page = 1;
 
@@ -190,7 +323,8 @@ namespace CinemaS.Controllers
             if (page > totalPages) page = totalPages;
 
             var pagedCards = cards
-                .OrderByDescending(c => c.ReleaseDate)
+                .OrderByDescending(c => c.ReleaseDate ?? DateTime.MinValue)
+                .ThenBy(c => c.Title)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
@@ -198,20 +332,20 @@ namespace CinemaS.Controllers
             var vm = new MovieListVM
             {
                 Movies = pagedCards,
-                Genres = genres,
+                Genres = allGenres,
                 Message = message,
                 Error = error,
                 PageIndex = page,
-                TotalPages = totalPages
+                TotalPages = totalPages,
+                SelectedGenre = genre,
+                SelectedStatus = status,
+                SearchText = q
             };
+
             return View(vm);
         }
 
-
-        /* ===================== Details (kèm đạo diễn & diễn viên) ===================== */
-        // using System.Linq;
-        // using Microsoft.EntityFrameworkCore;
-
+        // ===================== DETAILS =====================
         public async Task<IActionResult> Details(string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return NotFound();
@@ -221,12 +355,15 @@ namespace CinemaS.Controllers
                 .FirstOrDefaultAsync(m => m.MoviesId == id);
             if (movie == null) return NotFound();
 
-            // Thể loại (lấy 1 tên chính, nếu bạn muốn nhiều thì join và join bằng ", ")
-            var genreText = await (from mg in _context.MoviesGenres
-                                   join g in _context.Genres on mg.GenresId equals g.GenresId
-                                   where mg.MoviesId == id
-                                   select g.Name).FirstOrDefaultAsync();
-            ViewBag.GenreText = string.IsNullOrWhiteSpace(genreText) ? "Khác" : genreText;
+            // nhiều thể loại
+            var genreNames = await (from mg in _context.MoviesGenres
+                                    join g in _context.Genres on mg.GenresId equals g.GenresId
+                                    where mg.MoviesId == id
+                                    select g.Name)
+                                   .ToListAsync();
+            ViewBag.GenreText = genreNames.Any()
+                ? string.Join(", ", genreNames)
+                : "Khác";
 
             // Lấy IDs vai trò
             var directorIds = await _context.MoviesParticipants
@@ -256,14 +393,23 @@ namespace CinemaS.Controllers
         }
 
 
-        /* ===================== “Xem thêm” views ===================== */
+        /* ===================== Showing / Upcoming ===================== */
         [HttpGet]
         public async Task<IActionResult> Showing()
         {
             var cards = await GetMovieCardsAsync();
-            var filtered = cards.Where(c => string.Equals(c.StatusId, "RELEASED", StringComparison.OrdinalIgnoreCase)).ToList();
+            var filtered = cards
+                .Where(c => string.Equals(c.StatusId, "RELEASED", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             ViewData["Title"] = "Phim đang chiếu";
-            var vm = new MovieListVM { Movies = filtered, Genres = filtered.Select(x => x.GenreName ?? "Khác").Distinct().OrderBy(x => x).ToList() };
+            var vm = new MovieListVM
+            {
+                Movies = filtered,
+                Genres = filtered.Select(x => x.GenreName ?? "Khác")
+                                 .Distinct()
+                                 .OrderBy(x => x)
+                                 .ToList()
+            };
             return View("~/Views/Home/ListByStatus.cshtml", vm);
         }
 
@@ -271,9 +417,18 @@ namespace CinemaS.Controllers
         public async Task<IActionResult> Upcoming()
         {
             var cards = await GetMovieCardsAsync();
-            var filtered = cards.Where(c => string.Equals(c.StatusId, "COMING", StringComparison.OrdinalIgnoreCase)).ToList();
+            var filtered = cards
+                .Where(c => string.Equals(c.StatusId, "COMING", StringComparison.OrdinalIgnoreCase))
+                .ToList();
             ViewData["Title"] = "Phim sắp chiếu";
-            var vm = new MovieListVM { Movies = filtered, Genres = filtered.Select(x => x.GenreName ?? "Khác").Distinct().OrderBy(x => x).ToList() };
+            var vm = new MovieListVM
+            {
+                Movies = filtered,
+                Genres = filtered.Select(x => x.GenreName ?? "Khác")
+                                 .Distinct()
+                                 .OrderBy(x => x)
+                                 .ToList()
+            };
             return View("~/Views/Home/ListByStatus.cshtml", vm);
         }
 
@@ -282,24 +437,42 @@ namespace CinemaS.Controllers
         public IActionResult Create()
         {
             LoadStatuses();
+
             ViewBag.Participants = _context.Participants
-                .OrderBy(p => p.NickName ?? p.BirthName).ToList();
-            return View();
+                .OrderBy(p => p.NickName ?? p.BirthName)
+                .ToList();
+
+            ViewBag.Genres = _context.Genres
+                .OrderBy(g => g.Name)
+                .ToList();
+
+            var model = new Movies
+            {
+                MoviesId = GenerateNextMovieId()   // ví dụ: MV0000011
+            };
+
+            return View(model);
         }
+
+
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-            [Bind("MoviesId,StatusId,Title,Summary,DetailDescription,ReleaseDate,Language,Duration,Rating,Age,TrailerLink,Country,AudioOption")]
-            Movies movies,
-            IFormFile? posterFile, IFormFile? bannerFile,
-            string[] selectedDirectors, string[] selectedActors)
+    [Bind("MoviesId,StatusId,Title,Summary,DetailDescription,ReleaseDate,Language,Duration,Rating,Age,TrailerLink,Country,AudioOption")]
+    Movies movies,
+    IFormFile? posterFile,
+    IFormFile? bannerFile,
+    string[] selectedDirectors,
+    string[] selectedActors,
+    string[] selectedGenres)
         {
             if (!ModelState.IsValid)
             {
                 LoadStatuses(movies.StatusId);
                 ViewBag.Participants = _context.Participants.OrderBy(p => p.NickName ?? p.BirthName).ToList();
+                ViewBag.Genres = _context.Genres.OrderBy(g => g.Name).ToList();
                 return View(movies);
             }
 
@@ -307,6 +480,7 @@ namespace CinemaS.Controllers
             {
                 if (posterFile != null)
                     movies.PosterImage = await SaveImageAsync(posterFile, "movies");
+
                 if (bannerFile != null)
                     movies.BannerImage = await SaveImageAsync(bannerFile, "movies");
 
@@ -316,11 +490,25 @@ namespace CinemaS.Controllers
                 _context.Add(movies);
                 await _context.SaveChangesAsync();
 
-                // map đạo diễn / diễn viên
+                // ===== map thể loại =====
+                if (selectedGenres != null && selectedGenres.Length > 0)
+                {
+                    var mgList = selectedGenres.Select(gid => new MoviesGenres
+                    {
+                        MovieGenreId = Guid.NewGuid().ToString("N")[..10],
+                        MoviesId = movies.MoviesId,
+                        GenresId = gid
+                    }).ToList();
+
+                    _context.MoviesGenres.AddRange(mgList);
+                }
+
+                // ===== map đạo diễn / diễn viên =====
                 var (dirRoleId, actRoleId) = await GetRoleIdsAsync();
                 var links = new List<MoviesParticipants>();
 
                 if (dirRoleId != null && selectedDirectors != null)
+                {
                     links.AddRange(selectedDirectors.Select(pid => new MoviesParticipants
                     {
                         MovieParticipantId = Guid.NewGuid().ToString("N")[..10],
@@ -328,8 +516,10 @@ namespace CinemaS.Controllers
                         ParticipantsId = pid,
                         MovieRoleId = dirRoleId
                     }));
+                }
 
                 if (actRoleId != null && selectedActors != null)
+                {
                     links.AddRange(selectedActors.Select(pid => new MoviesParticipants
                     {
                         MovieParticipantId = Guid.NewGuid().ToString("N")[..10],
@@ -337,12 +527,12 @@ namespace CinemaS.Controllers
                         ParticipantsId = pid,
                         MovieRoleId = actRoleId
                     }));
+                }
 
                 if (links.Count > 0)
-                {
                     _context.MoviesParticipants.AddRange(links);
-                    await _context.SaveChangesAsync();
-                }
+
+                await _context.SaveChangesAsync();
 
                 return RedirectToAction(nameof(Index), new { message = "Tạo phim thành công." });
             }
@@ -351,11 +541,13 @@ namespace CinemaS.Controllers
                 ModelState.AddModelError(string.Empty, ex.Message);
                 LoadStatuses(movies.StatusId);
                 ViewBag.Participants = _context.Participants.OrderBy(p => p.NickName ?? p.BirthName).ToList();
+                ViewBag.Genres = _context.Genres.OrderBy(g => g.Name).ToList();
                 return View(movies);
             }
         }
 
-        /* ===================== Edit ===================== */
+
+        // ===================== EDIT (GET) =====================
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(string id)
         {
@@ -365,6 +557,18 @@ namespace CinemaS.Controllers
 
             LoadStatuses(movie.StatusId);
 
+            // genres cho edit
+            ViewBag.Genres = await _context.Genres
+                .OrderBy(g => g.Name)
+                .ToListAsync();
+
+            var currentGenres = await _context.MoviesGenres
+                .Where(mg => mg.MoviesId == id)
+                .Select(mg => mg.GenresId)
+                .ToListAsync();
+            ViewBag.CurrentGenres = currentGenres;
+
+            // participants
             var (dirRoleId, actRoleId) = await GetRoleIdsAsync();
 
             var currentDirectors = await _context.MoviesParticipants
@@ -375,21 +579,31 @@ namespace CinemaS.Controllers
                 .Where(mp => mp.MoviesId == id && mp.MovieRoleId == actRoleId)
                 .Select(mp => mp.ParticipantsId).ToListAsync();
 
-            ViewBag.Participants = _context.Participants.OrderBy(p => p.NickName ?? p.BirthName).ToList();
+            ViewBag.Participants = _context.Participants
+                .OrderBy(p => p.NickName ?? p.BirthName)
+                .ToList();
             ViewBag.CurrentDirectors = currentDirectors;
             ViewBag.CurrentActors = currentActors;
 
             return View(movie);
         }
 
+
+        // ===================== EDIT (POST) =====================
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id,
+        public async Task<IActionResult> Edit(
+            string id,
             [Bind("MoviesId,StatusId,Title,Summary,DetailDescription,ReleaseDate,Language,Duration,Rating,Age,TrailerLink,PosterImage,BannerImage,CreatedAt,UpdatedAt,Country,AudioOption")]
-            Movies formModel,
-            IFormFile? posterFile, IFormFile? bannerFile,
-            string[] selectedDirectors, string[] selectedActors)
+    Movies formModel,
+            IFormFile? posterFile,
+            IFormFile? bannerFile,
+            string[] selectedGenres,
+            string[] selectedDirectors,
+            string[] selectedActors,
+            string? newDirectors,
+            string? newActors)
         {
             if (id != formModel.MoviesId) return NotFound();
 
@@ -398,6 +612,7 @@ namespace CinemaS.Controllers
 
             try
             {
+                // cập nhật thông tin phim
                 movie.StatusId = formModel.StatusId;
                 movie.Title = formModel.Title;
                 movie.Summary = formModel.Summary;
@@ -412,6 +627,7 @@ namespace CinemaS.Controllers
                 movie.TrailerLink = formModel.TrailerLink;
                 movie.UpdatedAt = DateTime.UtcNow;
 
+                // ảnh
                 if (posterFile != null)
                 {
                     var newPath = await SaveImageAsync(posterFile, "movies");
@@ -431,32 +647,97 @@ namespace CinemaS.Controllers
                     }
                 }
 
-                // cập nhật mapping participants
+                // ===== xử lý danh sách tên mới nhập (director / actor) =====
+                List<string> ParseNames(string? raw) =>
+                    string.IsNullOrWhiteSpace(raw)
+                        ? new List<string>()
+                        : raw.Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                             .Select(x => x.Trim())
+                             .Where(x => !string.IsNullOrEmpty(x))
+                             .ToList();
+
+                var dirIds = new List<string>();
+                if (selectedDirectors != null) dirIds.AddRange(selectedDirectors);
+
+                foreach (var name in ParseNames(newDirectors))
+                {
+                    var pid = Guid.NewGuid().ToString("N")[..10];
+                    var p = new Participants
+                    {
+                        ParticipantsId = pid,
+                        NickName = name,
+                        BirthName = name
+                    };
+                    _context.Participants.Add(p);
+                    dirIds.Add(pid);
+                }
+
+                var actIds = new List<string>();
+                if (selectedActors != null) actIds.AddRange(selectedActors);
+
+                foreach (var name in ParseNames(newActors))
+                {
+                    var pid = Guid.NewGuid().ToString("N")[..10];
+                    var p = new Participants
+                    {
+                        ParticipantsId = pid,
+                        NickName = name,
+                        BirthName = name
+                    };
+                    _context.Participants.Add(p);
+                    actIds.Add(pid);
+                }
+
+                // ===== cập nhật mapping participants =====
                 var (dirRoleId, actRoleId) = await GetRoleIdsAsync();
 
                 var oldLinks = _context.MoviesParticipants.Where(mp => mp.MoviesId == id);
                 _context.MoviesParticipants.RemoveRange(oldLinks);
 
                 var links = new List<MoviesParticipants>();
-                if (dirRoleId != null && selectedDirectors != null)
-                    links.AddRange(selectedDirectors.Select(pid => new MoviesParticipants
+
+                if (dirRoleId != null)
+                {
+                    links.AddRange(dirIds.Distinct().Select(pid => new MoviesParticipants
                     {
                         MovieParticipantId = Guid.NewGuid().ToString("N")[..10],
                         MoviesId = id,
                         ParticipantsId = pid,
                         MovieRoleId = dirRoleId
                     }));
-                if (actRoleId != null && selectedActors != null)
-                    links.AddRange(selectedActors.Select(pid => new MoviesParticipants
+                }
+
+                if (actRoleId != null)
+                {
+                    links.AddRange(actIds.Distinct().Select(pid => new MoviesParticipants
                     {
                         MovieParticipantId = Guid.NewGuid().ToString("N")[..10],
                         MoviesId = id,
                         ParticipantsId = pid,
                         MovieRoleId = actRoleId
                     }));
+                }
 
                 if (links.Count > 0)
                     _context.MoviesParticipants.AddRange(links);
+
+                // ===== cập nhật mapping thể loại =====
+                var oldGenres = _context.MoviesGenres.Where(mg => mg.MoviesId == id);
+                _context.MoviesGenres.RemoveRange(oldGenres);
+
+                if (selectedGenres != null && selectedGenres.Length > 0)
+                {
+                    var genreLinks = selectedGenres
+                        .Distinct()
+                        .Select(gid => new MoviesGenres
+                        {
+                            MovieGenreId = Guid.NewGuid().ToString("N")[..10],
+                            MoviesId = id,
+                            GenresId = gid
+                        });
+
+                    _context.MoviesGenres.AddRange(genreLinks);
+                }
 
                 _context.Update(movie);
                 await _context.SaveChangesAsync();
@@ -467,10 +748,22 @@ namespace CinemaS.Controllers
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
                 LoadStatuses(formModel.StatusId);
-                ViewBag.Participants = _context.Participants.OrderBy(p => p.NickName ?? p.BirthName).ToList();
+
+                ViewBag.Participants = _context.Participants
+                    .OrderBy(p => p.NickName ?? p.BirthName)
+                    .ToList();
+                ViewBag.Genres = await _context.Genres.OrderBy(g => g.Name).ToListAsync();
+
+                // khôi phục lại những gì đang chọn
+                ViewBag.CurrentDirectors = selectedDirectors?.ToList() ?? new List<string>();
+                ViewBag.CurrentActors = selectedActors?.ToList() ?? new List<string>();
+                ViewBag.CurrentGenres = selectedGenres?.ToList() ?? new List<string>();
+
                 return View(formModel);
             }
         }
+
+
 
         /* ===================== Delete ===================== */
         [Authorize(Roles = "Admin")]
@@ -493,7 +786,9 @@ namespace CinemaS.Controllers
                 TryDeletePhysicalFile(movies.PosterImage);
                 TryDeletePhysicalFile(movies.BannerImage);
 
-                // xóa links participants
+                var genreLinks = _context.MoviesGenres.Where(mg => mg.MoviesId == id);
+                _context.MoviesGenres.RemoveRange(genreLinks);
+
                 var links = _context.MoviesParticipants.Where(mp => mp.MoviesId == id);
                 _context.MoviesParticipants.RemoveRange(links);
 
@@ -519,6 +814,10 @@ namespace CinemaS.Controllers
             {
                 TryDeletePhysicalFile(mv.PosterImage);
                 TryDeletePhysicalFile(mv.BannerImage);
+
+                var genreLinks = _context.MoviesGenres.Where(mg => mg.MoviesId == mv.MoviesId);
+                _context.MoviesGenres.RemoveRange(genreLinks);
+
                 var links = _context.MoviesParticipants.Where(mp => mp.MoviesId == mv.MoviesId);
                 _context.MoviesParticipants.RemoveRange(links);
             }
