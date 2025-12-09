@@ -1,78 +1,225 @@
 ﻿@model IEnumerable<CinemaS.Models.Invoices>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Hóa Đơn";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var stt = 0;
 }
 
-<h1>Index</h1>
+<style>
+    .page-invoice-index {
+        padding: 34px 0 60px;
+    }
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PhoneNumber)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TotalTicket)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PaymentMethod)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.TotalPrice)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PhoneNumber)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.TotalTicket)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PaymentMethod)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.TotalPrice)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.InvoiceId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.InvoiceId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.InvoiceId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    .invoice-index-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.22), transparent 55%), #020617;
+        border-radius: 24px;
+        border: 1px solid rgba(148,163,255,.45);
+        box-shadow: 0 20px 50px rgba(15,23,42,.95);
+        padding: 20px 22px;
+    }
+
+    .invoice-index-header h1 {
+        font-weight: 900;
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+
+    .invoice-index-header small {
+        color: #9ca3af;
+    }
+
+    .admin-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+        color: #e5e7eb;
+        font-size: 14px;
+    }
+
+        .admin-table thead {
+            background: linear-gradient(135deg, rgba(59,130,246,.25), rgba(129,140,248,.25));
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(148,163,255,.12);
+            vertical-align: middle;
+        }
+
+        .admin-table th {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #a5b4fc;
+        }
+
+        .admin-table tbody tr:hover {
+            background: rgba(15,23,42,.85);
+        }
+
+    .badge-paid {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(16,185,129,.16);
+        border: 1px solid rgba(16,185,129,.6);
+        color: #10b981;
+    }
+
+    .badge-unpaid {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(245,158,11,.16);
+        border: 1px solid rgba(245,158,11,.6);
+        color: #f59e0b;
+    }
+
+    .admin-actions {
+        display: inline-flex;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .admin-icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.45);
+        background: rgba(15,23,42,.95);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #e5e7eb;
+        text-decoration: none;
+        font-size: 13px;
+    }
+
+        .admin-icon-btn:hover {
+            background: rgba(59,130,246,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+
+        .admin-icon-btn.danger {
+            border-color: rgba(248,113,113,.7);
+            color: #fecaca;
+        }
+
+            .admin-icon-btn.danger:hover {
+                background: #ef4444;
+                color: #fff;
+            }
+</style>
+
+<div class="container page-invoice-index">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="invoice-index-header">
+            <h1><i class="fa-solid fa-file-invoice-dollar me-2"></i>Quản lý hóa đơn</h1>
+            <small>Tổng: @Model.Count() hóa đơn</small>
+        </div>
+
+        <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
+            <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="invoice-index-card">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width:60px;">STT</th>
+                    <th>Mã đơn</th>
+                    <th>Email</th>
+                    <th>Điện thoại</th>
+                    <th style="width:80px;">Tổng vé</th>
+                    <th style="width:130px;">Phương thức</th>
+                    <th style="width:130px;">Tổng tiền</th>
+                    <th style="width:130px;">Trạng thái</th>
+                    <th style="width:150px;" class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                            Không có hóa đơn nào.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        stt++;
+                        <tr>
+                            <td>@stt</td>
+                            <td>@item.InvoiceId</td>
+                            <td>@(item.Email ?? "N/A")</td>
+                            <td>@(item.PhoneNumber ?? "N/A")</td>
+                            <td>@(item.TotalTicket ?? 0)</td>
+                            <td>@(item.PaymentMethod ?? item.PaymentMethodId ?? "N/A")</td>
+                            <td>@((item.TotalPrice ?? 0).ToString("#,0")) đ</td>
+                            <td>
+                                @if (item.Status == 1)
+                                {
+                                    <span class="badge-paid">
+                                        <i class="fa-solid fa-circle-check"></i> Đã thanh toán
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-unpaid">
+                                        <i class="fa-solid fa-clock"></i> Chưa thanh toán
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="admin-actions">
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.InvoiceId"
+                                       class="admin-icon-btn"
+                                       title="Chi tiết">
+                                        <i class="fa-regular fa-eye"></i>
+                                    </a>
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.InvoiceId"
+                                       class="admin-icon-btn"
+                                       title="Chỉnh sửa">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+
+                                    <form asp-action="Delete"
+                                          asp-route-id="@item.InvoiceId"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Xóa hóa đơn này?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="admin-icon-btn danger"
+                                                title="Xóa">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

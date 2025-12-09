@@ -108,10 +108,18 @@
                                             <div class="mt-auto">
                                                 @if (showTime.AvailableSeats > 0)
                                                 {
-                                                    <a href="@Url.Action("SeatSelection", "Booking", new { id = showTime.ShowTimeId })"
-                                                       class="btn btn-primary w-100">
-                                                        <i class="fas fa-ticket-alt"></i> Chọn ghế
-                                                    </a>
+                                                    @if (User.IsInRole("Admin"))
+                                                    {
+                                                        <a href="@Url.Action("AdminBooking", "Admin", new { showTimeId = showTime.ShowTimeId })"
+                                                           class="btn btn-primary w-100 mb-2">
+                                                            <i class="fas fa-user-tie"></i> Đặt vé hộ khách
+                                                        </a>
+
+                                                    }
+                                                        <a href="@Url.Action("SeatSelection", "Booking", new { id = showTime.ShowTimeId })"
+                                                           class="btn btn-primary w-100">
+                                                            <i class="fas fa-ticket-alt"></i> Chọn ghế
+                                                        </a>
                                                 }
                                                 else
                                                 {

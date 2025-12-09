@@ -1,69 +1,133 @@
 ﻿@model CinemaS.Models.PaymentMethods
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Tạo Phương Thức Thanh Toán Mới";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Create</h1>
+<!-- Liên kết CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/Create.css" />
 
-<h4>PaymentMethods</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="PaymentMethodId" class="control-label"></label>
-                <input asp-for="PaymentMethodId" class="form-control" />
-                <span asp-validation-for="PaymentMethodId" class="text-danger"></span>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header text-white">
+                    <h3><i class="fas fa-credit-card"></i> Tạo Phương Thức Thanh Toán Mới</h3>
+                </div>
+
+                <div class="card-body">
+                    <!-- Thông báo lỗi -->
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <strong>Lỗi:</strong> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Create" method="post" id="createForm" novalidate>
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <!-- Mã phương thức thanh toán -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-hashtag"></i> Mã Phương Thức
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="PaymentMethodId" class="form-control" placeholder="VD: VNPAY, CASH..." required />
+                            <span asp-validation-for="PaymentMethodId" class="text-danger"></span>
+                        </div>
+
+                        <!-- Code -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-code"></i> Code
+                            </label>
+                            <input asp-for="Code" class="form-control" placeholder="VD: VNPAY_CODE" />
+                            <span asp-validation-for="Code" class="text-danger"></span>
+                        </div>
+
+                        <!-- Tên phương thức -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-tag"></i> Tên Phương Thức
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name" class="form-control" placeholder="VD: Thanh toán VNPay" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <!-- Loại -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-list"></i> Loại
+                            </label>
+                            <input asp-for="Type" class="form-control" placeholder="VD: Online, Offline" />
+                            <span asp-validation-for="Type" class="text-danger"></span>
+                        </div>
+
+                        <!-- Nhà cung cấp -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-building"></i> Nhà Cung Cấp
+                            </label>
+                            <input asp-for="Provider" class="form-control" placeholder="VD: VNPay, MoMo" />
+                            <span asp-validation-for="Provider" class="text-danger"></span>
+                        </div>
+
+                        <!-- Trạng thái hoạt động -->
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label class="form-check-label" asp-for="IsActive">
+                                <i class="fas fa-toggle-on"></i> Hoạt động
+                            </label>
+                        </div>
+
+                        <!-- Nút hành động -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Tạo Phương Thức
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Code" class="control-label"></label>
-                <input asp-for="Code" class="form-control" />
-                <span asp-validation-for="Code" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Type" class="control-label"></label>
-                <input asp-for="Type" class="form-control" />
-                <span asp-validation-for="Type" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Provider" class="control-label"></label>
-                <input asp-for="Provider" class="form-control" />
-                <span asp-validation-for="Provider" class="text-danger"></span>
-            </div>
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                    <input class="form-check-input" asp-for="IsActive" /> @Html.DisplayNameFor(model => model.IsActive)
-                </label>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
-                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Kiểm tra hợp lệ trước khi gửi
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('createForm');
+            const idInput = document.querySelector('input[name="PaymentMethodId"]');
+            const nameInput = document.querySelector('input[name="Name"]');
+
+            form.addEventListener('submit', e => {
+                let errors = [];
+
+                if (!idInput.value.trim())
+                    errors.push("• Mã phương thức không được để trống");
+                if (!nameInput.value.trim())
+                    errors.push("• Tên phương thức không được để trống");
+
+                if (errors.length > 0) {
+                    e.preventDefault();
+                    alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
+                }
+            });
+        });
+    </script>
 }

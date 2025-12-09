@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CinemaS.Migrations
 {
     [DbContext(typeof(CinemaContext))]
-    [Migration("20251121112130_AddPairIdToSeats")]
-    partial class AddPairIdToSeats
+    [Migration("20251205095426_v1")]
+    partial class v1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -438,8 +438,7 @@ namespace CinemaS.Migrations
                         .HasColumnName("Created_At");
 
                     b.Property<string>("DetailDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("Detail_Description");
 
                     b.Property<int?>("Duration")
@@ -953,6 +952,10 @@ namespace CinemaS.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("Is_Active");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit")
+                        .HasColumnName("Is_Deleted");
+
                     b.Property<string>("Label")
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)");
@@ -979,10 +982,6 @@ namespace CinemaS.Migrations
                     b.HasIndex("CinemaTheaterId", "Label")
                         .IsUnique()
                         .HasFilter("[Label] IS NOT NULL");
-
-                    b.HasIndex("CinemaTheaterId", "RowIndex", "ColumnIndex")
-                        .IsUnique()
-                        .HasFilter("[RowIndex] IS NOT NULL AND [ColumnIndex] IS NOT NULL");
 
                     b.ToTable("Seats", "dbo");
                 });

@@ -286,10 +286,15 @@
                 </div>
             </form>
 
-            <a asp-controller="AdminUsers" asp-action="Create" class="btn-add-account">
-                <i class="fa-solid fa-plus"></i>
-                Thêm tài khoản
-            </a>
+            <div class="d-flex gap-2">
+                <a asp-controller="AdminUsers" asp-action="Create" class="btn-add-account">
+                    <i class="fa-solid fa-plus"></i>
+                    Thêm tài khoản
+                </a>
+                <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary" style="border-radius: 999px; padding: 9px 20px; font-size: 14px; font-weight: 700;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
         </div>
 
         <div class="admin-table-wrap">

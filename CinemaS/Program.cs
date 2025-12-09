@@ -55,6 +55,8 @@ var app = builder.Build();
 /* Seed roles + admin */
 using (var scope = app.Services.CreateScope())
 {
+    var context = scope.ServiceProvider.GetRequiredService<CinemaContext>();
+
     var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
@@ -82,6 +84,39 @@ using (var scope = app.Services.CreateScope())
         await userMgr.AddToRoleAsync(admin, "Admin");
     if (!await userMgr.IsInRoleAsync(admin, "User"))
         await userMgr.AddToRoleAsync(admin, "User");
+
+    // Seed Membership Rank
+    if (!await context.MembershipRanks.AnyAsync())
+    {
+        var rank = new MembershipRank
+        {
+            MembershipRankId = "MR00000001",
+            Name = "Basic",
+            RequirePoint = 0,
+            PointReturnTicket = 0,
+            PointReturnCombo = 0,
+            PriorityLevel = 1,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+
+        await context.MembershipRanks.AddAsync(rank);
+        await context.SaveChangesAsync();
+    }
+
+    if (!await context.SeatTypes.AnyAsync())
+    {
+        var seatTypes = new List<SeatTypes>
+    {
+        new SeatTypes { SeatTypeId = "ST001", Name = "NORMAL", Price = 75000 },
+        new SeatTypes { SeatTypeId = "ST002", Name = "VIP", Price = 120000 },
+        new SeatTypes { SeatTypeId = "ST003", Name = "COUPLE", Price = 200000 }
+    };
+
+        context.SeatTypes.AddRange(seatTypes);
+        await context.SaveChangesAsync();
+    }
+
 }
 
 /* pipeline */

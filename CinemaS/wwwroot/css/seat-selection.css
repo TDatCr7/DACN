@@ -100,10 +100,10 @@
     margin: 0 auto;
 }
 
-/* Khi nội dung vượt wrapper → canh trái để bắt đầu ở cột 1 */
-.seat-layout-scroll-wrapper.overflowing {
-    justify-content: flex-start;
-}
+    /* Khi nội dung vượt wrapper → canh trái để bắt đầu ở cột 1 */
+    .seat-layout-scroll-wrapper.overflowing {
+        justify-content: flex-start;
+    }
 
 /* Nội dung */
 .seats-grid-container {
@@ -251,6 +251,9 @@
     justify-content: center;
     width: 100%;
     height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .seat.selected .user-icon-wrapper {
@@ -261,6 +264,22 @@
     width: 20px;
     height: 20px;
     filter: brightness(0) invert(1);
+}
+
+/* Ẩn label khi ghế được selected */
+.seat.selected .seat-label-small {
+    display: none;
+}
+
+.seat .seat-label-small {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    width: 100%;
+    height: 100%;
 }
 
 /* ===== Ghế đôi ===== */
@@ -312,10 +331,26 @@
     height: 100%;
 }
 
-.couple-seat .user-icons .user-icon {
-    width: 16px;
-    height: 16px;
-    filter: brightness(0) invert(1);
+    .couple-seat .user-icons .user-icon {
+        width: 16px;
+        height: 16px;
+        filter: brightness(0) invert(1);
+    }
+
+/* Ẩn label khi ghế đôi được selected */
+.couple-seat-wrapper.selected .couple-seat .seat-label-small {
+    display: none;
+}
+
+.couple-seat .seat-label-small {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    width: 100%;
+    height: 100%;
 }
 
 /* ===== Chú thích ===== */
@@ -481,11 +516,11 @@
 
 .snack-content {
     margin-top: 15px;
-    display: none;
+    display: block;
 }
 
-    .snack-content.show {
-        display: block;
+    .snack-content.close {
+        display: none;
     }
 
 .snack-card {

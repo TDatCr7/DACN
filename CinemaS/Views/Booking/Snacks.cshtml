@@ -1,0 +1,535 @@
+@{
+    ViewData["Title"] = "Đặt đồ ăn";
+    Layout = "~/Views/Shared/_LayoutHeader.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/booking-modal.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
+
+<div class="seat-selection-container">
+    <!-- Tiêu đề -->
+    <div class="movie-info" style="justify-content: center; text-align: center;">
+        <div style="width: 100%;">
+            <h2><i class="fas fa-utensils"></i> Đặt đồ ăn & nước uống</h2>
+            <p style="color: #9ca3af;">Chọn đồ ăn yêu thích của bạn</p>
+        </div>
+    </div>
+
+    <!-- Chọn đồ ăn -->
+    <div class="snack-selection" style="margin-top: 20px;">
+        <div class="snack-header">
+            <h5 class="fw-bold mb-0">
+                <i class="fas fa-utensils"></i> Danh sách đồ ăn <span id="snackCount" class="snack-badge-count"></span>
+            </h5>
+        </div>
+
+        <div class="snack-content" id="snackContent" style="display: block;">
+            <div class="row g-3 mt-2">
+                @if (ViewBag.Snacks != null)
+                {
+                    @foreach (var snack in ViewBag.Snacks)
+                    {
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="snack-card">
+                                <div class="snack-image">
+                                    @if (!string.IsNullOrEmpty(snack.Image))
+                                    {
+                                        <img src="@snack.Image" alt="@snack.Name" onerror="this.src='/images/snacks/SnackCinema.jpg'">
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/snacks/SnackCinema.jpg" alt="@snack.Name">
+                                    }
+                                </div>
+                                <div class="snack-info">
+                                    <h6 class="snack-name">@snack.Name</h6>
+                                    <p class="snack-price">@snack.Price?.ToString("N0") đ</p>
+                                    <div class="snack-control"
+                                         data-snack-id="@snack.SnackId"
+                                         data-price="@snack.Price"
+                                         data-name="@snack.Name">
+                                        <button type="button" class="btn-choose-snack" onclick="handleChooseSnack(this)">Chọn</button>
+                                        <div class="quantity-control" style="display: none;">
+                                            <button type="button" class="quantity-btn-snack" onclick="updateSnackCardQuantity(this, -1)">-</button>
+                                            <input type="number" class="quantity-input-snack" value="1" readonly>
+                                            <button type="button" class="quantity-btn-snack" onclick="updateSnackCardQuantity(this, 1)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="col-12">
+                        <p style="text-align: center; color: #9ca3af; padding: 40px 0;">
+                            <i class="fas fa-shopping-basket" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
+                            Hiện chưa có đồ ăn nào
+                        </p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông tin đặt đồ ăn -->
+    <div class="booking-summary">
+        <div class="summary-content">
+            <div class="selected-info">
+                <strong>Đồ ăn đã chọn:</strong> <span id="selectedSnacks">Chưa chọn</span>
+            </div>
+            <div class="total-price">
+                <strong>Tổng tiền:</strong> <span id="totalPrice">0 đ</span>
+            </div>
+        </div>
+
+        <button id="btnOrder" class="btn-book" onclick="openOrderModal()" disabled>
+            <i class="fas fa-shopping-cart"></i> Đặt hàng
+        </button>
+    </div>
+</div>
+
+<!-- ===== ORDER MODAL ===== -->
+<div class="booking-modal-overlay" id="orderModalOverlay">
+    <div class="booking-modal">
+        <div class="booking-modal-header">
+            <h3>Xác nhận đặt đồ ăn</h3>
+        </div>
+        <div class="booking-modal-body">
+            <div class="booking-info-item">
+                <span class="booking-info-label">Tổng số món:</span>
+                <span class="booking-info-value" id="modalSnackCount">0</span>
+            </div>
+
+            <div id="modalSnacksList" style="margin-top: 20px;"></div>
+
+            <div class="booking-total" style="margin-top: 20px;">
+                <div class="booking-info-item">
+                    <span class="booking-info-label">TỔNG CỘNG:</span>
+                    <span class="booking-info-value" id="modalGrandTotal">0 đ</span>
+                </div>
+            </div>
+        </div>
+        <div class="booking-modal-footer">
+            <button class="booking-modal-btn booking-modal-btn-cancel" onclick="closeOrderModal()">
+                <i class="fas fa-times"></i> Hủy
+            </button>
+            <button class="booking-modal-btn booking-modal-btn-confirm" onclick="confirmOrder()">
+                <i class="fas fa-check"></i> Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== PAYMENT METHOD MODAL (CHO ADMIN) ===== -->
+<div class="booking-modal-overlay" id="paymentMethodOverlay">
+    <div class="booking-modal">
+        <div class="booking-modal-header">
+            <div class="icon">💳</div>
+            <h3>Chọn phương thức thanh toán</h3>
+        </div>
+        <div class="booking-modal-body">
+            <p style="color:#9ca3af;margin-bottom:16px;">
+                Vui lòng chọn phương thức thanh toán cho đơn hàng.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <button type="button"
+                        class="booking-modal-btn booking-modal-btn-confirm"
+                        onclick="payWithVnPay()">
+                    <i class="fas fa-qrcode"></i> Thanh toán VNPay
+                </button>
+                <button type="button"
+                        class="booking-modal-btn booking-modal-btn-confirm"
+                        style="background:#16a34a;border-color:#16a34a;"
+                        onclick="payWithCash()">
+                    <i class="fas fa-money-bill-wave"></i> Thanh toán tiền mặt
+                </button>
+            </div>
+        </div>
+        <div class="booking-modal-footer">
+            <button class="booking-modal-btn booking-modal-btn-cancel" onclick="closePaymentMethodModal()">
+                <i class="fas fa-times"></i> Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div class="booking-loading-overlay" id="bookingLoadingOverlay">
+    <div class="booking-loading-content">
+        <div class="booking-loading-spinner"></div>
+        <div class="booking-loading-text">Đang xử lý...</div>
+    </div>
+</div>
+
+<!-- ===== TOAST NOTIFICATION ===== -->
+<div class="booking-toast" id="bookingToast"></div>
+
+@section Scripts {
+    <style>
+        .snack-control {
+            margin-top: 8px;
+        }
+
+        .btn-choose-snack {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+            .btn-choose-snack:hover {
+                background-color: #2563eb;
+            }
+
+        .quantity-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .quantity-btn-snack {
+            background-color: #facc15;
+            color: #1f2937;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .quantity-input-snack {
+            width: 40px;
+            height: 32px;
+            text-align: center;
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            color: white;
+            border-radius: 6px;
+            -moz-appearance: textfield;
+        }
+
+            .quantity-input-snack::-webkit-outer-spin-button,
+            .quantity-input-snack::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+        .snack-header {
+            background-color: #1f2937;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+    <script>
+        let selectedSnacks = [];
+        let currentInvoiceId = null;
+        let currentInvoiceAmount = 0;
+        const isAdmin = @(User.IsInRole("Admin").ToString().ToLower());
+
+        function showBookingLoading(show) {
+            const overlay = document.getElementById('bookingLoadingOverlay');
+            if (show) overlay.classList.add('show'); else overlay.classList.remove('show');
+        }
+
+        function showBookingToast(message, type) {
+            const toast = document.getElementById('bookingToast');
+            toast.innerHTML = message;
+            toast.className = 'booking-toast booking-toast-' + type + ' show';
+            setTimeout(() => { toast.classList.remove('show'); }, 5000);
+        }
+
+        function formatVND(n) {
+            return (n || 0).toLocaleString('vi-VN') + ' đ';
+        }
+
+        function updateSummary() {
+            const selectedSnacksSpan = document.getElementById('selectedSnacks');
+            const totalPriceSpan = document.getElementById('totalPrice');
+            const btnOrder = document.getElementById('btnOrder');
+
+            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
+
+            if (selectedSnacks.length > 0) {
+                const snackLabels = selectedSnacks.map(s => `${s.name} x${s.quantity}`).join(', ');
+                selectedSnacksSpan.textContent = snackLabels;
+            } else {
+                selectedSnacksSpan.textContent = 'Chưa chọn';
+            }
+
+            totalPriceSpan.textContent = formatVND(snackTotal);
+            btnOrder.disabled = selectedSnacks.length === 0;
+
+            updateSnackCounter();
+        }
+
+        window.handleChooseSnack = function (button) {
+            const control = button.closest('.snack-control');
+            const snackId = control.dataset.snackId;
+            const price = parseFloat(control.dataset.price) || 0;
+            const name = control.dataset.name;
+
+            selectedSnacks.push({ id: snackId, name, price, quantity: 1 });
+
+            button.style.display = 'none';
+            control.querySelector('.quantity-control').style.display = 'flex';
+            control.querySelector('.quantity-input-snack').value = 1;
+
+            updateSummary();
+        }
+
+        window.updateSnackCardQuantity = function (button, change) {
+            const control = button.closest('.snack-control');
+            const snackId = control.dataset.snackId;
+            const input = control.querySelector('.quantity-input-snack');
+            const currentQuantity = parseInt(input.value);
+            const newQuantity = currentQuantity + change;
+
+            const snack = selectedSnacks.find(s => s.id === snackId);
+
+            if (newQuantity <= 0) {
+                selectedSnacks = selectedSnacks.filter(s => s.id !== snackId);
+
+                control.querySelector('.quantity-control').style.display = 'none';
+                control.querySelector('.btn-choose-snack').style.display = 'block';
+            } else {
+                if (snack) {
+                    snack.quantity = newQuantity;
+                }
+                input.value = newQuantity;
+            }
+
+            updateSummary();
+        }
+
+        window.updateSnackCounter = function () {
+            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
+            const countElement = document.getElementById('snackCount');
+            if (totalQuantity > 0) {
+                countElement.textContent = `(${totalQuantity} món đã chọn)`;
+                countElement.style.backgroundColor = '#364747';
+                countElement.style.color = '#fff';
+                countElement.style.marginLeft = '8px';
+                countElement.style.fontSize = '13px';
+                countElement.style.padding = '2px 8px';
+                countElement.style.borderRadius = '12px';
+            } else {
+                countElement.textContent = '';
+            }
+        };
+
+        window.openOrderModal = function () {
+            if (selectedSnacks.length === 0) {
+                showBookingToast('⚠️ Vui lòng chọn ít nhất 1 món!', 'error');
+                return;
+            }
+
+            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
+
+            document.getElementById('modalSnackCount').textContent = totalQuantity + ' món';
+
+            const snacksList = document.getElementById('modalSnacksList');
+            snacksList.innerHTML = '';
+            
+            selectedSnacks.forEach((snack, index) => {
+                const snackDiv = document.createElement('div');
+                snackDiv.className = 'snack-quantity-item';
+                snackDiv.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <span style="color:#fff;flex:1;">${snack.name || 'Snack'}</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button type="button" class="quantity-btn" onclick="updateSnackQuantityInModal(${index}, -1)"><i class="fas fa-minus"></i></button>
+            <input type="number" class="quantity-input" value="${snack.quantity}" min="1" max="10" readonly
+                   style="width:50px;text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px;border-radius:5px;">
+            <button type="button" class="quantity-btn" onclick="updateSnackQuantityInModal(${index}, 1)"><i class="fas fa-plus"></i></button>
+            <span style="color:#22c55e;font-weight:bold;min-width:100px;text-align:right;">${formatVND(snack.price * (snack.quantity || 1))}</span>
+          </div>
+        </div>`;
+                snacksList.appendChild(snackDiv);
+            });
+
+            document.getElementById('modalGrandTotal').textContent = formatVND(snackTotal);
+
+            document.getElementById('orderModalOverlay').classList.add('show');
+        };
+
+        window.updateSnackQuantityInModal = function (index, change) {
+            if (index < 0 || index >= selectedSnacks.length) return;
+            const snack = selectedSnacks[index];
+            const newQuantity = (snack.quantity || 1) + change;
+            if (newQuantity < 1 || newQuantity > 10) {
+                showBookingToast('⚠️ Số lượng từ 1-10!', 'error');
+                return;
+            }
+            snack.quantity = newQuantity;
+            
+            // Update card display
+            const controls = document.querySelectorAll('.snack-control');
+            controls.forEach(control => {
+                if (control.dataset.snackId === snack.id) {
+                    const input = control.querySelector('.quantity-input-snack');
+                    if (input) input.value = newQuantity;
+                }
+            });
+            
+            updateSummary();
+            openOrderModal();
+        };
+
+        window.closeOrderModal = function () {
+            document.getElementById('orderModalOverlay').classList.remove('show');
+        };
+
+        window.confirmOrder = async function () {
+            closeOrderModal();
+            showBookingLoading(true);
+
+            try {
+                const snacksData = selectedSnacks.map(snack => ({
+                    snackId: snack.id,
+                    quantity: snack.quantity || 1
+                }));
+
+                const bookRes = await fetch('/Booking/BookSnacks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        snacks: snacksData
+                    })
+                });
+
+                const bookData = await bookRes.json();
+
+                if (!bookData?.success) {
+                    showBookingToast('❌ ' + (bookData?.message || 'Đặt hàng thất bại'), 'error');
+                    return;
+                }
+
+                currentInvoiceId = bookData.invoiceId;
+                currentInvoiceAmount = bookData.totalPrice || 0;
+
+                if (!isAdmin) {
+                    const payRes = await fetch('/Payment/Create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            orderId: currentInvoiceId,
+                            amount: currentInvoiceAmount,
+                            orderInfo: `Dat do an ${currentInvoiceId}`
+                        })
+                    });
+                    const payData = await payRes.json();
+
+                    if (payData?.success && payData?.paymentUrl) {
+                        window.location.href = payData.paymentUrl;
+                        return;
+                    }
+
+                    showBookingToast('❌ Không tạo được URL thanh toán.', 'error');
+                    return;
+                }
+
+                openPaymentMethodModal();
+            } catch (error) {
+                showBookingToast('❌ Lỗi: ' + (error?.message || error), 'error');
+            } finally {
+                showBookingLoading(false);
+            }
+        };
+
+        function openPaymentMethodModal() {
+            const ov = document.getElementById('paymentMethodOverlay');
+            if (ov) ov.classList.add('show');
+        }
+
+        function closePaymentMethodModal() {
+            const ov = document.getElementById('paymentMethodOverlay');
+            if (ov) ov.classList.remove('show');
+        }
+
+        async function payWithVnPay() {
+            if (!currentInvoiceId || !currentInvoiceAmount) {
+                showBookingToast('❌ Thiếu thông tin đơn hàng.', 'error');
+                return;
+            }
+
+            closePaymentMethodModal();
+            showBookingLoading(true);
+
+            try {
+                const payRes = await fetch('/Payment/Create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: currentInvoiceId,
+                        amount: currentInvoiceAmount,
+                        orderInfo: `Dat do an ${currentInvoiceId}`
+                    })
+                });
+
+                const payData = await payRes.json();
+                if (payData?.success && payData?.paymentUrl) {
+                    window.location.href = payData.paymentUrl;
+                    return;
+                }
+
+                showBookingToast('❌ Không tạo được URL thanh toán VNPay.', 'error');
+            } catch (e) {
+                showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
+            } finally {
+                showBookingLoading(false);
+            }
+        }
+
+        async function payWithCash() {
+            if (!currentInvoiceId) {
+                showBookingToast('❌ Thiếu mã đơn hàng.', 'error');
+                return;
+            }
+
+            closePaymentMethodModal();
+            showBookingLoading(true);
+
+            try {
+                const res = await fetch('/Payment/PayByCash', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: currentInvoiceId })
+                });
+
+                const data = await res.json();
+                if (data?.success && data?.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                    return;
+                }
+
+                showBookingToast('❌ ' + (data?.message || 'Thanh toán tiền mặt thất bại.'), 'error');
+            } catch (e) {
+                showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
+            } finally {
+                showBookingLoading(false);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSummary();
+        });
+    </script>
+}

@@ -1,65 +1,94 @@
 ﻿@model CinemaS.Models.ShowTimes
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Chi tiết suất chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Details</h1>
+<!-- CSS -->
+<link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/table.css" />
 
-<div>
-    <h4>ShowTimes</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.OriginPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.OriginPrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ShowDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ShowDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StartTime)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StartTime)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EndTime)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EndTime)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TotalCinema)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TotalCinema)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-    </dl>
-</div>
-<div class="d-flex justify-content-between mt-4">
-    <button type="button" class="btn btn-secondary" onclick="history.back()">
-        <i class="fas fa-arrow-left"></i> Quay lại
-    </button>
-    <a asp-action="Edit" asp-route-id="@Model?.ShowTimeId" class="btn btn-warning">
-        <i class="fas fa-edit"></i> Chỉnh sửa
-    </a>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header text-white">
+                    <h3><i class="fas fa-clapperboard"></i> Chi tiết suất chiếu</h3>
+                </div>
+
+                <div class="card-body">
+                    <!-- Thông tin chính -->
+                    <div class="admin-table-wrap mb-4">
+                        <table class="table admin-table">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 30%; font-weight: 700;">
+                                        <i class="fa-solid fa-hashtag"></i> Mã suất chiếu
+                                    </td>
+                                    <td><strong>@Model.ShowTimeId</strong></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-solid fa-film"></i> Tên phim
+                                    </td>
+                                    <td>
+                                        <div title="@ViewBag.MovieTitle">
+                                            @ViewBag.MovieTitle
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-solid fa-door-open"></i> Phòng chiếu
+                                    </td>
+                                    <td><span class="badge-role">@ViewBag.TheaterName</span></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-solid fa-calendar"></i> Ngày chiếu
+                                    </td>
+                                    <td>@Model.ShowDate?.ToString("dd/MM/yyyy")</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-solid fa-clock"></i> Giờ bắt đầu
+                                    </td>
+                                    <td>@Model.StartTime?.ToString("HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-regular fa-hourglass-half"></i> Giờ kết thúc
+                                    </td>
+                                    <td>@Model.EndTime?.ToString("HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-solid fa-money-bill"></i> Giá gốc
+                                    </td>
+                                    <td>@(Model.OriginPrice?.ToString("N0") ?? "N/A") VNĐ</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 700;">
+                                        <i class="fa-solid fa-calendar-check"></i> Ngày cập nhật
+                                    </td>
+                                    <td>@Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Nút hành động -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-secondary" onclick="history.back()">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </button>
+                        <a asp-action="Edit" asp-route-id="@Model?.ShowTimeId" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Chỉnh sửa
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

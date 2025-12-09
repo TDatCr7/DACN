@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="~/css/management.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/seat-layout-editor.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/seat-layout-editor-advanced.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
 
 <style>
@@ -146,9 +147,7 @@
         overflow-y: auto;
         padding-bottom: 10px;
         scrollbar-width: thin;
-        display: flex;
-        justify-content: flex-start; /* ✅ canh trái để luôn có thể lướt về mục 1 */
-        margin: 0 auto;
+        margin: 0 auto; /* ✅ căn giữa container */
         box-sizing: border-box;
     }
 
@@ -157,6 +156,7 @@
         min-width: min-content;
         display: inline-flex;
         flex-direction: column;
+        margin: 0 auto; /* ✅ căn giữa grid khi nhỏ hơn container */
     }
 
     /* Webkit scrollbar styling */
@@ -167,6 +167,172 @@
     .seat-layout-scroll-wrapper::-webkit-scrollbar-thumb {
         background: rgba(255,255,255,0.25);
         border-radius: 4px;
+    }
+
+    /* ✅ NEW TOOLBAR STYLES - 2 SECTIONS */
+    .toolbar-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .toolbar-section {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .toolbar-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffd43b;
+        margin-bottom: 16px;
+    }
+
+    .toolbar-section-title i {
+        font-size: 14px;
+    }
+
+    /* Mode buttons - larger */
+    .mode-buttons-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .mode-button {
+        flex: 1;
+        padding: 12px 16px;
+        background: rgba(255,255,255,0.05);
+        border: 2px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        color: #e0e0e0;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mode-button i {
+        font-size: 16px;
+    }
+
+    .mode-button:hover {
+        background: rgba(124, 58, 237, 0.2);
+        border-color: rgba(124, 58, 237, 0.5);
+    }
+
+    .mode-button.active {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(124, 58, 237, 0.15) 100%);
+        border-color: #7c3aed;
+        color: #fff;
+        box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+    }
+
+    /* Disabled mode button styles */
+    .mode-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: rgba(255,255,255,0.1) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+    }
+
+    /* Action buttons - smaller */
+    .action-buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    .action-buttons-grid .action-row-2 {
+        grid-column: span 4;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 0;
+    }
+
+    .action-button {
+        padding: 8px 12px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 6px;
+        color: #e0e0e0;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .action-button i {
+        font-size: 12px;
+    }
+
+    .action-button:hover {
+        background: rgba(124, 58, 237, 0.15);
+        border-color: rgba(124, 58, 237, 0.4);
+    }
+
+    .action-button.active {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.4) 0%, rgba(124, 58, 237, 0.2) 100%);
+        border-color: #7c3aed;
+        color: #fff;
+    }
+
+    /* Delete button - special danger color */
+    .action-button[data-action="delete"] {
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .action-button[data-action="delete"]:hover {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .action-button[data-action="delete"].active {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(239, 68, 68, 0.2) 100%);
+        border-color: #ef4444;
+    }
+
+    /* Restore button - special success color */
+    .action-button[data-action="restore"] {
+        border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .action-button[data-action="restore"]:hover {
+        background: rgba(34, 197, 94, 0.15);
+        border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .action-button[data-action="restore"].active {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.2) 100%);
+        border-color: #22c55e;
+    }
+
+    @@media (max-width: 900px) {
+        .toolbar-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .action-buttons-grid .action-row-2 {
+            grid-column: span 2;
+        }
     }
 
 </style>
@@ -180,8 +346,8 @@
             <h1><i class="fas fa-th"></i> Chỉnh sửa bố cục ghế - @Model.TheaterName</h1>
         </div>
         <div class="header-actions">
-            <a href="@Url.Action("Index", "CinemaTheaters")" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
+            <a href="@Url.Action("Index", "CinemaTheaters")" class="btn btn-success">
+                <i class="fas fa-check"></i> Hoàn tất
             </a>
         </div>
     </div>
@@ -199,23 +365,63 @@
             }
         </select>
 
-        <!-- Toolbar with Edit Mode Selection -->
-        <div class="toolbar">
-            <div class="tool-section">
-                <h5><i class="fas fa-paint-brush"></i> Chế độ chỉnh sửa</h5>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-primary active" data-edit-mode="normal">
-                        <i class="fas fa-chair"></i> Ghế thường
+        <!-- ✅ NEW TOOLBAR - 2 SECTIONS -->
+        <div class="toolbar-container">
+            <!-- Section 1: Chế độ chỉnh sửa -->
+            <div class="toolbar-section">
+                <div class="toolbar-section-title">
+                    <i class="fas fa-mouse-pointer"></i>
+                    Chế độ chỉnh sửa
+                </div>
+                <div class="mode-buttons-group">
+                    <button class="mode-button active" data-mode="seat">
+                        <i class="fas fa-hand-pointer"></i>
+                        <span>Chọn theo ghế</span>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary" data-edit-mode="vip">
-                        <i class="fas fa-star"></i> Ghế VIP
+                    <button class="mode-button" data-mode="row">
+                        <i class="fas fa-star"></i>
+                        <span>Chọn theo hàng</span>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary" data-edit-mode="couple">
-                        <i class="fas fa-users"></i> Ghế đôi
+                    <button class="mode-button" data-mode="column">
+                        <i class="fas fa-columns"></i>
+                        <span>Chọn theo cột</span>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary" data-edit-mode="broken">
-                        <i class="fas fa-exclamation-triangle"></i> Ghế hỏng
+                </div>
+            </div>
+
+            <!-- Section 2: Hành động -->
+            <div class="toolbar-section">
+                <div class="toolbar-section-title">
+                    <i class="fas fa-tools"></i>
+                    Hành động
+                </div>
+                <div class="action-buttons-grid">
+                    <button class="action-button active" data-action="normal">
+                        <i class="fas fa-chair"></i>
+                        <span>Ghế thường</span>
                     </button>
+                    <button class="action-button" data-action="vip">
+                        <i class="fas fa-star"></i>
+                        <span>Ghế VIP</span>
+                    </button>
+                    <button class="action-button" data-action="couple">
+                        <i class="fas fa-users"></i>
+                        <span>Ghế đôi</span>
+                    </button>
+                    <button class="action-button" data-action="broken">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Ghế hỏng</span>
+                    </button>
+                    <div class="action-row-2">
+                        <button class="action-button" data-action="delete">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>Bỏ ghế</span>
+                        </button>
+                        <button class="action-button" data-action="restore">
+                            <i class="fas fa-undo"></i>
+                            <span>Khôi phục</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -251,8 +457,8 @@
                 {
                     var row = Model.Rows[r];
                     var isLastRow = r == Model.Rows.Count - 1;
-                    <div class="seat-row @(isLastRow ? "last-row" : "")" data-row-number="@row.RowNumber">
-                        <div class="row-label" data-row-index="@row.RowNumber">
+                    <div class="seat-row @(isLastRow ? "last-row" : "")" data-row-number="@row.RowNumber" data-row-label="@row.RowLabel">
+                        <div class="row-label" data-row-index="@row.RowNumber" data-row-label="@row.RowLabel">
                             <span class="row-label-text">@row.RowLabel</span>
                             <button class="delete-btn" title="Xóa hàng @row.RowLabel">
                                 <i class="fas fa-times"></i>
@@ -264,28 +470,36 @@
                             {
                                 var seatClass = "seat";
                                 if (!seat.IsActive) seatClass += " inactive";
+                                if (seat.IsDeleted) seatClass += " removed-seat";
                                 
                                 var badge = "";
                                 if (seat.SeatTypeName == "VIP") badge = "V";
                                 else if (seat.SeatTypeName == "COUPLE" || seat.IsLeftOfPair || seat.IsRightOfPair) badge = "CP";
 
-                                var dataAttrs = $"data-seat-id='{seat.SeatId}' data-seat-type-id='{seat.SeatTypeId}' data-seat-type-name='{seat.SeatTypeName}' data-row-number='{seat.RowNumber}' data-column-index='{seat.ColumnIndex}' data-is-active='{seat.IsActive.ToString().ToLower()}' data-pair-id='{seat.PairId}'";
+                                var dataAttrs = $"data-seat-id='{seat.SeatId}' data-seat-type-id='{seat.SeatTypeId}' data-seat-type-name='{seat.SeatTypeName}' data-row-number='{seat.RowNumber}' data-column-index='{seat.ColumnIndex}' data-is-active='{seat.IsActive.ToString().ToLower()}' data-is-deleted='{seat.IsDeleted.ToString().ToLower()}' data-seat-label='{seat.Label}' data-pair-id='{seat.PairId}'";
 
                                 <div class="@seatClass seat-type-@(seat.SeatTypeName?.ToLower() ?? "normal")" @Html.Raw(dataAttrs) onclick="onSeatClick(this)">
-                                    @if (!string.IsNullOrEmpty(badge))
+                                    @if (seat.IsDeleted)
                                     {
-                                        <span class="seat-badge">@badge</span>
+                                        <span class="removed-icon">✗</span>
                                     }
-                                    @if (!seat.IsActive)
+                                    else
                                     {
-                                        <span class="broken-icon">✗</span>
+                                        @if (!string.IsNullOrEmpty(badge))
+                                        {
+                                            <span class="seat-badge">@badge</span>
+                                        }
+                                        @if (!seat.IsActive)
+                                        {
+                                            <span class="broken-icon">✗</span>
+                                        }
+                                        <div class="seat-label-small">@seat.Label</div>
                                     }
-                                    <div class="seat-label-small">@seat.Label</div>
                                 </div>
                             }
                         </div>
 
-                        <div class="row-label" data-row-index="@row.RowNumber">
+                        <div class="row-label" data-row-index="@row.RowNumber" data-row-label="@row.RowLabel">
                             <span class="row-label-text">@row.RowLabel</span>
                             <button class="delete-btn" title="Xóa hàng @row.RowLabel">
                                 <i class="fas fa-times"></i>
@@ -323,6 +537,10 @@
                     <div class="seat inactive"><span class="broken-icon">✗</span></div>
                     <span>Ghế hỏng</span>
                 </div>
+                <div class="legend-item">
+                    <div class="seat removed-seat"><span class="removed-icon">✗</span></div>
+                    <span>Ghế đã bỏ</span>
+                </div>
             </div>
         </div>
 
@@ -335,8 +553,8 @@
             {
                 var sortedShowtimes = (ViewBag.ShowTimes as IEnumerable<ShowTimeVM>).OrderBy(x => x.StartTime).ToList();
                 <div class="showtime-scroll-container">
-                    <div class="table-container">
-                        <table class="table table-hover table-bordered align-middle">
+                    <div class="admin-table-wrap">
+                        <table class="table admin-table align-middle">
                             <thead>
                                 <tr>
                                     <th style="width:8%;"><i class="fa-solid fa-hashtag"></i> Mã</th>
@@ -351,7 +569,11 @@
                                 {
                                     <tr>
                                         <td><strong>@showTime.ShowTimeId</strong></td>
-                                        <td>@showTime.MovieTitle</td>
+                                        <td>
+                                            <div class="text-truncate-cell" title="@showTime.MovieTitle">
+                                                @showTime.MovieTitle
+                                            </div>
+                                        </td>
                                         <td>@showTime.ShowDate?.ToString("dd/MM/yyyy")</td>
                                         <td>@showTime.StartTime?.ToString("HH:mm")</td>
                                         <td>@showTime.EndTime?.ToString("HH:mm")</td>
@@ -391,5 +613,5 @@
 
 @section Scripts {
     <script src="~/js/toast-notification.js" asp-append-version="true"></script>
-    <script src="~/js/seat-layout-editor.js" asp-append-version="true"></script>
+    <script src="~/js/seat-layout-editor-advanced.js" asp-append-version="true"></script>
 }

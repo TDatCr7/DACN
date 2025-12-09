@@ -44,6 +44,7 @@ namespace CinemaS.Models.ViewModels
         public int RowNumber { get; set; }
         public int ColumnIndex { get; set; }
         public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
         public string? PairId { get; set; }
         public bool IsLeftOfPair { get; set; }
         public bool IsRightOfPair { get; set; }

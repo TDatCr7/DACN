@@ -1,0 +1,137 @@
+/* Table Styles for Admin-like Interface */
+
+.admin-table-wrap {
+    border-radius: 22px;
+    overflow: hidden;
+    background: linear-gradient(145deg, #050816, #020617);
+    border: 1px solid rgba(148,163,255,.55);
+    box-shadow: 0 18px 45px rgba(15,23,42,.95);
+}
+
+.admin-table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: transparent;
+    --bs-table-hover-bg: transparent;
+    margin-bottom: 0;
+    color: #f9fafb;
+    border-color: transparent;
+    font-size: 15px;
+}
+
+    .admin-table thead {
+        background: #050816;
+    }
+
+        .admin-table thead th {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(148,163,255,.35);
+            color: #e5e7ff;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+            .admin-table thead th i {
+                margin-right: 6px;
+                font-size: 13px;
+                opacity: .9;
+            }
+
+    .admin-table tbody tr {
+        background: #050b1f;
+        transition: background .16s ease, transform .12s ease, box-shadow .12s ease;
+    }
+
+        .admin-table tbody tr:nth-child(even) {
+            background: #071027;
+        }
+
+        .admin-table tbody tr:hover {
+            background: #0b1535;
+            box-shadow: inset 0 0 0 1px rgba(148,163,255,.35);
+            transform: translateY(-1px);
+        }
+
+    .admin-table tbody td {
+        padding: 14px 16px;
+        border-top: 1px solid #020617;
+        font-size: 15px;
+        vertical-align: middle;
+        color: #f9fafb;
+    }
+
+        .admin-table tbody td:first-child,
+        .admin-table thead th:first-child {
+            padding-left: 20px;
+        }
+
+.admin-text-muted {
+    color: #a0aecb;
+    font-size: 13px;
+}
+
+.badge-role {
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(59,130,246,.16);
+    border: 1px solid rgba(59,130,246,.7);
+    color: #dbeafe;
+}
+
+.badge-email-ok {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(34,197,94,.18);
+    border: 1px solid rgba(34,197,94,.7);
+    color: #bbf7d0;
+    white-space: nowrap;
+}
+
+.badge-email-no {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(148,163,184,.16);
+    border: 1px solid rgba(148,163,184,.7);
+    color: #e5e7eb;
+    white-space: nowrap;
+}
+
+.admin-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(30,64,175,.9);
+    background: radial-gradient(circle at 30% 0, #2563eb, #020617);
+    color: #f9fafb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    margin-left: 6px;
+    transition: .15s ease;
+}
+
+    .admin-icon-btn:hover {
+        filter: brightness(1.2);
+        transform: translateY(-1px);
+    }
+
+.admin-icon-btn-danger {
+    border-color: rgba(248,113,113,.95);
+    background: radial-gradient(circle at 30% 0, #ef4444, #111827);
+    color: #fee2e2;
+}
+
+@@media (max-width: 767.98px) {
+    .admin-table {
+        font-size: 14px;
+    }
+}

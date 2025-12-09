@@ -6,23 +6,20 @@
 }
 
 <link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
 
 <div class="container-fluid mt-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="fw-bold ">
+        <h1 class="fw-bold">
             <i class="fas fa-tags"></i> Quản lý Loại Đồ Ăn
         </h1>
         <div class="d-flex gap-2">
             <a asp-action="Create" class="btn btn-primary">
                 <i class="fas fa-plus-circle"></i> Tạo mới
             </a>
-
-            <button type="button" class="btn btn-secondary" onclick="history.back()">
-    <i class="fas fa-arrow-left"></i> Quay lại
-</button>
-
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
         </div>
     </div>
 
@@ -56,7 +53,7 @@
                 <div class="col-md-6">
                     <div class="input-group">
                         <input type="text" name="searchString" value="@ViewData["CurrentFilter"]"
-                               class="form-control" placeholder="🔍 Tìm theo tên, mã hoặc mô tả..." />
+                               class="form-control" placeholder="🔍 Tìm theo tên, mã hoặc mô tả..." style="color: white;" />
                         <button type="submit" class="btn btn-outline-secondary">
                             <i class="fas fa-search"></i>
                         </button>
@@ -72,72 +69,64 @@
         </div>
     </div>
 
-    <!-- Table -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle table-bordered">
-                    <thead class="table-dark text-center">
+    <!-- Table - sử dụng admin-table-wrap và admin-table -->
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-hashtag"></i>STT</th>
+                    <th><i class="fa-solid fa-tag"></i>Mã Loại</th>
+                    <th><i class="fa-solid fa-utensils"></i>Tên Loại</th>
+                    <th><i class="fa-solid fa-align-left"></i>Mô tả</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    int index = 1;
+                    foreach (var item in Model)
+                    {
                         <tr>
-                            <th>STT</th>
-                            <th>Mã Loại</th>
-                            <th>Tên Loại</th>
-                            <th>Mô tả</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            int index = 1;
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td class="text-center fw-bold">@index</td>
-                                    <td><strong>@item.SnackTypeId</strong></td>
-                                    <td>@item.Name</td>
-                                    <td>
-                                        @(string.IsNullOrEmpty(item.Description)
-                                                                        ? Html.Raw("<span class='text-muted'>Không có mô tả</span>")
-                                                                        : (item.Description.Length > 60
-                                                                        ? item.Description.Substring(0, 60) + "..."
-                                                                        : item.Description))
+                            <td class="text-center fw-bold">@index</td>
+                            <td><strong>@item.SnackTypeId</strong></td>
+                            <td>@item.Name</td>
+                            <td class="admin-text-muted">
+                                @(string.IsNullOrEmpty(item.Description)
+                                    ? "Không có mô tả"
+                                    : (item.Description.Length > 60
+                                        ? item.Description.Substring(0, 60) + "..."
+                                        : item.Description))
                             </td>
-                            <td class="text-center">
-                                <a asp-action="Details" asp-route-id="@item.SnackTypeId"
-                                   class="btn btn-sm btn-info me-1" title="Xem chi tiết">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                            <td class="text-end">
                                 <a asp-action="Edit" asp-route-id="@item.SnackTypeId"
-                                   class="btn btn-sm btn-warning me-1" title="Chỉnh sửa">
-                                    <i class="fas fa-edit"></i>
+                                   class="admin-icon-btn" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen"></i>
                                 </a>
                                 <a asp-action="Delete" asp-route-id="@item.SnackTypeId"
-                                   class="btn btn-sm btn-danger" title="Xóa">
-                                    <i class="fas fa-trash"></i>
+                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
                                 </a>
                             </td>
                         </tr>
-                                                index++;
+                        index++;
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-center admin-text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            <strong>Không tìm thấy loại đồ ăn nào</strong>
+                            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+                            {
+                                <p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                    <strong>Không tìm thấy loại đồ ăn nào</strong>
-                                    @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-                                    {
-                                        <p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 

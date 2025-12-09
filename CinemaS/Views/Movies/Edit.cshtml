@@ -83,6 +83,7 @@
         border: 1px solid rgba(148,163,255,.4);
         box-shadow: 0 12px 30px rgba(15,23,42,.8);
         object-fit: cover;
+        width: 100%;
     }
 
     .movie-edit-actions .btn {
@@ -120,35 +121,6 @@
         font-size: 12px;
     }
 
-    .chip-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 6px;
-    }
-
-    .chip {
-        border-radius: 999px;
-        padding: 4px 12px;
-        font-size: 13px;
-        border: 1px solid rgba(148,163,255,.4);
-        background: rgba(15,23,42,.8);
-        color: #e5e7f5;
-        cursor: pointer;
-        transition: background .15s ease, border-color .15s ease, transform .1s ease;
-    }
-
-        .chip:hover {
-            transform: translateY(-1px);
-            border-color: rgba(96,165,250,1);
-        }
-
-    .chip-selected {
-        background: linear-gradient(120deg, #2563eb, #7c3aed);
-        border-color: rgba(191,219,254,1);
-        color: #f9fafb;
-    }
-
     @@media (max-width: 767.98px) {
         .movie-edit-card {
             padding-inline: 18px;
@@ -158,6 +130,65 @@
             flex-direction: column;
             gap: 10px;
         }
+    }
+
+    /* ==== Select2 styling ==== */
+    .select2-container--default .select2-selection--multiple,
+    .select2-container--default .select2-selection--single {
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.35);
+        min-height: 42px;
+        padding: 2px 6px;
+        color: #e5e7f5;
+        font-size: 14px;
+    }
+
+        .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background: linear-gradient(120deg, #2563eb, #7c3aed);
+            border: none;
+            border-radius: 999px;
+            color: #f9fafb;
+            padding: 2px 10px;
+            font-size: 12px;
+        }
+
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: #e5e7f5;
+            margin-right: 4px;
+        }
+
+    .select2-dropdown {
+        background-color: #020617;
+        border: 1px solid rgba(148,163,255,.35);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .select2-search--dropdown .select2-search__field {
+        background-color: #020617;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.55);
+        color: #e5e7f5;
+        padding-inline: 10px;
+        font-size: 13px;
+    }
+
+    .select2-results__option {
+        padding: 6px 10px;
+        font-size: 14px;
+        color: #e5e7f5;
+    }
+
+    .select2-results__option--highlighted.select2-results__option--selectable {
+        background: linear-gradient(120deg, #2563eb, #7c3aed);
+        color: #fff;
     }
 </style>
 
@@ -171,7 +202,6 @@
             <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
             <div class="row g-3">
-                <!-- Cột trái -->
                 <div class="col-lg-8">
                     <div class="mb-2">
                         <label asp-for="Title" class="form-label">Tên phim</label>
@@ -236,63 +266,39 @@
 
                     <!-- ===== Thể loại ===== -->
                     <hr class="mt-4 mb-3" />
-                    <div class="movie-section-title">Thể loại</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="movie-section-title mb-0">Thể loại</div>
+                        <a asp-controller="Genres" asp-action="Index" class="btn btn-sm btn-outline-light">
+                            <i class="fa-solid fa-layer-group me-1"></i> Quản lý thể loại
+                        </a>
+                    </div>
 
-                    <label class="form-label">Đang chọn</label>
-                    <input id="genresDisplay" class="form-control movie-input mb-2" readonly />
-
-                    <div class="chip-container" id="genresChips">
+                    <label class="form-label mt-2">Chọn thể loại</label>
+                    <select id="genresSelect"
+                            name="selectedGenres"
+                            class="form-select movie-input"
+                            multiple="multiple">
                         @foreach (var g in genres)
                         {
-                            var isSel = currentGenres.Contains(g.GenresId);
-                            var cls = "chip" + (isSel ? " chip-selected" : "");
-                            <button type="button"
-                                    class="@cls"
-                                    data-type="genre"
-                                    data-id="@g.GenresId"
-                                    data-name="@g.Name">
-                                @g.Name
-                            </button>
+                            <option value="@g.GenresId">@g.Name</option>
                         }
-                    </div>
+                    </select>
 
-                    <div id="hidden-genre">
-                        @foreach (var gid in currentGenres)
-                        {
-                            <input type="hidden" name="selectedGenres" value="@gid" />
-                        }
-                    </div>
-
-                    <!-- ===== Người tham gia ===== -->
+                    <!-- ===== Người tham gia (dropdown + search) ===== -->
                     <hr class="mt-4 mb-3" />
                     <div class="movie-section-title">Người tham gia</div>
 
-                    <!-- Đạo diễn -->
-                    <label class="form-label">Đạo diễn đang chọn</label>
-                    <input id="directorsDisplay" class="form-control movie-input mb-2" readonly />
-
-                    <div class="chip-container" id="directorsChips">
+                    <label class="form-label">Đạo diễn</label>
+                    <select id="directorsSelect"
+                            name="selectedDirectors"
+                            class="form-select movie-input participant-select"
+                            multiple="multiple">
                         @foreach (var p in participants)
                         {
                             var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
-                            var isSel = selectedDir.Contains(p.ParticipantsId);
-                            var cls = "chip" + (isSel ? " chip-selected" : "");
-                            <button type="button"
-                                    class="@cls"
-                                    data-type="director"
-                                    data-id="@p.ParticipantsId"
-                                    data-name="@name">
-                                @name
-                            </button>
+                            <option value="@p.ParticipantsId">@name</option>
                         }
-                    </div>
-
-                    <div id="hidden-director">
-                        @foreach (var pid in selectedDir)
-                        {
-                            <input type="hidden" name="selectedDirectors" value="@pid" />
-                        }
-                    </div>
+                    </select>
 
                     <small class="form-label d-block mt-3">Thêm đạo diễn mới (cách nhau bằng dấu phẩy):</small>
                     <input type="text"
@@ -300,33 +306,18 @@
                            class="form-control movie-input"
                            placeholder="Ví dụ: Christopher Nolan, Denis Villeneuve" />
 
-                    <!-- Diễn viên -->
                     <div class="mt-4">
-                        <label class="form-label">Diễn viên đang chọn</label>
-                        <input id="actorsDisplay" class="form-control movie-input mb-2" readonly />
-
-                        <div class="chip-container" id="actorsChips">
+                        <label class="form-label">Diễn viên</label>
+                        <select id="actorsSelect"
+                                name="selectedActors"
+                                class="form-select movie-input participant-select"
+                                multiple="multiple">
                             @foreach (var p in participants)
                             {
                                 var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
-                                var isSel = selectedAct.Contains(p.ParticipantsId);
-                                var cls = "chip" + (isSel ? " chip-selected" : "");
-                                <button type="button"
-                                        class="@cls"
-                                        data-type="actor"
-                                        data-id="@p.ParticipantsId"
-                                        data-name="@name">
-                                    @name
-                                </button>
+                                <option value="@p.ParticipantsId">@name</option>
                             }
-                        </div>
-
-                        <div id="hidden-actor">
-                            @foreach (var pid in selectedAct)
-                            {
-                                <input type="hidden" name="selectedActors" value="@pid" />
-                            }
-                        </div>
+                        </select>
 
                         <small class="form-label d-block mt-3">Thêm diễn viên mới (cách nhau bằng dấu phẩy):</small>
                         <input type="text"
@@ -334,42 +325,34 @@
                                class="form-control movie-input"
                                placeholder="Ví dụ: Tom Cruise, Emily Blunt" />
                     </div>
+
                 </div>
 
-                <!-- Cột phải -->
                 <div class="col-lg-4">
                     <div class="movie-section-title">Poster</div>
                     <div class="mb-3">
-                        @if (!string.IsNullOrEmpty(Model.PosterImage))
-                        {
-                            <img src="@Model.PosterImage" alt="Poster" class="poster-thumb mb-2 w-100" />
-                        }
-                        else
-                        {
-                            <div class="mb-2 text-muted">Chưa có poster</div>
-                        }
+                        <img id="posterPreview"
+                             src="@(!string.IsNullOrEmpty(Model.PosterImage) ? Model.PosterImage : "/images/no-poster.png")"
+                             alt="Poster"
+                             class="poster-thumb mb-2" />
                         <input type="file" name="posterFile" id="posterFile" accept="image/*" class="form-control movie-input" />
                     </div>
 
                     <div class="movie-section-title">Banner</div>
                     <div class="mb-3">
-                        @if (!string.IsNullOrEmpty(Model.BannerImage))
-                        {
-                            <img src="@Model.BannerImage" alt="Banner" class="banner-thumb mb-2 w-100" />
-                        }
-                        else
-                        {
-                            <div class="mb-2 text-muted">Chưa có banner</div>
-                        }
+                        <img id="bannerPreview"
+                             src="@(!string.IsNullOrEmpty(Model.BannerImage) ? Model.BannerImage : "/images/no-poster.png")"
+                             alt="Banner"
+                             class="banner-thumb mb-2" />
                         <input type="file" name="bannerFile" id="bannerFile" accept="image/*" class="form-control movie-input" />
                     </div>
                 </div>
             </div>
 
             <div class="movie-edit-actions mt-4 d-flex justify-content-between align-items-center">
-                <a asp-action="Index" class="btn btn-outline-light">
+                <button type="button" class="btn btn-outline-light" onclick="history.back()">
                     <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
-                </a>
+                </button>
                 <button type="submit" class="btn btn-gradient">
                     <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
                 </button>
@@ -380,47 +363,55 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
-        function updateDisplay(type) {
-            const chips = document.querySelectorAll('.chip[data-type="' + type + '"].chip-selected');
-            const names = Array.from(chips).map(c => c.dataset.name);
-            const displayId = type === 'genre'
-                ? 'genresDisplay'
-                : type === 'director'
-                    ? 'directorsDisplay'
-                    : 'actorsDisplay';
-            const hiddenId = 'hidden-' + type;
+        function bindImagePreview(fileInputId, imgId) {
+            const input = document.getElementById(fileInputId);
+            const img = document.getElementById(imgId);
+            if (!input || !img) return;
 
-            const displayInput = document.getElementById(displayId);
-            if (displayInput) displayInput.value = names.join(', ');
-
-            const hiddenContainer = document.getElementById(hiddenId);
-            if (!hiddenContainer) return;
-
-            hiddenContainer.innerHTML = '';
-            const fieldName =
-                type === 'genre' ? 'selectedGenres' :
-                    type === 'director' ? 'selectedDirectors' : 'selectedActors';
-
-            Array.from(chips).forEach(c => {
-                const inp = document.createElement('input');
-                inp.type = 'hidden';
-                inp.name = fieldName;
-                inp.value = c.dataset.id;
-                hiddenContainer.appendChild(inp);
+            input.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                }
             });
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.chip').forEach(chip => {
-                chip.addEventListener('click', () => {
-                    chip.classList.toggle('chip-selected');
-                    const type = chip.dataset.type;
-                    updateDisplay(type);
+        $(document).ready(function () {
+            function initMulti(selector, placeholder) {
+                $(selector).select2({
+                    placeholder: placeholder,
+                    width: '100%',
+                    closeOnSelect: false
                 });
-            });
+            }
 
-            ['genre', 'director', 'actor'].forEach(updateDisplay);
+            initMulti('#genresSelect', 'Chọn thể loại...');
+            initMulti('#directorsSelect', 'Chọn đạo diễn...');
+            initMulti('#actorsSelect', 'Chọn diễn viên...');
+
+            var initialGenres = '@string.Join(",", currentGenres)';
+            var initialDirectors = '@string.Join(",", selectedDir)';
+            var initialActors = '@string.Join(",", selectedAct)';
+
+            if (initialGenres) {
+                $('#genresSelect').val(initialGenres.split(',')).trigger('change');
+            }
+            if (initialDirectors) {
+                $('#directorsSelect').val(initialDirectors.split(',')).trigger('change');
+            }
+            if (initialActors) {
+                $('#actorsSelect').val(initialActors.split(',')).trigger('change');
+            }
+
+            bindImagePreview('posterFile', 'posterPreview');
+            bindImagePreview('bannerFile', 'bannerPreview');
         });
     </script>
 }

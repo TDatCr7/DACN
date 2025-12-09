@@ -1,72 +1,82 @@
 ﻿@model IEnumerable<CinemaS.Models.MembershipRank>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Hạng Thành Viên";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="fa-solid fa-crown"></i> Quản lý Hạng Thành Viên</h1>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fa-solid fa-plus-circle"></i> Tạo mới
+            </a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.RequirePoint)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PointReturnTicket)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PointReturnCombo)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PriorityLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.RequirePoint)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PointReturnTicket)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PointReturnCombo)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PriorityLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.MembershipRankId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.MembershipRankId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.MembershipRankId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-tag"></i>Tên hạng</th>
+                    <th><i class="fa-solid fa-star"></i>Điểm yêu cầu</th>
+                    <th><i class="fa-solid fa-ticket"></i>Điểm hoàn vé</th>
+                    <th><i class="fa-solid fa-popcorn"></i>Điểm hoàn combo</th>
+                    <th><i class="fa-solid fa-sort-numeric-up"></i>Mức ưu tiên</th>
+                    <th><i class="fa-solid fa-calendar"></i>Ngày tạo</th>
+                    <th><i class="fa-solid fa-calendar-check"></i>Ngày cập nhật</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center admin-text-muted py-4">
+                            Không có hạng thành viên nào.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td>@item.RequirePoint</td>
+                            <td>@item.PointReturnTicket</td>
+                            <td>@item.PointReturnCombo</td>
+                            <td>@item.PriorityLevel</td>
+                            <td>@(item.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                            <td>@(item.UpdatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@item.MembershipRankId" 
+                                   class="admin-icon-btn" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a asp-action="Details" asp-route-id="@item.MembershipRankId" 
+                                   class="admin-icon-btn" title="Chi tiết">
+                                    <i class="fa-regular fa-eye"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.MembershipRankId" 
+                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+    </div>
+</div>

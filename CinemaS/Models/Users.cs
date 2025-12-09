@@ -46,5 +46,9 @@ namespace CinemaS.Models
     [Column("Updated_At")]
     public DateTime? UpdatedAt { get; set; }
 
+    [Column("AvatarUrl")]
+    [MaxLength(300)]
+    public string? AvatarUrl { get; set; }
+
     }
 }

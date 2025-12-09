@@ -24,7 +24,18 @@ namespace CinemaS.Controllers
         // ======================= INDEX (có tìm kiếm) =======================
         public async Task<IActionResult> Index(string? searchTerm)
         {
-            var query = _context.ShowTimes
+            // Load all CinemaTheaters into a dictionary
+            var cinemaTheaters = await _context.CinemaTheaters
+                .Select(ct => new CinemaTheaterVM
+                {
+                    CinemaTheaterId = ct.CinemaTheaterId,
+                    Name = ct.Name,
+                    TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
+                })
+                .ToDictionaryAsync(ct => ct.CinemaTheaterId);
+
+            // Load all ShowTimes into a list of ShowTimeVM
+            var showTimes = await _context.ShowTimes
                 .Select(st => new ShowTimeVM
                 {
                     ShowTimeId = st.ShowTimeId,
@@ -35,21 +46,26 @@ namespace CinemaS.Controllers
                     EndTime = st.EndTime,
                     OriginPrice = st.OriginPrice,
                     TotalCinema = st.TotalCinema
-                });
+                })
+                .ToListAsync();
 
-            var list = await query.OrderByDescending(st => st.ShowDate).ToListAsync();
-
-            foreach (var st in list)
+            // Map TotalSeats from CinemaTheaterVM to ShowTimeVM
+            foreach (var st in showTimes)
             {
+                if (cinemaTheaters.TryGetValue(st.CinemaTheaterId, out var theater))
+                {
+                    st.TotalSeats = theater.TotalSeats;
+                }
+
                 var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
-                var theater = await _context.CinemaTheaters.FirstOrDefaultAsync(ct => ct.CinemaTheaterId == st.CinemaTheaterId);
+                var theaterName = await _context.CinemaTheaters.FirstOrDefaultAsync(ct => ct.CinemaTheaterId == st.CinemaTheaterId);
 
                 st.MovieTitle = movie?.Title;
-                st.CinemaTheaterName = theater?.Name;
+                st.CinemaTheaterName = theaterName?.Name;
 
                 if (_context.Seats != null && _context.Tickets != null)
                 {
-                    var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId);
+                    var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId && s.IsActive);
                     var bookedSeats = await _context.Tickets.CountAsync(t => t.ShowTimeId == st.ShowTimeId && t.Status == 1);
                     st.AvailableSeats = totalSeats - bookedSeats;
                 }
@@ -58,13 +74,13 @@ namespace CinemaS.Controllers
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var lower = searchTerm.ToLower();
-                list = list.Where(st =>
+                showTimes = showTimes.Where(st =>
                     (st.MovieTitle ?? "").ToLower().Contains(lower) ||
                     (st.CinemaTheaterName ?? "").ToLower().Contains(lower))
                     .ToList();
             }
 
-            return View(list);
+            return View(showTimes);
         }
 
         // ======================= DETAILS =======================
@@ -73,6 +89,14 @@ namespace CinemaS.Controllers
             if (id == null) return NotFound();
             var showTimes = await _context.ShowTimes.FirstOrDefaultAsync(m => m.ShowTimeId == id);
             if (showTimes == null) return NotFound();
+            
+            // Load movie and theater info
+            var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MoviesId == showTimes.MoviesId);
+            var theater = await _context.CinemaTheaters.FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTimes.CinemaTheaterId);
+            
+            ViewBag.MovieTitle = movie?.Title;
+            ViewBag.TheaterName = theater?.Name;
+            
             return View(showTimes);
         }
 
@@ -183,7 +207,7 @@ namespace CinemaS.Controllers
                 }
 
                 showTime.ShowTimeId = await GenerateNewIdAsync();
-                showTime.TotalCinema = await _context.Seats.CountAsync(s => s.CinemaTheaterId == showTime.CinemaTheaterId);
+                showTime.TotalCinema = await _context.Seats.CountAsync(s => s.CinemaTheaterId == showTime.CinemaTheaterId && s.IsActive);
                 showTime.CreatedAt = DateTime.UtcNow;
                 showTime.UpdatedAt = DateTime.UtcNow;
 

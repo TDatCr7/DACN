@@ -29,6 +29,8 @@ namespace CinemaS.Models
         [Column("Is_Active")]
         public bool IsActive { get; set; } = true;
 
+        [Column("Is_Deleted")]
+        public bool IsDeleted { get; set; } = false;
 
         [Column("Pair_ID")]
         [StringLength(10)]

@@ -141,7 +141,7 @@ h1, h2, h3, h4, h5 {
         }
 
         .search-box .form-control::placeholder {
-            color: #aaa;
+            color: white;
         }
 
     .search-box .btn {
@@ -377,3 +377,16 @@ h1, h2, h3, h4, h5 {
         padding: 12px 18px;
         border-color: rgba(255, 255, 255, 0.08) !important;
     }
+
+/* ====== TEXT TRUNCATE FOR TABLE CELLS ====== */
+.text-truncate-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    display: block;
+}
+
+.admin-table td {
+    max-width: 400px;
+}

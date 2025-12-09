@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CinemaS.Models;
 
@@ -20,6 +19,39 @@ namespace CinemaS.Controllers
             _context = context;
         }
 
+        // HÀM TẠO ID THỂ LOẠI TIẾP THEO
+        private string GenerateNextGenresId()
+        {
+            // Lấy ID lớn nhất hiện có (theo thứ tự string)
+            var lastId = _context.Genres
+                                 .OrderByDescending(g => g.GenresId)
+                                 .Select(g => g.GenresId)
+                                 .FirstOrDefault();
+
+            if (string.IsNullOrEmpty(lastId))
+            {
+                // Bảng rỗng → ID đầu tiên
+                return "GR001";
+            }
+
+            // Tách prefix chữ + phần số
+            var prefix = new string(lastId.TakeWhile(c => !char.IsDigit(c)).ToArray());
+            var numberPart = new string(lastId.Skip(prefix.Length).ToArray());
+
+            if (!int.TryParse(numberPart, out var number))
+            {
+                // Nếu không parse được thì giữ nguyên hoặc tự chọn fallback
+                return lastId;
+            }
+
+            number++;
+
+            // Giữ nguyên số lượng chữ số như cũ (ví dụ 3 chữ số → 001, 002,…)
+            var formattedNumber = number.ToString(new string('0', numberPart.Length));
+
+            return prefix + formattedNumber;
+        }
+
         // GET: Genres
         public async Task<IActionResult> Index()
         {
@@ -29,17 +61,11 @@ namespace CinemaS.Controllers
         // GET: Genres/Details/5
         public async Task<IActionResult> Details(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var genres = await _context.Genres
                 .FirstOrDefaultAsync(m => m.GenresId == id);
-            if (genres == null)
-            {
-                return NotFound();
-            }
+            if (genres == null) return NotFound();
 
             return View(genres);
         }
@@ -47,12 +73,12 @@ namespace CinemaS.Controllers
         // GET: Genres/Create
         public IActionResult Create()
         {
+            // Gợi ý ID tiếp theo
+            ViewBag.SuggestedId = GenerateNextGenresId();
             return View();
         }
 
         // POST: Genres/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("GenresId,Name,Description")] Genres genres)
@@ -63,36 +89,28 @@ namespace CinemaS.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            // Khi lỗi validate, không cần gợi ý lại nếu user đã nhập
             return View(genres);
         }
 
         // GET: Genres/Edit/5
         public async Task<IActionResult> Edit(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var genres = await _context.Genres.FindAsync(id);
-            if (genres == null)
-            {
-                return NotFound();
-            }
+            if (genres == null) return NotFound();
+
             return View(genres);
         }
 
         // POST: Genres/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id, [Bind("GenresId,Name,Description")] Genres genres)
         {
-            if (id != genres.GenresId)
-            {
-                return NotFound();
-            }
+            if (id != genres.GenresId) return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -103,14 +121,8 @@ namespace CinemaS.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!GenresExists(genres.GenresId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!GenresExists(genres.GenresId)) return NotFound();
+                    else throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -120,17 +132,11 @@ namespace CinemaS.Controllers
         // GET: Genres/Delete/5
         public async Task<IActionResult> Delete(string id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var genres = await _context.Genres
                 .FirstOrDefaultAsync(m => m.GenresId == id);
-            if (genres == null)
-            {
-                return NotFound();
-            }
+            if (genres == null) return NotFound();
 
             return View(genres);
         }

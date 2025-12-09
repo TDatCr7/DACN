@@ -1,67 +1,461 @@
 ﻿@model CinemaS.Models.Invoices
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Chi tiết hóa đơn";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var isPaid = Model.Status == 1;
+    string statusText = isPaid ? "Đã thanh toán" : "Chưa thanh toán";
+    string methodText = Model.PaymentMethod ?? Model.PaymentMethodId ?? "Chưa có thông tin";
+    string totalText = (Model.TotalPrice ?? 0).ToString("#,0") + " đ";
+    string createdText = Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa có";
+    string updatedText = Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa có";
+    string phoneText = string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Chưa có" : Model.PhoneNumber;
+    string emailText = string.IsNullOrWhiteSpace(Model.Email) ? "Chưa có" : Model.Email;
 }
 
-<h1>Details</h1>
+<style>
+    :root {
+        --bg: #0b0f27;
+        --bg-soft: #111737;
+        --text: #e9ecf6;
+        --muted: #a9b1c7;
+        --blue: #3b5ccc;
+        --purple: #7c3aed;
+        --red: #e53935;
+        --accent: #ffd54d;
+        --line: rgba(255,255,255,.12);
+    }
 
-<div>
-    <h4>Invoices</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PhoneNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PhoneNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TotalTicket)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TotalTicket)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentMethod)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentMethod)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TotalPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TotalPrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-    </dl>
+    body {
+        background: radial-gradient(1300px 700px at 25% -5%, rgba(60,90,200,.35) 0%, rgba(60,90,200,0) 55%), radial-gradient(1200px 800px at 95% 10%, rgba(124,58,237,.28) 0%, rgba(124,58,237,0) 60%), linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
+        color: var(--text);
+    }
+
+    .page-invoice-detail {
+        padding: 40px 0 70px;
+    }
+
+    .invoice-card {
+        background: var(--bg-soft);
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        box-shadow: 0 12px 30px rgba(0,0,0,.55);
+        padding: 24px 22px;
+    }
+
+    .inv-title-main {
+        font-weight: 900;
+        letter-spacing: .2px;
+        margin-bottom: 4px;
+    }
+
+    .inv-meta {
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        margin-top: 12px;
+    }
+
+        .badge-status.paid {
+            background: rgba(16,185,129,.12);
+            color: #10b981;
+            border: 1px solid rgba(16,185,129,.6);
+        }
+
+        .badge-status.unpaid {
+            background: rgba(245,158,11,.12);
+            color: #fbbf0b;
+            border: 1px solid rgba(245,158,11,.6);
+        }
+
+    .inv-section-title {
+        margin-top: 20px;
+        margin-bottom: 8px;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: var(--accent);
+        letter-spacing: .5px;
+        font-size: 13px;
+    }
+
+    .kv-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+        border-bottom: 1px dashed rgba(148,163,255,.25);
+        font-size: 14px;
+    }
+
+        .kv-row:last-child {
+            border-bottom: none;
+        }
+
+    .kv-label {
+        color: var(--muted);
+        min-width: 130px;
+    }
+
+    .kv-value {
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        margin-bottom: 4px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg,var(--blue),var(--purple));
+        border: none;
+        font-weight: 800;
+        border-radius: 999px;
+        padding-inline: 20px;
+    }
+
+    .btn-secondary {
+        border-radius: 999px;
+        padding-inline: 20px;
+        border-color: rgba(148,163,255,.6);
+        background: rgba(15,23,42,.9);
+        color: var(--text);
+        font-weight: 700;
+    }
+
+        .btn-secondary:hover {
+            background: rgba(37,99,235,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+
+    .btn-danger {
+        background: var(--red);
+        border: none;
+        font-weight: 800;
+        border-radius: 999px;
+        padding-inline: 20px;
+    }
+
+    @@media (max-width: 575.98px) {
+        .invoice-card {
+            padding-inline: 16px;
+        }
+
+        .kv-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .kv-value {
+            text-align: left;
+        }
+    }
+    /* ===== PANEL XEM VÉ BÊN PHẢI (giống account) ===== */
+    #ticket-panel {
+        position: fixed;
+        top: 80px;
+        right: 24px;
+        bottom: 40px;
+        width: 420px;
+        max-width: 95vw;
+        z-index: 1050;
+        display: none; /* mặc định ẩn */
+    }
+
+        #ticket-panel.is-open {
+            display: block;
+        }
+
+    .ticket-panel-card {
+        height: 100%;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.3), transparent 55%), linear-gradient(145deg, #020617, #020617);
+        border-radius: 24px;
+        border: 1px solid rgba(148,163,255,.55);
+        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        color: #e9ecf6;
+        transform: translateX(110%);
+        opacity: 0;
+        transition: transform .25s ease-out, opacity .25s ease-out;
+    }
+
+    #ticket-panel.is-open .ticket-panel-card {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    .ticket-panel-header {
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: radial-gradient(circle at 0 0, rgba(37,99,235,.6), transparent 55%), rgba(15,23,42,.96);
+        font-weight: 700;
+        font-size: 15px;
+        border-bottom: 1px solid rgba(148,163,255,.4);
+    }
+
+    .ticket-panel-body {
+        padding: 18px 22px 20px;
+        overflow: auto;
+        font-size: 14px;
+    }
+
+    .ticket-panel-close {
+        border: none;
+        background: transparent;
+        color: #e5e7eb;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    /* phần nội dung vé tái dùng style ticket-card từ account */
+    .ticket-card {
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .ticket-title-block {
+        margin-bottom: 14px;
+    }
+
+    .ticket-label {
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #fde047;
+    }
+
+    .ticket-movie {
+        font-size: 20px;
+        font-weight: 900;
+    }
+
+    .ticket-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        column-gap: 32px;
+        row-gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .ticket-grid-span {
+        grid-column: 1 / span 2;
+    }
+
+    .ticket-field-label {
+        font-weight: 700;
+        color: #fde047;
+        font-size: 13px;
+    }
+
+    .ticket-cinema-address {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+
+    .ticket-divider {
+        margin: 18px 0 12px;
+        border: none;
+        border-top: 1px dashed rgba(148,163,255,.6);
+    }
+
+    .ticket-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .ticket-total-label {
+        font-size: 16px;
+        font-weight: 800;
+        color: #fde047;
+    }
+
+    .ticket-total-value {
+        font-size: 22px;
+        font-weight: 900;
+    }
+
+    .ticket-download-btn {
+        margin-top: 4px;
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(90deg,#3b5ccc,#7c3aed);
+        color: #f9fafb;
+        font-weight: 800;
+        border-radius: 999px;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        cursor: pointer;
+    }
+
+        .ticket-download-btn:hover {
+            filter: brightness(1.06);
+            transform: translateY(-1px);
+        }
+
+</style>
+
+<div class="container page-invoice-detail">
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="invoice-card">
+                <h1 class="inv-title-main">
+                    <i class="fa-regular fa-file-lines me-2"></i>Chi tiết hóa đơn
+                </h1>
+                <div class="inv-meta">
+                    Mã hóa đơn: <strong>@Model.InvoiceId</strong>
+                </div>
+
+                <span class="badge-status @(isPaid ? "paid" : "unpaid")">
+                    @if (isPaid)
+                    {
+                        <i class="fa-solid fa-circle-check"></i> 
+                        @statusText
+                    }
+                    else
+                    {
+                        <i class="fa-solid fa-clock"></i> 
+                        @statusText
+                    }
+                </span>
+
+                <div class="action-bar">
+                    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.InvoiceId">
+                        <i class="fa-solid fa-pen me-1"></i> Chỉnh sửa
+                    </a>
+                    <a class="btn btn-secondary" asp-action="Index">
+                        <i class="fa-solid fa-arrow-left-long me-1"></i> Danh sách
+                    </a>
+
+                    <button type="button"
+                            class="btn btn-outline-light rounded-pill"
+                            id="btnViewTicket">
+                        <i class="fa-solid fa-ticket me-1"></i> Xem vé của hóa đơn
+                    </button>
+
+                    <form asp-action="Delete"
+                          asp-route-id="@Model.InvoiceId"
+                          method="post"
+                          class="d-inline"
+                          onsubmit="return confirm('Xóa hóa đơn này? Hành động không thể hoàn tác.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fa-solid fa-trash-can me-1"></i> Xóa
+                        </button>
+                    </form>
+                </div>
+
+                <h5 class="inv-section-title">Thông tin thanh toán</h5>
+
+                <div class="kv-row">
+                    <div class="kv-label">Email</div>
+                    <div class="kv-value">@emailText</div>
+                </div>
+                <div class="kv-row">
+                    <div class="kv-label">Số điện thoại</div>
+                    <div class="kv-value">@phoneText</div>
+                </div>
+                <div class="kv-row">
+                    <div class="kv-label">Phương thức</div>
+                    <div class="kv-value">@methodText</div>
+                </div>
+                <div class="kv-row">
+                    <div class="kv-label">Tổng vé</div>
+                    <div class="kv-value">@Model.TotalTicket</div>
+                </div>
+                <div class="kv-row">
+                    <div class="kv-label">Tổng tiền</div>
+                    <div class="kv-value">@totalText</div>
+                </div>
+
+                <h5 class="inv-section-title">Thời gian</h5>
+
+                <div class="kv-row">
+                    <div class="kv-label">Ngày tạo</div>
+                    <div class="kv-value">@createdText</div>
+                </div>
+                <div class="kv-row">
+                    <div class="kv-label">Ngày cập nhật</div>
+                    <div class="kv-value">@updatedText</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.InvoiceId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+@* Panel vé bên phải, giống trang tài khoản *@
+<div id="ticket-panel">
+    <div class="ticket-panel-card">
+        <div class="ticket-panel-header">
+            <span>Vé trong hóa đơn @Model.InvoiceId</span>
+            <button type="button" id="ticket-panel-close" class="ticket-panel-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="ticket-panel-body" class="ticket-panel-body">
+            <div class="ticket-card text-muted">Đang tải...</div>
+        </div>
+    </div>
 </div>
+
+
+@section Scripts {
+    <script>
+        (function () {
+            const btnView = document.getElementById("btnViewTicket");
+            const panel   = document.getElementById("ticket-panel");
+            const panelBody = document.getElementById("ticket-panel-body");
+            const btnClose = document.getElementById("ticket-panel-close");
+
+            function openPanel(html) {
+                panelBody.innerHTML = html;
+                panel.classList.add("is-open");
+            }
+
+            function closePanel() {
+                panel.classList.remove("is-open");
+                panelBody.innerHTML = "";
+            }
+
+            if (btnClose) {
+                btnClose.addEventListener("click", closePanel);
+            }
+
+            if (btnView) {
+                btnView.addEventListener("click", function () {
+                    // chỉ xem: load HTML danh sách vé rồi show panel
+                    openPanel("<div class='ticket-card text-muted'>Đang tải...</div>");
+
+                    fetch("@Url.Action("TicketPopup", "Invoices", new { id = Model.InvoiceId })")
+                        .then(r => r.text())
+                        .then(html => openPanel(html))
+                        .catch(() => openPanel("<div class='ticket-card text-danger'>Không tải được dữ liệu vé.</div>"));
+                });
+            }
+        })();
+    </script>
+}
+

@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using CinemaS.Models;
+using CinemaS.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using CinemaS.Models;
-using CinemaS.Models.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CinemaS.Controllers
 {
@@ -246,24 +247,99 @@ namespace CinemaS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var tickets = await _context.Tickets.FindAsync(id);
-            if (tickets != null)
-            {
-                _context.Tickets.Remove(tickets);
-                await _context.SaveChangesAsync();
-                TempData["Message"] = "Xóa vé thành công!";
-            }
-            else
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null)
             {
                 TempData["Error"] = "Không tìm thấy vé cần xóa.";
+                return RedirectToAction(nameof(Index));
             }
 
+            var st = await _context.ShowTimes.AsNoTracking()
+                        .FirstOrDefaultAsync(s => s.ShowTimeId == ticket.ShowTimeId);
+
+            if (st != null)
+            {
+                var end = (st.EndTime ?? st.StartTime)?.ToLocalTime() ?? DateTime.MinValue;
+                var date = st.ShowDate?.Date ?? DateTime.MinValue.Date;
+                var showEnd = date.Add(end.TimeOfDay);
+
+                if (DateTime.Now <= showEnd)
+                {
+                    TempData["Error"] = "Chỉ xóa vé khi suất chiếu đã kết thúc.";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
+            _context.Tickets.Remove(ticket);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Xóa vé thành công!";
             return RedirectToAction(nameof(Index));
         }
+
 
         private bool TicketsExists(string id)
         {
             return _context.Tickets.Any(e => e.TicketId == id);
         }
+
+        [Authorize]
+        public async Task<IActionResult> MyTickets()
+        {
+            var email = User.Identity?.Name;
+            var user = await _context.Users.AsNoTracking()
+                            .FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return View(new List<Tickets>());
+
+            var query = from t in _context.Tickets
+                        join i in _context.Invoices on t.InvoiceId equals i.InvoiceId
+                        join st in _context.ShowTimes on t.ShowTimeId equals st.ShowTimeId
+                        where i.CustomerId == user.UserId
+                        orderby st.ShowDate descending, st.StartTime descending
+                        select new { Ticket = t, ShowTime = st };
+
+            var data = await query.ToListAsync();
+            ViewBag.ShowTimes = data.ToDictionary(x => x.Ticket.TicketId, x => x.ShowTime);
+
+            return View(data.Select(x => x.Ticket).ToList());
+        }
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteForUser(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+
+            var email = User.Identity?.Name;
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null) return Forbid();
+
+            var ticket = await _context.Tickets.FirstOrDefaultAsync(t => t.TicketId == id);
+            if (ticket == null) return NotFound();
+
+            var invoice = await _context.Invoices.AsNoTracking()
+                                .FirstOrDefaultAsync(i => i.InvoiceId == ticket.InvoiceId);
+            if (invoice == null || invoice.CustomerId != user.UserId) return Forbid();
+
+            var st = await _context.ShowTimes.AsNoTracking()
+                            .FirstOrDefaultAsync(s => s.ShowTimeId == ticket.ShowTimeId);
+            if (st == null) return NotFound();
+
+            var end = (st.EndTime ?? st.StartTime)?.ToLocalTime() ?? DateTime.MinValue;
+            var date = st.ShowDate?.Date ?? DateTime.MinValue.Date;
+            var showEnd = date.Add(end.TimeOfDay);
+
+            if (DateTime.Now <= showEnd)
+            {
+                TempData["Error"] = "Chỉ được xóa vé sau khi suất chiếu đã kết thúc.";
+                return RedirectToAction(nameof(MyTickets));
+            }
+
+            _context.Tickets.Remove(ticket);
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = "Đã xóa vé khỏi lịch sử.";
+            return RedirectToAction(nameof(MyTickets));
+        }
+        
     }
 }

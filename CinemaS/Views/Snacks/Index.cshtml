@@ -6,7 +6,6 @@
 }
 
 <link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
 <link rel="stylesheet" href="~/css/Snacks.css" />
 
 <div class="container-fluid mt-4">
@@ -19,10 +18,9 @@
 			<a asp-action="Create" class="btn btn-primary">
 				<i class="fas fa-plus-circle"></i> Tạo mới
 			</a>
-			<button type="button" class="btn btn-secondary" onclick="history.back()">
+			<a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
 				<i class="fas fa-arrow-left"></i> Quay lại
-			</button>
-
+			</a>
 		</div>
 	</div>
 
@@ -56,7 +54,7 @@
 				<div class="col-md-6">
 					<div class="input-group">
 						<input type="text" name="searchString" value="@ViewData["CurrentFilter"]"
-							   class="form-control" placeholder="🔍 Tìm theo tên, mã hoặc mô tả..." />
+							   class="form-control" placeholder="🔍 Tìm theo tên, mã hoặc mô tả..." style="color: white;" />
 						<button type="submit" class="btn btn-outline-secondary">
 							<i class="fas fa-search"></i>
 						</button>
@@ -72,89 +70,84 @@
 		</div>
 	</div>
 
-	<!-- Table -->
-	<div class="card shadow-sm border-0">
-		<div class="card-body">
-			<div class="table-responsive">
-				<table class="table table-hover align-middle">
-					<thead class="table-dark text-center">
+	<!-- Table - sử dụng admin-table-wrap và admin-table -->
+	<div class="admin-table-wrap">
+		<table class="table admin-table align-middle">
+			<thead>
+				<tr>
+					<th><i class="fa-solid fa-hashtag"></i>STT</th>
+					<th><i class="fa-solid fa-image"></i>Ảnh</th>
+					<th><i class="fa-solid fa-tag"></i>Mã</th>
+					<th><i class="fa-solid fa-utensils"></i>Tên</th>
+					<th><i class="fa-solid fa-money-bill"></i>Giá (VNĐ)</th>
+					<th><i class="fa-solid fa-align-left"></i>Mô tả</th>
+					<th><i class="fa-solid fa-toggle-on"></i>Trạng thái</th>
+					<th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
+				</tr>
+			</thead>
+			<tbody>
+				@if (Model != null && Model.Any())
+				{
+					int index = 1;
+					foreach (var item in Model)
+					{
 						<tr>
-							<th>STT</th>
-							<th>Ảnh</th>
-							<th>Mã</th>
-							<th>Tên</th>
-							<th>Giá (VNĐ)</th>
-							<th>Mô tả</th>
-							<th>Trạng thái</th>
-							<th>Hành động</th>
-						</tr>
-					</thead>
-					<tbody>
-						@if (Model != null && Model.Any())
-						{
-							int index = 1;
-							foreach (var item in Model)
-							{
-								<tr>
-									<td class="text-center fw-bold">@index</td>
-									<td class="text-center">
-										<img src="@(string.IsNullOrEmpty(item.Image) ? "/images/snacks/default-snack.png" : item.Image)"
-											 alt="@item.Name" class="rounded snack-image shadow-sm" />
-									</td>
-									<td><strong>@item.SnackId</strong></td>
-									<td>@item.Name</td>
-									<td class="text-end text-primary fw-semibold">
-										@(item.Price.HasValue? item.Price.Value.ToString("N0") : "Chưa định giá")
-									</td>
-									<td>
-										@(string.IsNullOrEmpty(item.Description)
-																		? Html.Raw("<span class='text-muted'>Không có mô tả</span>")
-																		: (item.Description.Length > 50
-																		? item.Description.Substring(0, 50) + "..."
-																		: item.Description))
-							</td>
+							<td class="text-center fw-bold">@index</td>
 							<td class="text-center">
+								<img src="@(string.IsNullOrEmpty(item.Image) ? "/images/snacks/default-snack.png" : item.Image)"
+									 alt="@item.Name" class="rounded snack-image shadow-sm" />
+							</td>
+							<td><strong>@item.SnackId</strong></td>
+							<td>@item.Name</td>
+							<td class="text-end fw-semibold" style="color: #fbbf24;">
+								@(item.Price.HasValue ? item.Price.Value.ToString("N0") : "Chưa định giá")
+							</td>
+							<td class="admin-text-muted">
+								@(string.IsNullOrEmpty(item.Description)
+									? "Không có mô tả"
+									: (item.Description.Length > 50
+										? item.Description.Substring(0, 50) + "..."
+										: item.Description))
+							</td>
+							<td>
 								@if (item.IsActive == true)
-										{
-											<span class="badge bg-success"><i class="fas fa-check"></i> Đang bán</span>
-										}
-										else
-										{
-											<span class="badge bg-secondary"><i class="fas fa-ban"></i> Ngừng bán</span>
-										}
-									</td>
-									<td class="text-center">
-										<a asp-action="Details" asp-route-id="@item.SnackId" class="btn btn-sm btn-info me-1" title="Chi tiết">
-											<i class="fas fa-eye"></i>
-										</a>
-										<a asp-action="Edit" asp-route-id="@item.SnackId" class="btn btn-sm btn-warning me-1" title="Chỉnh sửa">
-											<i class="fas fa-edit"></i>
-										</a>
-										<a asp-action="Delete" asp-route-id="@item.SnackId" class="btn btn-sm btn-danger" title="Xóa">
-											<i class="fas fa-trash"></i>
-										</a>
-									</td>
-								</tr>
-								index++;
+								{
+									<span class="badge-email-ok"><i class="fas fa-check"></i> Đang bán</span>
+								}
+								else
+								{
+									<span class="badge-email-no"><i class="fas fa-ban"></i> Ngừng bán</span>
+								}
+							</td>
+							<td class="text-end">
+								<a asp-action="Edit" asp-route-id="@item.SnackId" 
+								   class="admin-icon-btn" title="Chỉnh sửa">
+									<i class="fa-solid fa-pen"></i>
+								</a>
+								<a asp-action="Delete" asp-route-id="@item.SnackId" 
+								   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+									<i class="fa-solid fa-trash-can"></i>
+								</a>
+							</td>
+						</tr>
+						index++;
+					}
+				}
+				else
+				{
+					<tr>
+						<td colspan="8" class="text-center admin-text-muted py-4">
+							<i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+							<strong>Không tìm thấy đồ ăn nào</strong>
+							@if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+							{
+								<p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
 							}
-						}
-						else
-						{
-							<tr>
-								<td colspan="8" class="text-center py-4 text-muted">
-									<i class="fas fa-inbox fa-3x mb-3"></i><br />
-									<strong>Không tìm thấy đồ ăn nào</strong>
-									@if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-									{
-										<p class="mb-0">với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"</p>
-									}
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
-		</div>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
 	</div>
 </div>
 

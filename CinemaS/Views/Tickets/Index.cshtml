@@ -10,10 +10,12 @@
 <div class="container-fluid mt-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-ticket-alt"></i> Quản lý Vé</h1>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="fas fa-plus-circle"></i> Tạo mới
-        </a>
+        <h1 class="mb-0"><i class="fas fa-ticket-alt"></i> Quản lý Vé</h1>
+        <div class="d-flex gap-2">
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
     </div>
 
     <!-- Alerts -->
@@ -39,7 +41,7 @@
         </div>
     }
 
-    <!-- Search & Filter Box (still posts to Index and controller handles filtering) -->
+    <!-- Search & Filter Box -->
     <div class="card mb-4">
         <div class="card-body">
             <form asp-action="Index" method="get" id="filterForm">
@@ -105,61 +107,57 @@
         </div>
     </div>
 
-    <!-- Simple Tickets Table (only Tickets fields) -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle">
-                    <thead class="table-dark">
+    <!-- Table - sử dụng admin-table-wrap và admin-table -->
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-tag"></i>Mã vé</th>
+                    <th><i class="fa-solid fa-file-invoice"></i>Hóa đơn</th>
+                    <th><i class="fa-solid fa-film"></i>Suất chiếu</th>
+                    <th><i class="fa-solid fa-couch"></i>Ghế</th>
+                    <th><i class="fa-solid fa-ticket"></i>Loại vé</th>
+                    <th><i class="fa-solid fa-money-bill"></i>Giá vé</th>
+                    <th><i class="fa-solid fa-calendar"></i>Ngày tạo</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var ticket in Model)
+                    {
                         <tr>
-                            <th style="width:12%">Mã vé</th>
-                            <th style="width:12%">Hóa đơn</th>
-                            <th style="width:15%">Suất chiếu</th>
-                            <th style="width:12%">Ghế</th>
-                            <th style="width:12%">Loại vé</th>
-                            <th style="width:12%">Giá vé</th>
-                            <th style="width:13%">Ngày tạo</th>
-                            <th style="width:10%">Hành động</th>
+                            <td><strong>@ticket.TicketId</strong></td>
+                            <td>@ticket.InvoiceId</td>
+                            <td>@ticket.ShowTimeId</td>
+                            <td>@ticket.SeatId</td>
+                            <td>@ticket.TicketTypeId</td>
+                            <td class="text-end" style="color: #fbbf24; font-weight: 700;">@(ticket.Price?.ToString("N0") ?? "0") đ</td>
+                            <td>@ticket.CreatedBooking?.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-end">
+                                <a asp-action="Delete" asp-route-id="@ticket.TicketId" 
+                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            foreach (var ticket in Model)
-                            {
-                                <tr>
-                                    <td><strong>@ticket.TicketId</strong></td>
-                                    <td>@ticket.InvoiceId</td>
-                                    <td>@ticket.ShowTimeId</td>
-                                    <td>@ticket.SeatId</td>
-                                    <td>@ticket.TicketTypeId</td>
-                                    <td class="text-end">@(ticket.Price?.ToString("N0") ?? "0") đ</td>
-                                    <td>@ticket.CreatedBooking?.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td class="text-center">
-                                        <a asp-action="Details" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-info" title="Chi tiết"><i class="fas fa-eye"></i></a>
-                                        <a asp-action="Edit" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-warning" title="Chỉnh sửa"><i class="fas fa-edit"></i></a>
-                                        <a asp-action="Delete" asp-route-id="@ticket.TicketId" class="btn btn-sm btn-danger" title="Xóa"><i class="fas fa-trash"></i></a>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="8" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                    <strong>Không tìm thấy vé nào</strong>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center admin-text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            <strong>Không tìm thấy vé nào</strong>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 
     <div class="d-flex justify-content-between mt-4">
-        <button type="button" class="btn btn-secondary" onclick="history.back()"><i class="fas fa-arrow-left"></i> Quay lại</button>
         @if (Model != null && Model.Any())
         {
             <div class="text-white">

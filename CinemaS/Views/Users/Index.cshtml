@@ -1,120 +1,87 @@
 ﻿@model IEnumerable<CinemaS.Models.Users>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Người Dùng";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="fa-solid fa-users"></i> Quản lý Người Dùng</h1>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fa-solid fa-plus-circle"></i> Tạo mới
+            </a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Password)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.FullName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PhoneNumber)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Address)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DateOfBirth)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Gender)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SavePoint)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Facebook)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Google)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Type)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsActive)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Password)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.FullName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PhoneNumber)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Address)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DateOfBirth)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Gender)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.SavePoint)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Facebook)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Google)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Type)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsActive)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.UserId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.UserId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.UserId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-envelope"></i>Email</th>
+                    <th><i class="fa-solid fa-user"></i>Họ tên</th>
+                    <th><i class="fa-solid fa-phone"></i>Điện thoại</th>
+                    <th><i class="fa-solid fa-location-dot"></i>Địa chỉ</th>
+                    <th><i class="fa-solid fa-calendar"></i>Ngày sinh</th>
+                    <th><i class="fa-solid fa-venus-mars"></i>Giới tính</th>
+                    <th><i class="fa-solid fa-star"></i>Điểm</th>
+                    <th><i class="fa-solid fa-toggle-on"></i>Trạng thái</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="text-center admin-text-muted py-4">
+                            Không có người dùng nào.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Email</td>
+                            <td>@item.FullName</td>
+                            <td>@item.PhoneNumber</td>
+                            <td>@(string.IsNullOrEmpty(item.Address) ? "N/A" : (item.Address.Length > 30 ? item.Address.Substring(0, 30) + "..." : item.Address))</td>
+                            <td>@(item.DateOfBirth?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                            <td>@(item.Gender == 1 ? "Nam" : item.Gender == 0 ? "Nữ" : "Khác")</td>
+                            <td>@item.SavePoint</td>
+                            <td>
+                                @if (item.IsActive == true)
+                                {
+                                    <span class="badge-email-ok">Hoạt động</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-email-no">Không hoạt động</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@item.UserId" 
+                                   class="admin-icon-btn" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a asp-action="Details" asp-route-id="@item.UserId" 
+                                   class="admin-icon-btn" title="Chi tiết">
+                                    <i class="fa-regular fa-eye"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.UserId" 
+                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

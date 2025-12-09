@@ -1,9 +1,9 @@
-﻿@model CinemaS.Models.Movies
+﻿@* Views/Movies/Details.cshtml *@
+@model CinemaS.Models.Movies
 @{
     ViewData["Title"] = Model.Title ?? "Chi tiết phim";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    // YouTube -> embed
     string? embed = null;
     if (!string.IsNullOrWhiteSpace(Model.TrailerLink))
     {
@@ -13,7 +13,6 @@
         else if (link.Contains("/shorts/")) { var id = link.Split("/shorts/").Last().Split('?')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
     }
 
-    // Fallback văn bản
     string ageText = (Model.Age?.ToString()) ?? "13";
     string genreText = (ViewBag.GenreText as string) ?? "Khác";
     string durationText = Model.Duration.HasValue ? $"{Model.Duration}’" : "Chưa có thông tin";
@@ -29,7 +28,6 @@
 }
 
 <style>
-    /* ==== tokens: xanh biển / tím / đỏ + biến thể; hỗ trợ Dark/Light ==== */
     :root {
         --bg: #0b0f27;
         --bg-soft: #111737;
@@ -55,7 +53,6 @@
     }
 
     body {
-        /* nền mượt, không “vết cắt” */
         background: radial-gradient(1300px 700px at 25% -5%, rgba(60,90,200,.35) 0%, rgba(60,90,200,0) 55%), radial-gradient(1200px 800px at 95% 10%, rgba(124,58,237,.28) 0%, rgba(124,58,237,0) 60%), linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
         color: var(--text);
     }
@@ -64,7 +61,6 @@
         padding: 40px 0 70px;
     }
 
-    /* poster */
     .poster {
         border-radius: 16px;
         overflow: hidden;
@@ -79,7 +75,6 @@
             object-fit: cover;
         }
 
-    /* info */
     .info h1 {
         font-weight: 900;
         letter-spacing: .2px;
@@ -104,7 +99,6 @@
         border-radius: 8px;
     }
 
-    /* section */
     .section-title {
         margin-top: 18px;
         font-weight: 900;
@@ -124,7 +118,6 @@
         text-align: justify;
     }
 
-    /* admin action bar */
     .action-bar {
         display: flex;
         gap: 10px;
@@ -144,7 +137,6 @@
         font-weight: 800;
     }
 
-    /* trailer */
     .trailer {
         margin-top: 46px;
         background: var(--bg-soft);
@@ -189,7 +181,6 @@
 
 <div class="container page">
     <div class="row g-4">
-        <!-- Poster -->
         <div class="col-md-4">
             <div class="poster">
                 <img src="@(!string.IsNullOrWhiteSpace(Model.PosterImage) ? Model.PosterImage : "/images/no-poster.png")"
@@ -197,13 +188,12 @@
             </div>
         </div>
 
-        <!-- Thông tin + action quản trị -->
         <div class="col-md-8 info">
             <h1>@($"{Model.Title} (T{ageText})")</h1>
 
             <div class="action-bar">
                 <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.MoviesId">Sửa</a>
-                <a class="btn btn-outline-secondary" asp-action="Index">Quay về danh sách</a>
+                <a class="btn btn-secondary" asp-action="Index">Quay về danh sách</a>
 
                 <form asp-action="Delete" asp-route-id="@Model.MoviesId" method="post" class="d-inline"
                       onsubmit="return confirm('Xoá phim này?');">

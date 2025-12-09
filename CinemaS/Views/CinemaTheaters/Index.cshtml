@@ -8,13 +8,17 @@
 <link rel="stylesheet" href="~/css/management.css" />
 
 <div class="container-fluid mt-4">
-
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-door-open"></i> Quản lý Phòng Chiếu</h1>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="fas fa-plus-circle"></i> Tạo phòng mới
-        </a>
+        <h1 class="mb-0"><i class="fas fa-door-open"></i> Quản lý Phòng Chiếu</h1>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Tạo phòng mới
+            </a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
     </div>
 
     <!-- Thông báo -->
@@ -65,86 +69,83 @@
     }
     else
     {
-        <!-- Bảng danh sách -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive table-container">
-                    <table class="table table-hover table-bordered align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th style="width:8%;">Mã phòng</th>
-                                <th style="width:18%;">Tên phòng</th>
-                                <th style="width:12%;">Loại phòng</th>
-                                <th style="width:18%;">Rạp</th>
-                                <th style="width:8%;">Số ghế</th>
-                                <th style="width:12%;">Bố cục</th>
-                                <th style="width:8%;">Trạng thái</th>
-                                <th style="width:16%;">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td><strong>@item.CinemaTheaterId</strong></td>
-                                    <td>@item.Name</td>
-                                    <td><span class="badge badge-status-active">@item.CinemaTypeName</span></td>
-                                    <td>@item.MovieTheaterName</td>
-                                    <td>
-                                        <span class="badge badge-status-active">
-                                            @item.TotalSeats ghế
-                                        </span>
-                                    </td>
-                                    <td class="text-muted">
-                                        @item.NumOfRows × @item.NumOfColumns
-                                    </td>
-                                    <td class="text-center">
-                                        @if (item.Status == 1)
-                                        {
-                                            <span class="badge badge-status-active">
-                                                <i class="fas fa-check"></i> Hoạt động
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge badge-status-inactive">
-                                                <i class="fas fa-times"></i> Ngưng hoạt động
-                                            </span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <!-- Nút điều chỉnh ghế -->
-                                        <a asp-controller="Seats" 
-                                           asp-action="Index" 
-                                           asp-route-cinemaTheaterId="@item.CinemaTheaterId"
-                                           class="btn btn-sm btn-warning" 
-                                           title="Điều chỉnh bố cục ghế">
-                                            <i class="fas fa-chair"></i>
-                                        </a>
-                                        
-                                        <!-- Nút chỉnh sửa thông tin phòng -->
-                                        <a asp-action="Edit" 
-                                           asp-route-id="@item.CinemaTheaterId"
-                                           class="btn btn-sm btn-info" 
-                                           title="Chỉnh sửa thông tin">
-                                            <i class="fas fa-pencil"></i>
-                                        </a>
-                                        
-                                        <!-- Nút xóa -->
-                                        <button class="btn btn-sm btn-danger" 
-                                                title="Xóa phòng"
-                                                onclick="showDeletePopup('@item.CinemaTheaterId')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- Bảng danh sách - sử dụng admin-table-wrap và admin-table -->
+        <div class="admin-table-wrap">
+            <table class="table admin-table align-middle">
+                <thead>
+                    <tr>
+                        <th><i class="fa-solid fa-tag"></i>Mã phòng</th>
+                        <th><i class="fa-solid fa-door-open"></i>Tên phòng</th>
+                        <th><i class="fa-solid fa-layer-group"></i>Loại phòng</th>
+                        <th><i class="fa-solid fa-building"></i>Rạp</th>
+                        <th><i class="fa-solid fa-chair"></i>Số ghế</th>
+                        <th><i class="fa-solid fa-table-cells"></i>Bố cục</th>
+                        <th><i class="fa-solid fa-toggle-on"></i>Trạng thái</th>
+                        <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.CinemaTheaterId</strong></td>
+                            <td>@item.Name</td>
+                            <td><span class="badge-role">@item.CinemaTypeName</span></td>
+                            <td class="admin-text-muted">@item.MovieTheaterName</td>
+                            <td>
+                                <span class="badge-email-ok">
+                                    @item.TotalSeats ghế
+                                </span>
+                            </td>
+                            <td class="admin-text-muted">
+                                @item.NumOfRows × @item.NumOfColumns
+                            </td>
+                            <td>
+                                @if (item.Status == 1)
+                                {
+                                    <span class="badge-email-ok">
+                                        <i class="fas fa-check"></i> Hoạt động
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge-email-no">
+                                        <i class="fas fa-times"></i> Ngưng hoạt động
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-controller="Seats" 
+                                   asp-action="Index" 
+                                   asp-route-cinemaTheaterId="@item.CinemaTheaterId"
+                                   class="admin-icon-btn" 
+                                   title="Điều chỉnh bố cục ghế">
+                                    <i class="fas fa-chair"></i>
+                                </a>
+                                <a asp-action="Edit" 
+                                   asp-route-id="@item.CinemaTheaterId"
+                                   class="admin-icon-btn" 
+                                   title="Chỉnh sửa thông tin">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <button class="admin-icon-btn admin-icon-btn-danger" 
+                                        title="Xóa phòng"
+                                        onclick="showDeletePopup('@item.CinemaTheaterId')">
+                                    <i class="fas fa-trash-can"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     }
+
+    <div class="d-flex justify-content-between mt-4">
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+    </div>
 </div>
 
 <!-- Modal Xác nhận xóa -->
@@ -204,7 +205,6 @@
         }
 
         function confirmDelete() {
-            // Thực hiện xóa trực tiếp bằng AJAX
             fetch(`/CinemaTheaters/DeleteAjax/${deleteId}`, {
                 method: 'POST',
                 headers: {
@@ -215,7 +215,6 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Xóa thành công, reload trang
                     location.reload();
                 } else {
                     alert('Lỗi: ' + data.message);
@@ -278,9 +277,3 @@
         }
     </style>
 }
-
-<div class="d-flex justify-content-between mt-4">
-    <button type="button" class="btn btn-secondary" onclick="history.back()">
-        <i class="fas fa-arrow-left"></i> Quay lại
-    </button>
-</div>

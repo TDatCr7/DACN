@@ -7,7 +7,52 @@ html {
     font-size: 16px;
   }
 }
+.btn-sweep {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    text-decoration: none !important;
+}
 
+    .btn-sweep::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, var(--indigo), var(--magenta));
+        transform: translateX(-110%);
+        transition: transform .45s ease;
+        z-index: -1;
+    }
+
+    .btn-sweep:hover::before {
+        transform: translateX(0);
+    }
+
+.btn-cine.btn-sweep,
+.poster .btn-primary.btn-sweep,
+.btn-more.btn-sweep {
+    background: var(--accent);
+    color: #111;
+}
+
+    .btn-cine.btn-sweep:hover,
+    .poster .btn-primary.btn-sweep:hover,
+    .btn-more.btn-sweep:hover {
+        color: #fff;
+        box-shadow: 0 0 12px rgba(124,58,237,.5);
+    }
+
+.poster .btn-ghost.btn-sweep {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,.35);
+    color: #cfd6ff;
+}
+
+    .poster .btn-ghost.btn-sweep:hover {
+        color: #fff;
+        border-color: var(--accent);
+        box-shadow: 0 0 12px rgba(124,58,237,.45);
+    }
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }

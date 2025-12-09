@@ -1,0 +1,148 @@
+﻿@model CinemaS.Models.ViewModels.PaymentResultVM
+@{
+    var d = Model.Detail;
+    DateTime? ToVietnamTime(DateTime? utcTime)
+    {
+        if (utcTime == null) return null;
+        try
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            return TimeZoneInfo.ConvertTimeFromUtc(utcTime.Value, tz);
+        }
+        catch
+        {
+            return utcTime.Value.AddHours(7);
+        }
+    }
+}
+
+<style>
+    .ticket-modal-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: #fde68a;
+        margin-bottom: 12px;
+    }
+
+    .ticket-modal-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 18px;
+    }
+
+    .ticket-modal-label {
+        font-size: 13px;
+        color: #fef9c3;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .ticket-modal-text {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .ticket-modal-row {
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+        .ticket-modal-row div {
+            min-width: 140px;
+        }
+
+    .ticket-modal-total {
+        margin-top: 18px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(248,250,252,.7);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+        .ticket-modal-total span:last-child {
+            font-size: 20px;
+        }
+</style>
+
+<div>
+    <div class="ticket-modal-title">TÊN PHIM</div>
+    <div class="ticket-modal-text" style="font-size:16px;font-weight:800;">
+        @d.MovieTitle
+    </div>
+
+    <div class="ticket-modal-grid" style="margin-top:10px;">
+        <div>
+            <div class="ticket-modal-row">
+                <div>
+                    <div class="ticket-modal-label">Mã đặt vé</div>
+                    <div class="ticket-modal-text">@Model.OrderId</div>
+                </div>
+                <div>
+                    <div class="ticket-modal-label">Thời gian</div>
+                    <div class="ticket-modal-text">
+                        @d.StartTime?.ToString("HH:mm") @d.ShowDate?.ToString("dd/MM/yyyy")
+                    </div>
+                </div>
+            </div>
+            <div class="ticket-modal-row">
+                <div>
+                    <div class="ticket-modal-label">Phòng chiếu</div>
+                    <div class="ticket-modal-text">@d.CinemaTheater</div>
+                </div>
+                <div>
+                    <div class="ticket-modal-label">Số vé</div>
+                    <div class="ticket-modal-text">@d.TicketCount</div>
+                </div>
+                <div>
+                    <div class="ticket-modal-label">Loại vé</div>
+                    <div class="ticket-modal-text">Người lớn</div>
+                </div>
+            </div>
+            <div class="ticket-modal-row">
+                <div>
+                    <div class="ticket-modal-label">Số ghế</div>
+                    <div class="ticket-modal-text">
+                        @string.Join(", ", d.SeatLabels)
+                    </div>
+                </div>
+            </div>
+            <div class="ticket-modal-row">
+                <div style="flex:1;">
+                    <div class="ticket-modal-label">Rạp</div>
+                    <div class="ticket-modal-text">
+                        @d.CinemaTheater
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="ticket-modal-label">Thời gian đặt</div>
+            <div class="ticket-modal-text">
+                @ToVietnamTime(d.CreatedAt)?.ToString("dd/MM/yyyy HH:mm")
+            </div>
+
+            @if (!string.IsNullOrEmpty(d.InvoiceEmail))
+            {
+                <div class="ticket-modal-label">Email</div>
+                <div class="ticket-modal-text">@d.InvoiceEmail</div>
+            }
+
+            @if (!string.IsNullOrEmpty(d.InvoicePhone))
+            {
+                <div class="ticket-modal-label">Số điện thoại</div>
+                <div class="ticket-modal-text">@d.InvoicePhone</div>
+            }
+        </div>
+    </div>
+
+    <div class="ticket-modal-total">
+        <span>TỔNG TIỀN</span>
+        <span>@d.GrandTotal.ToString("#,0") VND</span>
+    </div>
+</div>

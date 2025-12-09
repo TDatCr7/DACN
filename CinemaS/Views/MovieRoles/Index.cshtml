@@ -1,42 +1,66 @@
 ﻿@model IEnumerable<CinemaS.Models.MovieRole>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Vai Trò Phim";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Index</h1>
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="fa-solid fa-user-tie"></i> Quản lý Vai Trò Phim</h1>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fa-solid fa-plus-circle"></i> Tạo mới
+            </a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.MovieRoleId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.MovieRoleId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.MovieRoleId">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-tag"></i>Tên vai trò</th>
+                    <th><i class="fa-solid fa-align-left"></i>Mô tả</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="3" class="text-center admin-text-muted py-4">
+                            Không có vai trò phim nào.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.Name</strong></td>
+                            <td class="admin-text-muted">@(item.Description ?? "N/A")</td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@item.MovieRoleId" 
+                                   class="admin-icon-btn" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a asp-action="Details" asp-route-id="@item.MovieRoleId" 
+                                   class="admin-icon-btn" title="Chi tiết">
+                                    <i class="fa-regular fa-eye"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.MovieRoleId" 
+                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

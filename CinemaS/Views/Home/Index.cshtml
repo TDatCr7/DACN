@@ -4,6 +4,20 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+@if (TempData["Message"] != null)
+{
+    <div class="container mt-3">
+        <div class="alert alert-success text-center mb-3"
+             data-auto-dismiss="true"
+             style="border-radius:999px;
+                        background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.6);
+                        color:#bbf7d0;">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["Message"]
+        </div>
+    </div>
+}
+
 
 <style>
     :root {
@@ -818,5 +832,14 @@
             breakpoints: { 768: { slidesPerView: 2 }, 1200: { slidesPerView: 3 } },
             navigation: { nextEl: '#swiper-trailer .swiper-button-next', prevEl: '#swiper-trailer .swiper-button-prev' }
         });
+        const alerts = document.querySelectorAll('.alert[data-auto-dismiss="true"]');
+    if (alerts.length > 0) {
+        setTimeout(function () {
+            alerts.forEach(function (el) {
+                el.classList.add('d-none');
+            });
+        }, 5000); // 5s
+    }
     });
 </script>
+

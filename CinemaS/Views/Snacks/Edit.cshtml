@@ -14,7 +14,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow border-0">
-                <div class="card-header bg-warning text-dark fw-bold">
+                <div class="card-header text-dark fw-bold">
                     <h4 class="mb-0">
                         <i class="fas fa-edit"></i> Chỉnh sửa Đồ Ăn
                     </h4>
@@ -37,16 +37,19 @@
                         </div>
                     }
 
-                    <!-- ID hiển thị -->
-                    <div class="alert alert-light border-start border-4 border-primary mb-4">
-                        <strong><i class="fa-solid fa-barcode"></i> Mã Đồ Ăn:</strong> @Model.SnackId
-                    </div>
-
                     <form asp-action="Edit" method="post" enctype="multipart/form-data" novalidate>
                         <input type="hidden" asp-for="SnackId" />
                         <input type="hidden" asp-for="Image" id="existingImage" />
 
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <!-- Mã đồ ăn (hiển thị readonly) -->
+                        <div class="mb-3">
+                            <label asp-for="SnackId" class="form-label fw-semibold">
+                                <i class="fa-solid fa-barcode"></i> Mã Đồ Ăn
+                            </label>
+                            <input asp-for="SnackId" class="form-control" readonly />
+                        </div>
 
                         <!-- Loại đồ ăn -->
                         <div class="mb-3">
@@ -92,7 +95,6 @@
                             <div class="text-center">
                                 @if (!string.IsNullOrEmpty(Model.Image))
                                 {
-                                    <p class="text-muted mb-2">Ảnh hiện tại:</p>
                                     <img id="imagePreview" src="@Model.Image" alt="@Model.Name" class="rounded shadow-sm" style="max-width:200px; border:2px solid #dee2e6;" />
                                 }
                                 else
@@ -101,7 +103,7 @@
                                 }
                             </div>
 
-                            <small class="form-text text-muted d-block mt-2">
+                            <small class=" d-block mt-2">
                                 Bỏ trống nếu không muốn thay đổi ảnh (tối đa 5MB).
                             </small>
                         </div>
@@ -118,8 +120,7 @@
                         <!-- Trạng thái -->
                         <div class="form-check mb-3">
                             <input asp-for="IsActive" class="form-check-input" type="checkbox" />
-                            <label asp-for="IsActive" class="form-check-label fw-semibold">
-                                <i class="fa-solid fa-toggle-on"></i> Đang bán
+                            <label asp-for="IsActive" class="form-check-label fw-semibold">Đang bán
                             </label>
                         </div>
 

@@ -10,6 +10,7 @@
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/table.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CinemaS.styles.css" asp-append-version="true" />
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
@@ -308,9 +309,9 @@
                            asp-controller="Payment" asp-action="History">
                             Vé đã đặt
                         </a>
-                        <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "Movies" ? "active" : "")"
-                           asp-controller="Movies" asp-action="Index">
-                            Phim
+                        <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "Booking" && ViewContext.RouteData.Values["action"]?.ToString() == "Snacks" ? "active" : "")"
+                           asp-controller="Booking" asp-action="Snacks">
+                            Đặt đồ ăn
                         </a>
                     </nav>
                 </div>

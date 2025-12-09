@@ -1,7 +1,10 @@
-﻿@model List<CinemaS.Controllers.InvoiceHistoryVM>
+﻿@* Views/Payment/History.cshtml *@
+@model List<CinemaS.Models.ViewModels.InvoiceHistoryVM>
+
 @{
     ViewData["Title"] = "Vé/Hóa đơn của tôi";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var list = Model ?? new List<CinemaS.Models.ViewModels.InvoiceHistoryVM>();
 }
 
 <style>
@@ -19,9 +22,7 @@
     .history-container {
         min-height: calc(100vh - 140px);
         padding: 40px 20px 60px;
-        background:
-            radial-gradient(circle at 20% 10%, rgba(99, 102, 241, 0.1), transparent 40%),
-            radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 40%);
+        background: radial-gradient(circle at 20% 10%, rgba(99, 102, 241, 0.1), transparent 40%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 40%);
     }
 
     .history-header {
@@ -59,10 +60,8 @@
         margin: 0 auto;
     }
 
-    /* Card-based design for mobile */
     .invoice-card {
-        background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15), transparent 50%),
-                    var(--card-bg);
+        background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15), transparent 50%), var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: 20px;
         padding: 20px;
@@ -73,27 +72,27 @@
         overflow: hidden;
     }
 
-    .invoice-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: var(--primary-gradient);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
+        .invoice-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
 
-    .invoice-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px rgba(59, 130, 246, 0.25);
-        border-color: rgba(148, 163, 255, 0.5);
-    }
+        .invoice-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.25);
+            border-color: rgba(148, 163, 255, 0.5);
+        }
 
-    .invoice-card:hover::before {
-        opacity: 1;
-    }
+            .invoice-card:hover::before {
+                opacity: 1;
+            }
 
     .invoice-header {
         display: flex;
@@ -113,10 +112,10 @@
         gap: 8px;
     }
 
-    .invoice-id i {
-        color: #60a5fa;
-        font-size: 14px;
-    }
+        .invoice-id i {
+            color: #60a5fa;
+            font-size: 14px;
+        }
 
     .status-badge {
         padding: 6px 14px;
@@ -130,21 +129,21 @@
         gap: 6px;
     }
 
-    .status-badge.paid {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        color: #10b981;
-    }
+        .status-badge.paid {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
 
-    .status-badge.unpaid {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
-        border: 1px solid rgba(245, 158, 11, 0.4);
-        color: #f59e0b;
-    }
+        .status-badge.unpaid {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #f59e0b;
+        }
 
-    .status-badge i {
-        font-size: 10px;
-    }
+        .status-badge i {
+            font-size: 10px;
+        }
 
     .invoice-info {
         display: grid;
@@ -173,18 +172,18 @@
         font-weight: 600;
     }
 
-    .info-value.movie {
-        color: #60a5fa;
-        font-weight: 700;
-    }
+        .info-value.movie {
+            color: #60a5fa;
+            font-weight: 700;
+        }
 
-    .info-value.price {
-        font-size: 18px;
-        background: linear-gradient(120deg, #fbbf24, #f59e0b);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800;
-    }
+        .info-value.price {
+            font-size: 18px;
+            background: linear-gradient(120deg, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
 
     .invoice-actions {
         display: flex;
@@ -210,17 +209,16 @@
         transition: all 0.2s ease;
     }
 
-    .btn-detail:hover {
-        transform: scale(1.02);
-        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-        color: white;
-    }
+        .btn-detail:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+            color: white;
+        }
 
-    .btn-detail i {
-        font-size: 12px;
-    }
+        .btn-detail i {
+            font-size: 12px;
+        }
 
-    /* Table view for desktop */
     .desktop-table {
         display: none;
         background: var(--card-bg);
@@ -230,60 +228,60 @@
         box-shadow: var(--shadow-glow);
     }
 
-    .desktop-table table {
-        width: 100%;
-        margin: 0;
-        border-collapse: collapse;
-    }
+        .desktop-table table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
 
-    .desktop-table thead {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
-    }
+        .desktop-table thead {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+        }
 
-    .desktop-table th {
-        padding: 16px 20px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #a5b4fc;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 1px solid var(--card-border);
-        text-align: left;
-    }
+        .desktop-table th {
+            padding: 16px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #a5b4fc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--card-border);
+            text-align: left;
+        }
 
-    .desktop-table th:last-child {
-        text-align: right;
-    }
+            .desktop-table th:last-child {
+                text-align: right;
+            }
 
-    .desktop-table td {
-        padding: 16px 20px;
-        color: var(--text-primary);
-        border-bottom: 1px solid rgba(148, 163, 255, 0.1);
-        font-size: 14px;
-    }
+        .desktop-table td {
+            padding: 16px 20px;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(148, 163, 255, 0.1);
+            font-size: 14px;
+        }
 
-    .desktop-table tbody tr {
-        transition: all 0.2s ease;
-    }
+        .desktop-table tbody tr {
+            transition: all 0.2s ease;
+        }
 
-    .desktop-table tbody tr:hover {
-        background: rgba(59, 130, 246, 0.08);
-    }
+            .desktop-table tbody tr:hover {
+                background: rgba(59, 130, 246, 0.08);
+            }
 
-    .desktop-table tbody tr:last-child td {
-        border-bottom: none;
-    }
+            .desktop-table tbody tr:last-child td {
+                border-bottom: none;
+            }
 
-    .desktop-table .movie-title {
-        color: #60a5fa;
-        font-weight: 600;
-    }
+        .desktop-table .movie-title {
+            color: #60a5fa;
+            font-weight: 600;
+        }
 
-    .desktop-table .price-value {
-        font-weight: 700;
-        color: #fbbf24;
-        text-align: right;
-    }
+        .desktop-table .price-value {
+            font-weight: 700;
+            color: #fbbf24;
+            text-align: right;
+        }
 
     .empty-state {
         text-align: center;
@@ -319,7 +317,6 @@
         opacity: 0.7;
     }
 
-    /* Responsive breakpoints */
     @@media (min-width: 768px) {
         .history-container {
             padding: 50px 30px 70px;
@@ -383,6 +380,19 @@
     </div>
 
     <div class="history-content">
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success text-center mb-3">
+                @TempData["Message"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger text-center mb-3">
+                @TempData["Error"]
+            </div>
+        }
+
         @if (Model == null || !Model.Any())
         {
             <div class="empty-state">
@@ -395,15 +405,14 @@
         }
         else
         {
-            <!-- Mobile Card View -->
             <div class="mobile-cards">
-                @foreach (var i in Model)
+                @for (var idx = 0; idx < list.Count; idx++)
                 {
+                    var i = list[idx];
                     <div class="invoice-card">
                         <div class="invoice-header">
                             <div class="invoice-id">
-                                <i class="fa-solid fa-hashtag"></i>
-                                <span>@i.InvoiceId</span>
+                                <span>Vé #@(idx + 1)</span>
                             </div>
                             @if (i.Status == 1)
                             {
@@ -445,21 +454,39 @@
                                 <div class="info-label">Tổng tiền</div>
                                 <div class="info-value price">@i.TotalPrice.ToString("#,0") đ</div>
                             </div>
-                            <a asp-action="ResultById" asp-route-invoiceId="@i.InvoiceId" class="btn-detail">
+
+                            <a asp-action="ResultById"
+                               asp-route-invoiceId="@i.InvoiceId"
+                               class="btn-detail">
                                 <i class="fa-solid fa-eye"></i>
                                 <span>Chi tiết</span>
                             </a>
+
+                            <form asp-controller="Payment"
+                                  asp-action="DeleteHistory"
+                                  method="post"
+                                  class="ms-1"
+                                  onsubmit="return confirm('Xóa hóa đơn này khỏi lịch sử?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="invoiceId" value="@i.InvoiceId" />
+                                <button type="submit"
+                                        class="btn-detail"
+                                        style="background:linear-gradient(120deg,#ef4444,#f97316);">
+                                    <i class="fa-solid fa-trash"></i>
+                                    <span>Xóa</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 }
             </div>
 
-            <!-- Desktop Table View -->
+
             <div class="desktop-table">
                 <table>
                     <thead>
                         <tr>
-                            <th>Mã hóa đơn</th>
+                            <th>STT</th>
                             <th>Phim</th>
                             <th>Phòng</th>
                             <th>Ngày chiếu</th>
@@ -470,15 +497,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var i in Model)
+                        @for (var idx = 0; idx < list.Count; idx++)
                         {
+                            var i = list[idx];
                             <tr>
-                                <td>
-                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                        <i class="fa-solid fa-hashtag" style="color: #60a5fa; font-size: 12px;"></i>
-                                        <span style="font-weight: 600;">@i.InvoiceId</span>
-                                    </div>
-                                </td>
+                                <td>@(idx + 1)</td>
                                 <td class="movie-title">@(i.MovieTitle ?? "N/A")</td>
                                 <td>@(i.Room ?? "N/A")</td>
                                 <td>@(i.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A")</td>
@@ -501,16 +524,24 @@
                                     }
                                 </td>
                                 <td style="text-align: right;">
-                                    <a asp-action="ResultById" asp-route-invoiceId="@i.InvoiceId" class="btn-detail" style="display: inline-flex; flex: none;">
-                                        <i class="fa-solid fa-eye"></i>
-                                        <span>Chi tiết</span>
-                                    </a>
+                                    <div style="display:inline-flex; gap:6px; justify-content:flex-end;">
+                                        <a asp-action="ResultById"
+                                           asp-route-invoiceId="@i.InvoiceId"
+                                           class="btn-detail"
+                                           style="display:inline-flex; flex:none;">
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span>Chi tiết</span>
+                                        </a>
+
+                                        
+                                    </div>
                                 </td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
+
         }
     </div>
 </div>

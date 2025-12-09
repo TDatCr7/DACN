@@ -7,13 +7,17 @@
 <link rel="stylesheet" href="~/css/management.css" />
 
 <div class="container-fluid mt-4">
-
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fa-solid fa-film"></i> Quản lý Loại Phòng Chiếu</h1>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="fa-solid fa-plus-circle"></i> Tạo mới
-        </a>
+        <h1 class="mb-0"><i class="fa-solid fa-film"></i> Quản lý Loại Phòng Chiếu</h1>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fa-solid fa-plus-circle"></i> Tạo mới
+            </a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
     </div>
 
     <!-- Thông báo -->
@@ -46,7 +50,7 @@
                 <div class="search-box w-100">
                     <div class="input-group">
                         <input type="text" id="searchInput" name="searchString" class="form-control"
-                               placeholder="Tìm kiếm theo tên hoặc mã loại phòng..." />
+                               placeholder="🔍 Tìm kiếm theo tên hoặc mã loại phòng..." style="color: white;" />
                         <button type="button" class="btn btn-outline-secondary" onclick="searchCinemaTypes()">
                             <i class="fa-solid fa-search"></i>
                         </button>
@@ -59,77 +63,71 @@
         </div>
     </div>
 
-    <!-- Bảng danh sách -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive table-container">
-                <table class="table table-hover table-bordered" id="cinemaTypesTable">
-                    <thead class="table-dark">
+    <!-- Bảng danh sách - sử dụng admin-table-wrap và admin-table -->
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle" id="cinemaTypesTable">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-tag"></i>Mã Loại</th>
+                    <th><i class="fa-solid fa-layer-group"></i>Tên Loại Phòng</th>
+                    <th><i class="fa-solid fa-align-left"></i>Mô Tả</th>
+                    <th><i class="fa-solid fa-code"></i>Code</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành Động</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                @if (Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
                         <tr>
-                            <th style="width:10%;">Mã Loại</th>
-                            <th style="width:25%;">Tên Loại Phòng</th>
-                            <th style="width:35%;">Mô Tả</th>
-                            <th style="width:10%;">Code</th>
-                            <th style="width:20%;" class="text-center">Hành Động</th>
+                            <td><strong>@item.CinemaTypeId</strong></td>
+                            <td>@item.Name</td>
+                            <td class="admin-text-muted">
+                                @if (!string.IsNullOrEmpty(item.Description))
+                                {
+                                    @(item.Description.Length > 50
+                                        ? item.Description.Substring(0, 50) + "..."
+                                        : item.Description)
+                                }
+                                else
+                                {
+                                    <span>Không có mô tả</span>
+                                }
+                            </td>
+                            <td>@item.Code</td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@item.CinemaTypeId" 
+                                   class="admin-icon-btn" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <button type="button" onclick="confirmDelete('@item.CinemaTypeId', '@item.Name')" 
+                                        class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        @if (Model.Any())
-                        {
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td>@item.CinemaTypeId</td>
-                                    <td>@item.Name</td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(item.Description))
-                                        {
-                                            @(item.Description.Length > 50
-                                                                            ? item.Description.Substring(0, 50) + "..."
-                                                                            : item.Description)
-                                                                }
-                                        else
-                                        {
-                                            <span class="text-muted">Không có mô tả</span>
-                                        }
-                                    </td>
-                                    <td>@item.Code</td>
-                                    <td class="text-center">
-                                        <a asp-action="Details" asp-route-id="@item.CinemaTypeId" class="btn btn-info btn-sm btn-action" title="Chi tiết">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </a>
-                                        <a asp-action="Edit" asp-route-id="@item.CinemaTypeId" class="btn btn-warning btn-sm btn-action" title="Chỉnh sửa">
-                                            <i class="fa-solid fa-edit"></i>
-                                        </a>
-                                        <button type="button" onclick="confirmDelete('@item.CinemaTypeId', '@item.Name')" class="btn btn-danger btn-sm btn-action" title="Xóa">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4 no-results">
-                                    <i class="fa-solid fa-inbox fa-3x mb-3 d-block"></i>
-                                    <strong>Không có dữ liệu</strong>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-center admin-text-muted py-4">
+                            <i class="fa-solid fa-inbox fa-3x mb-3 d-block"></i>
+                            <strong>Không có dữ liệu</strong>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 
     <!-- Quay lại button -->
     <div class="d-flex justify-content-between mt-4">
-        <button type="button" class="btn btn-secondary" onclick="history.back()">
-            <i class="fas fa-arrow-left"></i> Quay lại
-        </button>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
     </div>
-
 </div>
 
 <!-- Form ẩn dùng để xóa -->
@@ -140,7 +138,6 @@
 
 @section Scripts {
     <script>
-        // === AJAX SEARCH ===
         function searchCinemaTypes() {
             const searchString = document.getElementById('searchInput').value.trim();
             fetch(`/CinemaTypes/SearchCinemaTypes?searchString=${encodeURIComponent(searchString)}`)
@@ -152,7 +149,7 @@
                     if (data.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="5" class="no-results text-center py-4">
+                                <td colspan="5" class="text-center admin-text-muted py-4">
                                     <i class="fa-solid fa-inbox fa-3x mb-3 d-block"></i>
                                     Không tìm thấy kết quả
                                 </td>
@@ -161,19 +158,19 @@
                         data.forEach(item => {
                             tbody.innerHTML += `
                                 <tr>
-                                    <td>${item.cinemaTypeId}</td>
+                                    <td><strong>${item.cinemaTypeId}</strong></td>
                                     <td>${item.name || ''}</td>
-                                    <td>${item.description || ''}</td>
+                                    <td class="admin-text-muted">${item.description || 'Không có mô tả'}</td>
                                     <td>${item.code || ''}</td>
-                                    <td class="text-center">
-                                        <a href="/CinemaTypes/Details/${item.cinemaTypeId}" class="btn btn-info btn-sm btn-action">
-                                            <i class="fa-solid fa-eye"></i>
+                                    <td class="text-end">
+                                        <a href="/CinemaTypes/Details/${item.cinemaTypeId}" class="admin-icon-btn">
+                                            <i class="fa-regular fa-eye"></i>
                                         </a>
-                                        <a href="/CinemaTypes/Edit/${item.cinemaTypeId}" class="btn btn-warning btn-sm btn-action">
-                                            <i class="fa-solid fa-edit"></i>
+                                        <a href="/CinemaTypes/Edit/${item.cinemaTypeId}" class="admin-icon-btn">
+                                            <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <button onclick="confirmDelete('${item.cinemaTypeId}', '${item.name}')" class="btn btn-danger btn-sm btn-action">
-                                            <i class="fa-solid fa-trash"></i>
+                                        <button onclick="confirmDelete('${item.cinemaTypeId}', '${item.name}')" class="admin-icon-btn admin-icon-btn-danger">
+                                            <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </td>
                                 </tr>`;
@@ -186,7 +183,6 @@
                 });
         }
 
-        // === ENTER TO SEARCH ===
         document.getElementById('searchInput').addEventListener('keypress', e => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -194,7 +190,6 @@
             }
         });
 
-        // === CONFIRM DELETE ===
         function confirmDelete(id, name) {
             if (confirm(`❌ Bạn có chắc chắn muốn xóa loại phòng "${name}" không?`)) {
                 document.getElementById('deleteId').value = id;
@@ -203,7 +198,6 @@
             }
         }
 
-        // === AUTO HIDE ALERTS ===
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(alert => {
                 alert.style.transition = 'opacity 0.5s ease';

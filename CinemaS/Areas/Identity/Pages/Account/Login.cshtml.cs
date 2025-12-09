@@ -79,7 +79,6 @@ namespace CinemaS.Areas.Identity.Pages.Account
             var user = await _userManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
-                // Only one error: show under Email
                 ModelState.AddModelError(nameof(Input.Email), "Không tìm thấy tài khoản.");
                 return Page();
             }
@@ -88,31 +87,51 @@ namespace CinemaS.Areas.Identity.Pages.Account
             var pwdValid = await _userManager.CheckPasswordAsync(user, Input.Password);
             if (!pwdValid)
             {
-                // Only one error: show under Password
                 ModelState.AddModelError(nameof(Input.Password), "Sai mật khẩu.");
                 return Page();
             }
 
-            // If credentials are valid, perform sign-in
-            var result = await _signInManager.PasswordSignInAsync(user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+            // Đăng nhập
+            var result = await _signInManager.PasswordSignInAsync(
+                user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
             if (result.Succeeded)
             {
                 _logger.LogInformation("User logged in.");
-                return LocalRedirect(returnUrl);
+
+                // Kiểm tra role
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    // Thông báo cho Admin
+                    TempData["Message"] = "Đăng nhập thành công. Xin chào Admin.";
+                    return LocalRedirect("/Admin/Index");
+                }
+                else
+                {
+                    // Lấy tên hiển thị cho khách
+                    var displayName = string.IsNullOrWhiteSpace(user.FullName)
+                        ? user.Email
+                        : user.FullName;
+
+                    TempData["Message"] = $"Đăng nhập thành công. Xin chào {displayName}.";
+                    return LocalRedirect("/Home/Index");
+                }
             }
+
             if (result.RequiresTwoFactor)
             {
                 return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
             }
+
             if (result.IsLockedOut)
             {
                 _logger.LogWarning("User account locked out.");
                 return RedirectToPage("./Lockout");
             }
 
-            // Fallback: if sign-in failed for other reasons, show a single general password error
             ModelState.AddModelError(nameof(Input.Password), "Sai mật khẩu.");
             return Page();
         }
+
     }
 }

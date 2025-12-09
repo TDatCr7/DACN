@@ -1,64 +1,78 @@
 ﻿@model CinemaS.Models.PaymentMethods
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Xóa Phương Thức Thanh Toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Delete</h1>
+<link rel="stylesheet" href="~/css/delete.css" />
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>PaymentMethods</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Code)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Code)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Type)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Type)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Provider)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Provider)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsActive)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsActive)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="PaymentMethodId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
+<div class="container mt-4">
+	<div class="delete-container">
+		<h1 class="mb-4 text-danger">
+			<i class="fas fa-exclamation-triangle"></i> Xác Nhận Xóa Phương Thức Thanh Toán
+		</h1>
+
+		<div class="warning-box">
+			<h5><i class="fas fa-exclamation-triangle"></i> Cảnh báo!</h5>
+			<p class="mb-0">
+				Bạn có chắc chắn muốn xóa phương thức thanh toán này? Hành động này không thể hoàn tác!
+			</p>
+		</div>
+
+		<h4 class="mb-3">Thông tin phương thức thanh toán:</h4>
+
+		<div class="info-grid">
+			<div class="info-label">Mã Phương Thức:</div>
+			<div class="info-value"><strong>@Model.PaymentMethodId</strong></div>
+
+			<div class="info-label">Code:</div>
+			<div class="info-value">@Model.Code</div>
+
+			<div class="info-label">Tên Phương Thức:</div>
+			<div class="info-value">@Model.Name</div>
+
+			<div class="info-label">Loại:</div>
+			<div class="info-value">@Model.Type</div>
+
+			<div class="info-label">Nhà Cung Cấp:</div>
+			<div class="info-value">@Model.Provider</div>
+
+			<div class="info-label">Trạng Thái:</div>
+			<div class="info-value">@(Model.IsActive == true ? "Hoạt động" : "Không hoạt động")</div>
+
+			@if (Model.CreatedAt.HasValue)
+			{
+				<div class="info-label">Ngày Tạo:</div>
+				<div class="info-value">@Model.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+			}
+
+			@if (Model.UpdatedAt.HasValue)
+			{
+				<div class="info-label">Ngày Cập Nhật:</div>
+				<div class="info-value">@Model.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+			}
+		</div>
+
+		<div class="d-flex justify-content-between mt-4">
+			<a asp-action="Index" class="btn btn-secondary">
+				<i class="fas fa-arrow-left"></i> Quay lại
+			</a>
+
+			<form asp-action="Delete" method="post" style="display: inline;" onsubmit="return confirmDelete();">
+				<input type="hidden" asp-for="PaymentMethodId" />
+				<button type="submit" class="btn btn-danger">
+					<i class="fas fa-trash"></i> Xóa
+				</button>
+			</form>
+		</div>
+	</div>
 </div>
+
+@section Scripts {
+	<script>
+		function confirmDelete() {
+			return confirm('Bạn có CHẮC CHẮN muốn xóa phương thức thanh toán này không?');
+		}
+	</script>
+}

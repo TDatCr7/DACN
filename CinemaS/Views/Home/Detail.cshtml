@@ -20,14 +20,15 @@
     var countryText = !string.IsNullOrWhiteSpace(Model.Country) ? Model.Country : "Chưa có thông tin";
     var audioText = !string.IsNullOrWhiteSpace(Model.AudioOption) ? Model.AudioOption : "Chưa có thông tin";
 
+
     // Mô tả & nội dung
     var summaryText = !string.IsNullOrWhiteSpace(Model.Summary) ? Model.Summary : "Chưa có thông tin";
     var contentText = !string.IsNullOrWhiteSpace(Model.DetailDescription) ? Model.DetailDescription
                      : (!string.IsNullOrWhiteSpace(Model.Summary) ? Model.Summary : "Chưa có thông tin");
 
-    // (Model hiện chưa có 2 trường này)
-    var directorText = "Chưa có thông tin";
-    var castText = "Chưa có thông tin";
+    var directorText = (ViewBag.DirectorText as string) ?? "Chưa có thông tin";
+    var castText = (ViewBag.CastText as string) ?? "Chưa có thông tin";
+
 
     var releaseText = Model.ReleaseDate?.ToString("dddd, dd/MM/yyyy", new System.Globalization.CultureInfo("vi-VN")) ?? "Chưa có thông tin";
 }

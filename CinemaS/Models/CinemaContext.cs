@@ -181,7 +181,6 @@ namespace CinemaS.Models
 
             // ===== Unique/Filtered Indexes quan trọng =====
             modelBuilder.Entity<Tickets>().HasIndex(x => new { x.ShowTimeId, x.SeatId }).IsUnique();
-            modelBuilder.Entity<Seats>().HasIndex(x => new { x.CinemaTheaterId, x.RowIndex, x.ColumnIndex }).IsUnique();
             modelBuilder.Entity<Seats>().HasIndex(x => new { x.CinemaTheaterId, x.Label }).IsUnique().HasFilter("[Label] IS NOT NULL");
             modelBuilder.Entity<Promotion>().HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL AND [Status] = 1");
             modelBuilder.Entity<PaymentMethods>().HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL");

@@ -13,6 +13,18 @@
         </h1>
         <p class="lead" style="color:#9aa5c6;">Dashboard quản trị cho Admin</p>
     </div>
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success text-center mb-4"
+             data-auto-dismiss="true"
+             style="max-width:720px;margin:0 auto;border-radius:999px;
+                    background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.6);
+                    color:#bbf7d0;">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["Message"]
+        </div>
+    }
+
 
     <div class="row g-4">
 
@@ -89,6 +101,25 @@
             </div>
         </div>
 
+        <!-- Quản lý Hóa Đơn -->
+        <div class="col-md-4">
+            <div class="card shadow-lg border-0 h-100 hover-card"
+                 style="background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.10);">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-file-invoice-dollar fa-3x" style="color:#22c55e;"></i>
+                    </div>
+                    <h4 class="card-title fw-bold text-white">Quản Lý Hóa Đơn</h4>
+                    <p class="text-muted small">Xem, chỉnh sửa và xóa hóa đơn / thanh toán</p>
+                    <a asp-controller="Invoices" asp-action="Index"
+                       class="btn btn-primary btn-lg w-100"
+                       style="background:linear-gradient(90deg,#3b5ccc,#7c3aed);border:0;">
+                        <i class="fas fa-arrow-right"></i> Truy cập
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Quản lý Vé -->
         <div class="col-md-4">
             <div class="card shadow-lg border-0 h-100 hover-card"
@@ -101,7 +132,7 @@
                     <p class="text-muted small">Quản lý vé và loại vé trong hệ thống</p>
 
                     <a href="/Tickets/Management" class="btn btn-primary btn-lg w-100"
-                       style="background:linear-gradient(90deg,#3b5ccc,#7c3aed);border:0;">
+                       style="background:linear-gradient(90deg,#3b5ccc,#7c3aed);border:0%;">
                         <i class="fas fa-arrow-right"></i> Truy cập
                     </a>
                 </div>
@@ -119,7 +150,7 @@
                     <h4 class="card-title fw-bold text-white">Quản Lý Đồ Ăn</h4>
                     <p class="text-muted small">Quản lý danh sách đồ ăn và loại đồ ăn</p>
                     <a href="/Snacks/Management" class="btn btn-primary btn-lg w-100"
-                       style="background:linear-gradient(90deg,#3b5ccc,#7c3aed);border:0;">
+                       style="background:linear-gradient(90deg,#3b5ccc,#7c3aed);border:0%;">
                         <i class="fas fa-arrow-right"></i> Truy cập
                     </a>
                 </div>
@@ -142,3 +173,17 @@
         color: #9aa5c6 !important;
     }
 </style>
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const alerts = document.querySelectorAll('.alert[data-auto-dismiss="true"]');
+            if (alerts.length === 0) return;
+
+            setTimeout(function () {
+                alerts.forEach(function (el) {
+                    el.classList.add('d-none');
+                });
+            }, 5000); // 5s
+        });
+    </script>
+}

@@ -1,68 +1,66 @@
 ﻿@model CinemaS.Models.ShowTimes
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Xóa Suất Chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h1>Delete</h1>
+<link rel="stylesheet" href="~/css/delete.css" />
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>ShowTimes</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.OriginPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.OriginPrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ShowDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ShowDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StartTime)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StartTime)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EndTime)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EndTime)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TotalCinema)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TotalCinema)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="ShowTimeId" />
-        <div class="d-flex justify-content-between mt-4">
-            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </button>
-            <input type="submit" value="Delete" class="btn btn-danger" />
-        </div>
-    </form>
+<div class="container mt-4">
+	<div class="delete-container">
+		<h1 class="mb-4 text-danger">
+			<i class="fas fa-exclamation-triangle"></i> Xác Nhận Xóa Suất Chiếu
+		</h1>
+
+		<div class="warning-box">
+			<h5><i class="fas fa-exclamation-triangle"></i> Cảnh báo!</h5>
+			<p class="mb-0">
+				Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác!
+			</p>
+		</div>
+
+		<h4 class="mb-3">Thông tin suất chiếu:</h4>
+
+		<div class="info-grid">
+			<div class="info-label">Mã Suất:</div>
+			<div class="info-value"><strong>@Model.ShowTimeId</strong></div>
+
+			<div class="info-label">Giá gốc:</div>
+			<div class="info-value">@Model.OriginPrice VNĐ</div>
+
+			<div class="info-label">Ngày chiếu:</div>
+			<div class="info-value">@Model.ShowDate?.ToString("dd/MM/yyyy")</div>
+
+			<div class="info-label">Giờ bắt đầu:</div>
+			<div class="info-value">@Model.StartTime?.ToString("HH:mm")</div>
+
+			<div class="info-label">Giờ kết thúc:</div>
+			<div class="info-value">@Model.EndTime?.ToString("HH:mm")</div>
+
+			<div class="info-label">Ngày cập nhật:</div>
+			<div class="info-value">@Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
+		</div>
+
+		<div class="d-flex justify-content-between mt-4">
+			<button type="button" class="btn btn-secondary" onclick="history.back()">
+				<i class="fas fa-arrow-left"></i> Quay lại
+			</button>
+
+			<form asp-action="Delete" method="post" style="display: inline;" onsubmit="return confirmDelete();">
+				<input type="hidden" asp-for="ShowTimeId" />
+				<button type="submit" class="btn btn-danger">
+					<i class="fas fa-trash"></i> Xóa
+				</button>
+			</form>
+		</div>
+	</div>
 </div>
+
+@section Scripts {
+	<script>
+		function confirmDelete() {
+			return confirm('Bạn có CHẮC CHẮN muốn xóa suất chiếu này không?');
+		}
+	</script>
+}

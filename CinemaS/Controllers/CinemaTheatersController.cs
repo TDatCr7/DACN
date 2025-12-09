@@ -179,9 +179,8 @@ namespace CinemaS.Controllers
                 await CreateBaseSeatLayout(cinemaTheater);
 
                 TempData["Message"] = $"✅ Tạo phòng '{cinemaTheater.Name}' thành công! Bây giờ bạn có thể chỉnh sửa bố cục ghế.";
-                
-                // ✅ REDIRECT to Seats/Index for that room
-                return RedirectToAction("Index", "Seats", new { cinemaTheaterId = cinemaTheater.CinemaTheaterId });
+
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
@@ -343,7 +342,7 @@ namespace CinemaS.Controllers
             for (int r = 0; r < rows; r++)
             {
                 char rowLabel = (char)('A' + r);
-                
+
                 for (int col = 1; col <= cols; col++)
                 {
                     seats.Add(new Seats
@@ -362,6 +361,26 @@ namespace CinemaS.Controllers
 
             _context.Seats.AddRange(seats);
             await _context.SaveChangesAsync();
+        }
+
+        // ================== API ENDPOINTS ==================
+        [HttpGet]
+        public async Task<IActionResult> GetTotalSeats(string cinemaTheaterId)
+        {
+            if (string.IsNullOrEmpty(cinemaTheaterId))
+            {
+                return Json(new { success = false, message = "CinemaTheaterId is required." });
+            }
+
+            try
+            {
+                var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == cinemaTheaterId && s.IsActive);
+                return Json(new { success = true, totalSeats });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
     }
 }

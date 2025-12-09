@@ -8,6 +8,7 @@
 <!-- Font Awesome & CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 <link rel="stylesheet" href="~/css/management.css" />
+<link rel="stylesheet" href="~/css/table.css" />
 <link rel="stylesheet" href="~/css/Create.css" />
 
 <div class="container mt-4">
@@ -38,11 +39,14 @@
 
                     <form asp-action="Edit" asp-controller="ShowTimes" method="post" novalidate>
                         <input type="hidden" asp-for="ShowTimeId" />
+                        <input type="hidden" asp-for="TotalCinema" />
+                        <input type="hidden" asp-for="CreatedAt" />
+                        <input type="hidden" asp-for="UpdatedAt" />
 
                         <!-- Chọn phim -->
                         <div class="mb-3">
                             <label class="form-label"><i class="fas fa-video"></i> Phim <span class="text-danger">*</span></label>
-                            <select asp-for="MoviesId" class="form-select" asp-items="ViewBag.Movies">
+                            <select asp-for="MoviesId" class="form-select" asp-items="@ViewBag.Movies">
                                 <option value="">-- Chọn phim --</option>
                             </select>
                             <span asp-validation-for="MoviesId" class="text-danger"></span>
@@ -51,7 +55,7 @@
                         <!-- Chọn phòng chiếu -->
                         <div class="mb-3">
                             <label class="form-label"><i class="fas fa-door-open"></i> Phòng chiếu <span class="text-danger">*</span></label>
-                            <select asp-for="CinemaTheaterId" class="form-select" asp-items="ViewBag.CinemaTheaters">
+                            <select asp-for="CinemaTheaterId" class="form-select" asp-items="@ViewBag.CinemaTheaters">
                                 <option value="">-- Chọn phòng chiếu --</option>
                             </select>
                             <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
@@ -60,7 +64,7 @@
                         <!-- Ngày chiếu -->
                         <div class="mb-3">
                             <label class="form-label"><i class="fas fa-calendar-days"></i> Ngày chiếu</label>
-                            <input asp-for="ShowDate" type="date" class="form-control" />
+                            <input asp-for="ShowDate" type="date" class="form-control" value="@Model.ShowDate?.ToString("yyyy-MM-dd")" />
                             <span asp-validation-for="ShowDate" class="text-danger"></span>
                         </div>
 
@@ -68,12 +72,12 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label"><i class="fas fa-clock"></i> Giờ bắt đầu</label>
-                                <input asp-for="StartTime" type="time" class="form-control" />
+                                <input asp-for="StartTime" type="time" class="form-control" value="@Model.StartTime?.ToString("HH:mm")" />
                                 <span asp-validation-for="StartTime" class="text-danger"></span>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label"><i class="fas fa-hourglass-end"></i> Giờ kết thúc</label>
-                                <input asp-for="EndTime" type="time" class="form-control" />
+                                <input asp-for="EndTime" type="time" class="form-control" value="@Model.EndTime?.ToString("HH:mm")" />
                                 <span asp-validation-for="EndTime" class="text-danger"></span>
                             </div>
                         </div>
@@ -83,13 +87,6 @@
                             <label class="form-label"><i class="fas fa-money-bill"></i> Giá gốc</label>
                             <input asp-for="OriginPrice" type="number" min="0" class="form-control" />
                             <span asp-validation-for="OriginPrice" class="text-danger"></span>
-                        </div>
-
-                        <!-- Tổng số ghế -->
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-th"></i> Tổng số ghế</label>
-                            <input asp-for="TotalCinema" type="number" class="form-control" readonly />
-                            <span asp-validation-for="TotalCinema" class="text-danger"></span>
                         </div>
 
                         <!-- Nút hành động -->
@@ -113,5 +110,34 @@
     <script>
         // Tự ẩn thông báo sau 5s
         setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cinemaTheaterSelect = document.querySelector('[asp-for="CinemaTheaterId"]');
+            const totalCinemaInput = document.querySelector('[asp-for="TotalCinema"]');
+
+            cinemaTheaterSelect.addEventListener('change', async function () {
+                const selectedTheaterId = this.value;
+                if (!selectedTheaterId) {
+                    totalCinemaInput.value = '';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/CinemaTheaters/GetTotalSeats?cinemaTheaterId=${selectedTheaterId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        totalCinemaInput.value = data.totalSeats;
+                    } else {
+                        totalCinemaInput.value = '';
+                        console.error('Error fetching total seats:', data.message);
+                    }
+                } catch (error) {
+                    totalCinemaInput.value = '';
+                    console.error('Error fetching total seats:', error);
+                }
+            });
+        });
     </script>
 }
