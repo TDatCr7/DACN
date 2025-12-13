@@ -8,9 +8,13 @@
 
   <ItemGroup>
     <Compile Remove="Models\Enums\**" />
+    <Compile Remove="SQL\**" />
     <Content Remove="Models\Enums\**" />
+    <Content Remove="SQL\**" />
     <EmbeddedResource Remove="Models\Enums\**" />
+    <EmbeddedResource Remove="SQL\**" />
     <None Remove="Models\Enums\**" />
+    <None Remove="SQL\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,7 +35,6 @@
 
   <ItemGroup>
     <Folder Include="Controllers\Api\" />
-    <Folder Include="SQL\" />
     <Folder Include="wwwroot\Images\Movies\" />
     <Folder Include="wwwroot\Images\Snacks\" />
   </ItemGroup>
