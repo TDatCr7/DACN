@@ -1,104 +1,193 @@
-﻿@model CinemaS.Models.TicketTypes
+﻿@* Views/TicketTypes/Create.cshtml *@
+@model CinemaS.Models.TicketTypes
 
 @{
-    ViewData["Title"] = "Tạo loại vé mới";
+    ViewData["Title"] = "Tạo loại vé";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- Liên kết CSS -->
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
+<style>
+    .page-tickettype-form {
+        padding: 34px 0 60px;
+    }
 
-<div class="container mt-4">
+    .tickettype-form-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.3), transparent 55%), linear-gradient(145deg, #020617, #020617);
+        border: 1px solid rgba(148,163,255,.55);
+        border-radius: 24px;
+        padding: 20px 22px;
+        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
+        color: #e9ecf6;
+    }
+
+    .tickettype-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .tickettype-form-title {
+        font-weight: 900;
+        font-size: 20px;
+        margin: 0;
+    }
+
+    .tickettype-form-sub {
+        font-size: 13px;
+        color: #9ca3af;
+    }
+
+    .field-label {
+        font-weight: 700;
+        font-size: 13px;
+        color: #c7d2fe;
+    }
+
+    .tickettype-input,
+    .form-control {
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.35);
+        color: #e5e7f5;
+        font-size: 14px;
+    }
+
+        .tickettype-input::placeholder {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .tickettype-input:focus,
+        .form-control:focus {
+            background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(2,6,23,1));
+            color: #e5e7f5;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.35);
+        }
+
+    .btn-primary {
+        background: linear-gradient(90deg,#3b5ccc,#7c3aed);
+        border: none;
+        font-weight: 800;
+        border-radius: 999px;
+        padding-inline: 22px;
+    }
+
+    .btn-outline-light {
+        border-radius: 999px;
+        padding-inline: 18px;
+        border-color: rgba(148,163,255,.75);
+        color: #e5e7ff;
+        background: rgba(15,23,42,.9);
+    }
+
+        .btn-outline-light:hover {
+            background: rgba(37,99,235,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+</style>
+
+<div class="container page-tickettype-form">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header text-white">
-                    <h3><i class="fas fa-ticket-alt"></i> Tạo loại vé mới</h3>
+        <div class="col-lg-5 col-md-7">
+            <div class="tickettype-form-card">
+                <div class="tickettype-form-header">
+                    <div>
+                        <h3 class="tickettype-form-title">
+                            <i class="fa-solid fa-ticket-alt me-2"></i>Tạo loại vé mới
+                        </h3>
+                        <div class="tickettype-form-sub">
+                            Định nghĩa loại vé mới để dùng khi bán vé.
+                        </div>
+                    </div>
+                    <!-- Quay lại TRANG TRƯỚC -->
+                    <button type="button" class="btn btn-outline-light btn-sm" onclick="history.back()">
+                        <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại trước
+                    </button>
                 </div>
 
-                <div class="card-body">
-                    <!-- Thông báo lỗi -->
-                    @if (TempData["Error"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-triangle-exclamation"></i>
-                            <strong>Lỗi:</strong> @TempData["Error"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <strong>Lỗi:</strong> @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
 
-                    <form asp-action="Create" method="post" id="createForm" novalidate>
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <form asp-action="Create" method="post" id="createForm" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-                        <!-- Tên loại vé -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-ticket-alt"></i> Tên loại vé
-                                <span class="text-danger">*</span>
-                            </label>
-                            <input asp-for="Name" class="form-control" required />
-                            <span asp-validation-for="Name" class="text-danger"></span>
-                        </div>
+                    <div class="mb-3">
+                        <label class="field-label">
+                            Tên loại vé <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Name"
+                               class="form-control tickettype-input"
+                               placeholder="Ví dụ: Người lớn, Trẻ em, HSSV..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
 
-                        <!-- Mô tả -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-info-circle"></i> Mô tả
-                            </label>
-                            <textarea asp-for="Description" class="form-control" placeholder="Mô tả loại vé (nếu có)..."></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
-                        </div>
+                    <div class="mb-3">
+                        <label class="field-label">
+                            Mô tả
+                        </label>
+                        <textarea asp-for="Description"
+                                  class="form-control tickettype-input"
+                                  rows="3"
+                                  placeholder="Mô tả ngắn gọn điều kiện áp dụng (nếu có)..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
 
-                        <!-- Giá vé -->
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-tags"></i> Giá vé (VNĐ)
-                                <span class="text-danger">*</span>
-                            </label>
-                            <input asp-for="Price" type="number" min="0" class="form-control" placeholder="VD: 75000" required />
-                            <span asp-validation-for="Price" class="text-danger"></span>
-                        </div>
+                    <div class="mb-3">
+                        <label class="field-label">
+                            Giá vé (VNĐ) <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Price"
+                               type="number"
+                               min="0"
+                               class="form-control tickettype-input"
+                               placeholder="Ví dụ: 75000" />
+                        <span asp-validation-for="Price" class="text-danger"></span>
+                    </div>
 
-                        <!-- Nút hành động -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                                <i class="fas fa-arrow-left"></i> Quay lại
-                            </button>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i> Tạo loại vé
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        <!-- DƯỚI: về danh sách loại vé -->
+                        <a asp-action="Index" class="btn btn-outline-light">
+                            <i class="fa-solid fa-list-ul me-1"></i> Về danh sách
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-save me-1"></i> Tạo loại vé
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    {
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @await Html.PartialAsync("_ValidationScriptsPartial")
 
     <script>
-        // Kiểm tra hợp lệ trước khi gửi
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('createForm');
             const nameInput = document.querySelector('input[name="Name"]');
             const priceInput = document.querySelector('input[name="Price"]');
 
             form.addEventListener('submit', e => {
-                let errors = [];
+                const errors = [];
 
                 if (!nameInput.value.trim())
                     errors.push("• Tên loại vé không được để trống");
-                if (!priceInput.value || priceInput.value <= 0)
+                if (!priceInput.value || Number(priceInput.value) <= 0)
                     errors.push("• Giá phải lớn hơn 0");
 
                 if (errors.length > 0) {
                     e.preventDefault();
-                    alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
+                    alert("Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
                 }
             });
         });

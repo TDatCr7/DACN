@@ -148,9 +148,18 @@ namespace CinemaS.Models
             modelBuilder.Entity<ShowTimes>().HasOne<Movies>().WithMany().HasForeignKey(x => x.MoviesId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<ShowTimes>().HasOne<CinemaTheaters>().WithMany().HasForeignKey(x => x.CinemaTheaterId).OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Invoices>().HasOne<Promotion>().WithMany().HasForeignKey(x => x.PromotionId).OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<Invoices>().HasOne<Users>().WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Invoices>().HasOne<Users>().WithMany().HasForeignKey(x => x.StaffId).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Invoices>()
+    .HasOne(i => i.Customer)            // navigation bên Invoices
+    .WithMany(u => u.Invoices)          // navigation bên Users
+    .HasForeignKey(i => i.CustomerId)   // dùng đúng cột Customer_ID
+    .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Invoices>()
+                .HasOne<Users>()                    // staff (không cần navigation)
+                .WithMany()
+                .HasForeignKey(i => i.StaffId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             modelBuilder.Entity<Invoices>().HasOne<PaymentMethods>().WithMany().HasForeignKey(x => x.PaymentMethodId).OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Tickets>().HasOne<ShowTimes>().WithMany().HasForeignKey(x => x.ShowTimeId).OnDelete(DeleteBehavior.Cascade);

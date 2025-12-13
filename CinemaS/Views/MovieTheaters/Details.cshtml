@@ -1,139 +1,340 @@
-﻿@model CinemaS.Models.MovieTheaters
+﻿@* Views/MovieTheaters/Details.cshtml *@
+@using System.Text.RegularExpressions
+@model CinemaS.Models.MovieTheaters
 
 @{
-    ViewData["Title"] = "Chi Tiết Rạp Chiếu";
+    ViewData["Title"] = "Chi tiết cụm rạp";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var provinceName = ViewBag?.ProvinceName as string ?? "Không xác định";
+    var isActive = (Model?.Status ?? 1) == 1;
+
+    // Fallback search theo địa chỉ (mở tab)
+    var q = $"{Model?.Name} {Model?.Address} {provinceName}".Trim();
+    var fallbackView = "https://www.google.com/maps/search/?api=1&query=" + Uri.EscapeDataString(q);
+
+    // Parse IFrameCode (có thể lưu: iframe full, embed src, place link, maps.app link)
+    var raw = (Model?.IFrameCode ?? "").Trim();
+
+    string? embedSrc = null; // chỉ nhúng khi là /maps/embed?pb=
+    string? openLink = null; // link mở tab google maps
+
+    if (!string.IsNullOrWhiteSpace(raw))
+    {
+        if (raw.Contains("<iframe", StringComparison.OrdinalIgnoreCase))
+        {
+            var m = Regex.Match(raw, "src\\s*=\\s*\"(?<src>[^\"]+)\"", RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                var src = m.Groups["src"].Value.Trim();
+                openLink = src;
+
+                if (src.Contains("google.com/maps/embed", StringComparison.OrdinalIgnoreCase))
+                {
+                    embedSrc = src;
+                }
+            }
+        }
+        else
+        {
+            openLink = raw;
+
+            if (raw.Contains("google.com/maps/embed", StringComparison.OrdinalIgnoreCase))
+            {
+                embedSrc = raw;
+            }
+        }
+    }
+
+    openLink ??= fallbackView;
 }
 
 <style>
- .details-container {
-        background: #fff;
-        border-radius: 10px;
-  padding: 30px;
-box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        max-width: 800px;
-        margin: 0 auto;
+    .mt-detail {
+        padding: 10px 0 30px;
     }
 
-    .info-grid {
-display: grid;
-        grid-template-columns: 200px 1fr;
-  gap: 15px;
- margin-bottom: 20px;
-padding-bottom: 20px;
-  border-bottom: 1px solid #e9ecef;
+    .mt-hero {
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,255,.28);
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.22), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.18), transparent 55%), rgba(2,6,23,.92);
+        box-shadow: 0 22px 60px rgba(15,23,42,.85), 0 0 0 1px rgba(15,23,42,.75);
+        overflow: hidden;
+        padding: 16px;
     }
 
-.info-label {
- font-weight: 600;
-        color: #666;
+    .mt-topline {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
     }
 
-    .info-value {
-  color: #333;
+    .mt-title {
+        margin: 0;
+        font-weight: 1000;
+        font-size: 22px;
+        letter-spacing: .2px;
+        color: #e9ecf6;
     }
 
-    .section-title {
-  margin-top: 30px;
- margin-bottom: 20px;
-        color: #007bff;
-font-weight: 600;
+    .mt-sub {
+        margin-top: 6px;
+        color: #9aa5c6;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .mt-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.25);
+        background: rgba(15,23,42,.75);
+        color: #e5e7f5;
+        font-weight: 900;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+        .mt-badge.active {
+            border-color: rgba(16,185,129,.45);
+        }
+
+            .mt-badge.active i {
+                color: #10b981;
+            }
+
+        .mt-badge.inactive {
+            border-color: rgba(245,158,11,.45);
+        }
+
+            .mt-badge.inactive i {
+                color: #f59e0b;
+            }
+
+    .mt-grid {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: 1.1fr .9fr;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .mt-card {
+        border-radius: 18px;
+        border: 1px solid rgba(148,163,255,.18);
+        background: rgba(15,23,42,.55);
+        padding: 14px 16px;
+        min-height: 360px;
+    }
+
+    .mt-card-title {
+        font-weight: 1000;
+        font-size: 12px;
+        letter-spacing: .35px;
+        color: #c7d2fe;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }
+
+    .mt-row {
+        display: flex;
+        gap: 10px;
+        padding: 9px 0;
+        border-top: 1px solid rgba(148,163,255,.12);
+        align-items: flex-start;
+    }
+
+        .mt-row:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+    .mt-ico {
+        width: 18px;
+        color: rgba(148,163,255,.95);
+        margin-top: 2px;
+    }
+
+    .mt-label {
+        color: #9aa5c6;
+        font-weight: 800;
+        font-size: 12px;
+        min-width: 86px;
+        text-transform: uppercase;
+        letter-spacing: .25px;
+    }
+
+    .mt-value {
+        color: #e5e7eb;
+        font-weight: 800;
+        font-size: 13px;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    .mt-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-mt {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 900;
+        border: 1px solid rgba(148,163,255,.22);
+        background: rgba(15,23,42,.75);
+        color: #e5e7f5;
+    }
+
+        .btn-mt:hover {
+            filter: brightness(1.05);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .btn-mt.primary {
+            background: linear-gradient(120deg, rgba(59,92,204,.35), rgba(124,58,237,.28));
+        }
+
+        .btn-mt.danger {
+            background: linear-gradient(120deg, rgba(239,68,68,.28), rgba(124,58,237,.22));
+        }
+
+    .mt-map {
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(148,163,255,.18);
+        background: rgba(2,6,23,.65);
+        min-height: 360px;
+        display: flex;
+        align-items: stretch;
+    }
+
+        .mt-map iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 360px;
+            border: 0;
+            display: block;
+            background: #0b1026;
+        }
+
+    .mt-empty-map {
+        padding: 18px;
+        color: #9aa5c6;
+        font-weight: 800;
+        font-size: 13px;
+        width: 100%;
+    }
+
+    @@media (max-width: 991.98px) {
+        .mt-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .mt-card, .mt-map iframe {
+            min-height: 320px;
+        }
     }
 </style>
 
-<div class="container mt-4">
-    <div class="details-container">
-   <h1 class="mb-4">
-    <i class="fas fa-film"></i> Chi Tiết Rạp Chiếu
-  </h1>
+<div class="mt-detail">
+    <div class="mt-hero">
+        <div class="mt-topline">
+            <div>
+                <h1 class="mt-title">@((Model?.Name ?? "N/A"))</h1>
+                <div class="mt-sub">
+                    <i class="fa-solid fa-hashtag me-1"></i>@(Model?.MovieTheaterId ?? "N/A")
+                </div>
+            </div>
 
-    @if (TempData["Error"] != null)
-        {
-   <div class="alert alert-danger alert-dismissible fade show" role="alert">
-      <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
-       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-   </div>
-  }
+            <div class="mt-badge @(isActive ? "active" : "inactive")">
+                <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-clock")"></i>
+                <span>@(isActive ? "Đang hoạt động" : "Tạm ngưng")</span>
+            </div>
+        </div>
 
-<h4 class="section-title">
-   <i class="fas fa-info-circle"></i> Thông Tin Cơ Bản
-  </h4>
+        <div class="mt-grid">
+            <div class="mt-card">
+                <div class="mt-card-title">Thông tin</div>
 
-  <div class="info-grid">
-  <div class="info-label">Mã Rạp:</div>
-      <div class="info-value"><strong>@Model.MovieTheaterId</strong></div>
+                <div class="mt-row">
+                    <div class="mt-ico"><i class="fa-solid fa-location-dot"></i></div>
+                    <div class="mt-label">Địa chỉ</div>
+                    <div class="mt-value">@((Model?.Address ?? "N/A"))</div>
+                </div>
 
-  <div class="info-label">Tên Rạp:</div>
-      <div class="info-value"><strong class="text-primary">@Model.Name</strong></div>
+                <div class="mt-row">
+                    <div class="mt-ico"><i class="fa-solid fa-phone"></i></div>
+                    <div class="mt-label">Hotline</div>
+                    <div class="mt-value">@((Model?.Hotline ?? "N/A"))</div>
+                </div>
 
-    <div class="info-label">Tỉnh/Thành phố:</div>
-      <div class="info-value">@ViewBag.ProvinceName</div>
+                <div class="mt-row">
+                    <div class="mt-ico"><i class="fa-solid fa-map"></i></div>
+                    <div class="mt-label">Tỉnh/TP</div>
+                    <div class="mt-value">@provinceName</div>
+                </div>
 
- <div class="info-label">Địa chỉ:</div>
-  <div class="info-value">@Model.Address</div>
+                <div class="mt-actions">
+                    <a class="btn-mt primary" asp-controller="Home" asp-action="Index">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Trang chủ</span>
+                    </a>
 
-     <div class="info-label">Hotline:</div>
-      <div class="info-value">
-                @if (!string.IsNullOrEmpty(Model.Hotline))
-{
-  <a href="tel:@Model.Hotline" class="text-decoration-none">
-@Model.Hotline
-    </a>
-}
-  else
-   {
-  <span class="text-muted">Chưa cập nhật</span>
-    }
-</div>
+                    <a class="btn-mt" asp-controller="MovieTheaters" asp-action="Index">
+                        <i class="fa-solid fa-list"></i>
+                        <span>Danh sách cụm rạp</span>
+                    </a>
 
-   <div class="info-label">Trạng thái:</div>
- <div class="info-value">
-     @if (Model.Status == 1)
-    {
-        <span class="badge bg-success">
-    <i class="fas fa-check"></i> Hoạt động
-   </span>
- }
-     else
-        {
-    <span class="badge bg-danger">
-              <i class="fas fa-times"></i> Tạm ngưng
- </span>
-}
- </div>
-</div>
+                    <a class="btn-mt danger" href="@openLink" target="_blank" rel="noopener">
+                        <i class="fa-brands fa-google"></i>
+                        <span>Mở Google Maps</span>
+                    </a>
+                </div>
 
-        @if (!string.IsNullOrEmpty(Model.IFrameCode))
-   {
-  <h4 class="section-title">
-    <i class="fas fa-map-marker-alt"></i> Vị Trí Trên Bản Đồ
-      </h4>
-    <div class="ratio ratio-16x9">
-     @Html.Raw(Model.IFrameCode)
- </div>
-        }
+                @if (string.IsNullOrWhiteSpace(embedSrc) && !string.IsNullOrWhiteSpace(raw))
+                {
+                    <div class="mt-sub" style="margin-top:10px;">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        Link hiện tại không phải dạng <b>google.com/maps/embed?pb=...</b> nên không nhúng được.
+                    </div>
+                }
+            </div>
 
-<div class="d-flex justify-content-between mt-4">
-   <a asp-action="Index" class="btn btn-secondary">
-     <i class="fas fa-arrow-left"></i> Quay lại
-     </a>
-   <div>
-     <a asp-action="Edit" asp-route-id="@Model.MovieTheaterId" class="btn btn-warning">
-    <i class="fas fa-edit"></i> Chỉnh sửa
-     </a>
-        <a asp-action="Delete" asp-route-id="@Model.MovieTheaterId" class="btn btn-danger">
-  <i class="fas fa-trash"></i> Xóa
-   </a>
+            <div class="mt-map">
+                @if (!string.IsNullOrWhiteSpace(embedSrc))
+                {
+                    <iframe src="@embedSrc"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                            title="Google Maps"></iframe>
+                }
+                else
+                {
+                    <div class="mt-empty-map">
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                        Không có iframe embed hợp lệ để hiển thị bản đồ.<br /><br />
+                        Cần lưu IFrameCode dạng:
+                        <div style="margin-top:8px; font-weight:700; color:#cbd5e1;">
+                            &lt;iframe src="https://www.google.com/maps/embed?pb=..." ...&gt;&lt;/iframe&gt;
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
     </div>
- </div>
-    </div>
 </div>
-
-@section Scripts {
-    <script>
-  // Auto-hide alerts after 5 seconds
-  setTimeout(function () {
-     $('.alert').fadeOut('slow');
-        }, 5000);
-</script>
-}

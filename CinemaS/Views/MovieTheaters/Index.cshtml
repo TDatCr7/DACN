@@ -14,7 +14,7 @@
 			<a asp-action="Create" class="btn btn-primary">
 				<i class="fas fa-plus-circle"></i> Tạo mới
 			</a>
-			<a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+			<a asp-controller="CinemaTheaters" asp-action="Create" class="btn btn-secondary">
 				<i class="fas fa-arrow-left"></i> Quay lại
 			</a>
 		</div>
@@ -115,6 +115,11 @@
 								}
 							</td>
 							<td class="text-end">
+								<a asp-action="Details" asp-route-id="@item.MovieTheaterId"
+								   class="admin-icon-btn"
+								   title="Xem chi tiết">
+									<i class="fa-regular fa-eye"></i>
+								</a>
 								<a asp-action="Edit" asp-route-id="@item.MovieTheaterId"
 								   class="admin-icon-btn"
 								   title="Chỉnh sửa">

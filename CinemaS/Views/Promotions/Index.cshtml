@@ -1,72 +1,599 @@
 ﻿@model IEnumerable<CinemaS.Models.Promotion>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Quản lý Khuyến Mãi";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var stt = 0;
 }
 
-<h1>Index</h1>
+<style>
+    :root {
+        --card-bg: #020617;
+        --card-border: rgba(148, 163, 255, 0.5);
+        --text-main: #e5e7eb;
+        --text-sub: #9ca3af;
+    }
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Content)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Code)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StartDay)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EndDay)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Discount)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Content)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Code)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StartDay)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EndDay)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Discount)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.PromotionId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.PromotionId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.PromotionId">Delete</a>
-            </td>
-        </tr>
+    .page-promo-index {
+        padding: 34px 0 60px;
+    }
+
+    .promo-index-card {
+        background: radial-gradient(circle at 0 0, rgba(59, 130, 246, .25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124, 58, 237, .22), transparent 55%), var(--card-bg);
+        border-radius: 24px;
+        border: 1px solid var(--card-border);
+        box-shadow: 0 20px 50px rgba(15, 23, 42, .95);
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .promo-index-header h1 {
+        font-weight: 900;
+        font-size: 24px;
+        margin-bottom: 4px;
+        color: var(--text-main);
+    }
+
+    .promo-index-header small {
+        color: #cbd5ff;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .promo-index-topbar {
+        color: #6b7280;
+        padding: 16px 20px 10px;
+        border-bottom: 1px solid rgba(148,163,255,0.3);
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+    }
+
+    .filter-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #e0e7ff;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 4px;
+    }
+
+    .promo-table-wrap {
+        padding: 0;
+    }
+
+        .promo-table-wrap .text-muted {
+            color: #9ca3ff !important;
+        }
+
+        .promo-table-wrap .admin-table td,
+        .promo-table-wrap .admin-table th {
+            color: #eef2ff;
+        }
+
+    .admin-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+        color: #e5e7eb;
+        font-size: 14px;
+        table-layout: fixed;
+    }
+
+        .admin-table thead {
+            background: linear-gradient(135deg, #1d4ed8, #4f46e5);
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(15, 23, 42, .9);
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .admin-table th {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #e0e7ff;
+        }
+
+        .admin-table tbody tr:nth-child(even) td {
+            background: rgba(15, 23, 42, .96);
+        }
+
+        .admin-table tbody tr:nth-child(odd) td {
+            background: rgba(15, 23, 42, .9);
+        }
+
+        .admin-table tbody tr:hover td {
+            background: rgba(30, 64, 175, .45);
+        }
+
+        .admin-table th.col-stt,
+        .admin-table td.col-stt {
+            text-overflow: clip !important;
+        }
+
+    .promo-content-cell {
+        max-width: 260px;
+        color: #e5e7ff;
+    }
+
+    .badge-active,
+    .badge-inactive {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .badge-active {
+        background: rgba(16, 185, 129, .16);
+        border: 1px solid rgba(16, 185, 129, .6);
+        color: #10b981;
+    }
+
+    .badge-inactive {
+        background: rgba(248, 113, 113, .16);
+        border: 1px solid rgba(248, 113, 113, .6);
+        color: #fca5a5;
+    }
+
+    .admin-actions {
+        display: inline-flex;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .admin-icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 255, .45);
+        background: rgba(15, 23, 42, .98);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #e5e7eb;
+        text-decoration: none;
+        font-size: 13px;
+        padding: 0;
+    }
+
+        .admin-icon-btn:hover {
+            background: rgba(59, 130, 246, .95);
+            border-color: rgba(129, 140, 248, 1);
+            color: #fff;
+        }
+
+        .admin-icon-btn.danger {
+            border-color: rgba(248, 113, 113, .7);
+            color: #fecaca;
+        }
+
+            .admin-icon-btn.danger:hover {
+                background: #ef4444;
+                color: #fff;
+            }
+
+    .admin-table th.col-status,
+    .admin-table td.col-status {
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+    }
+
+    @@media (max-width: 991.98px) {
+        .promo-index-card {
+            border-radius: 18px;
+        }
+
+        .promo-table-wrap {
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            min-width: 1000px;
+        }
+    }
+
+    /* popup chi tiết khuyến mãi (custom như Genres) */
+    /* popup chi tiết khuyến mãi */
+    #promoDetailBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,.85);
+        z-index: 1050;
+        display: none;
+    }
+
+    .promo-detail-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .promo-detail-card {
+        width: 100%;
+        max-width: 760px; /* rộng hơn */
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.28), transparent 60%), #020617;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,255,.6);
+        box-shadow: 0 22px 60px rgba(15,23,42,.96);
+        overflow: hidden;
+        color: #e5e7eb;
+    }
+
+    .promo-detail-header {
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: radial-gradient(circle at 0 0, rgba(37,99,235,.7), transparent 60%), rgba(15,23,42,.98);
+        border-bottom: 1px solid rgba(148,163,255,.5);
+        font-weight: 700;
+        font-size: 15px;
+    }
+
+    .promo-detail-body {
+        padding: 18px 20px 18px;
+        font-size: 14px;
+        display: grid; /* chia 2 cột */
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 32px;
+        row-gap: 12px;
+    }
+
+    .promo-detail-row {
+        margin-bottom: 0;
+    }
+
+    .promo-detail-row-full { /* hàng chiếm hết 2 cột: Nội dung */
+        grid-column: 1 / -1;
+    }
+
+    .promo-detail-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        color: #9ca3af;
+        margin-bottom: 2px;
+    }
+
+    .promo-detail-value {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .promo-detail-desc {
+        font-size: 14px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    .promo-detail-close {
+        border: none;
+        background: transparent;
+        color: #e5e7eb;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    /* mobile: quay về 1 cột */
+    @@media (max-width: 767.98px) {
+        .promo-detail-body {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    }
+</style>
+
+<div class="container page-promo-index">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="promo-index-header">
+            <h1><i class="fa-solid fa-gift me-2"></i>Quản lý khuyến mãi</h1>
+            <small>Tổng: @Model.Count() chương trình</small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary rounded-pill">
+                <i class="fa-solid fa-plus me-1"></i> Tạo mã mới
+            </a>
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
+                <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success text-center mb-3"
+             data-auto-dismiss="true"
+             style="max-width:720px;margin:0 auto;border-radius:999px;
+                        background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.6);
+                        color:#bbf7d0;">
+            <i class="fa-solid fa-circle-check me-2"></i>
+            @TempData["Message"]
+        </div>
+    }
+
+    <div class="promo-index-card">
+        <div class="promo-index-topbar">
+            <form method="get" asp-action="Index">
+                <div class="row g-2 align-items-end">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="filter-label">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm
+                        </label>
+                        <input type="text"
+                               name="search"
+                               value="@(ViewBag.Search ?? String.Empty)"
+                               class="form-control"
+                               placeholder="Tên CTKM, mã code, nội dung..." />
+                    </div>
+
+                    <div class="col-lg-2 col-md-3">
+                        <label class="filter-label">
+                            <i class="fa-regular fa-calendar me-1"></i> Từ ngày
+                        </label>
+                        <input type="date"
+                               name="fromDate"
+                               value="@(ViewBag.FromDate ?? String.Empty)"
+                               class="form-control" />
+                    </div>
+
+                    <div class="col-lg-2 col-md-3">
+                        <label class="filter-label">
+                            <i class="fa-regular fa-calendar me-1"></i> Đến ngày
+                        </label>
+                        <input type="date"
+                               name="toDate"
+                               value="@(ViewBag.ToDate ?? String.Empty)"
+                               class="form-control" />
+                    </div>
+
+                    <div class="col-lg-2 col-md-3">
+                        <label class="filter-label">
+                            Trạng thái
+                        </label>
+                        <select name="onlyActive" class="form-select">
+                            <option value="">Tất cả</option>
+
+                            @if ((bool?)ViewBag.OnlyActive == true)
+                            {
+                                <option value="true" selected>Đang áp dụng</option>
+                            }
+                            else
+                            {
+                                <option value="true">Đang áp dụng</option>
+                            }
+
+                            @if ((bool?)ViewBag.OnlyActive == false)
+                            {
+                                <option value="false" selected>Ngưng / hết hạn</option>
+                            }
+                            else
+                            {
+                                <option value="false">Ngưng / hết hạn</option>
+                            }
+                        </select>
+
+                    </div>
+
+                    <div class="col-lg-2 col-md-6">
+                        <label class="filter-label d-block">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">
+                                <i class="fa-solid fa-filter me-1"></i> Lọc
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="promo-table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th class="col-stt" style="width:60px;">STT</th>
+                        <th style="width:140px;">Mã code</th>
+                        <th style="width:120px;">Giảm (%)</th>
+                        <th class="col-status" style="width:160px;">Trạng thái</th>
+                        <th class="col-actions text-end" style="width:150px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                Không có chương trình khuyến mãi nào.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            stt++;
+                            var isActive = item.Status == true &&
+                            (!item.StartDay.HasValue || item.StartDay.Value <= DateTime.Now) &&
+                            (!item.EndDay.HasValue || item.EndDay.Value >= DateTime.Now);
+
+                            var fullContent = item.Content ?? "Không có nội dung.";
+
+                            <tr>
+                                <td class="col-stt">@stt</td>
+
+                                <!-- Mã code hiển thị -->
+                                <td>@(item.Code ?? "N/A")</td>
+
+                                <!-- Giảm % hiển thị -->
+                                <td>
+                                    @(item.Discount.HasValue
+                                                                ? item.Discount.Value.ToString("0.#") + " %"
+                                                                : "N/A")
+                                </td>
+
+                                <!-- Trạng thái hiển thị -->
+                                <td class="col-status">
+                                    @if (isActive)
+                                    {
+                                        <span class="badge-active">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            Đang áp dụng
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-inactive">
+                                            <i class="fa-solid fa-circle-xmark"></i>
+                                            Ngưng / Hết hạn
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Thao tác -->
+                                <td class="text-end col-actions">
+                                    <div class="admin-actions">
+                                        <!-- Xem chi tiết (popup) -->
+                                        <button type="button"
+                                                class="admin-icon-btn"
+                                                title="Chi tiết"
+                                                data-id="@item.PromotionId"
+                                                data-name="@(item.Name ?? "N/A")"
+                                                data-code="@(item.Code ?? "N/A")"
+                                                data-discount="@(item.Discount.HasValue? item.Discount.Value.ToString("0.#") + " %" : "N/A")"
+                                                data-time="@((item.StartDay?.ToString("dd/MM/yyyy") ?? "N/A") + " - " + (item.EndDay?.ToString("dd/MM/yyyy") ?? "N/A"))"
+                                                data-content="@fullContent"
+                                                onclick="openPromotionDetail(this)">
+                                            <i class="fa-regular fa-eye"></i>
+                                        </button>
+
+                                        <!-- Sửa -->
+                                        <a asp-action="Edit"
+                                           asp-route-id="@item.PromotionId"
+                                           class="admin-icon-btn"
+                                           title="Chỉnh sửa">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+
+                                        <!-- Xóa -->
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.PromotionId"
+                                              method="post"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Xóa chương trình khuyến mãi này?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="admin-icon-btn danger"
+                                                    title="Xóa">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- popup chi tiết khuyến mãi -->
+<div id="promoDetailBackdrop">
+    <div class="promo-detail-wrap">
+        <div class="promo-detail-card">
+            <div class="promo-detail-header">
+                <span><i class="fa-solid fa-circle-info me-2"></i>Chi tiết khuyến mãi</span>
+                <button type="button" class="promo-detail-close" onclick="closePromotionDetail()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="promo-detail-body">
+                <div class="promo-detail-row">
+                    <div class="promo-detail-label">Mã CTKM</div>
+                    <div id="promoDetailId" class="promo-detail-value"></div>
+                </div>
+                <div class="promo-detail-row">
+                    <div class="promo-detail-label">Tên chương trình</div>
+                    <div id="promoDetailName" class="promo-detail-value"></div>
+                </div>
+                <div class="promo-detail-row">
+                    <div class="promo-detail-label">Mã code</div>
+                    <div id="promoDetailCode" class="promo-detail-value"></div>
+                </div>
+                <div class="promo-detail-row">
+                    <div class="promo-detail-label">Giảm (%)</div>
+                    <div id="promoDetailDiscount" class="promo-detail-value"></div>
+                </div>
+                <div class="promo-detail-row">
+                    <div class="promo-detail-label">Thời gian</div>
+                    <div id="promoDetailTime" class="promo-detail-value"></div>
+                </div>
+                <div class="promo-detail-row promo-detail-row-full">
+                    <div class="promo-detail-label">Nội dung</div>
+                    <div id="promoDetailContent" class="promo-detail-desc"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // auto hide alert
+        (function () {
+            const alerts = document.querySelectorAll('.alert[data-auto-dismiss="true"]');
+            if (alerts.length > 0) {
+                setTimeout(() => alerts.forEach(a => a.classList.add('d-none')), 5000);
+            }
+        })();
+
+        function openPromotionDetail(btn) {
+            const id = btn.dataset.id || "";
+            const name = btn.dataset.name || "N/A";
+            const code = btn.dataset.code || "N/A";
+            const discount = btn.dataset.discount || "N/A";
+            const time = btn.dataset.time || "N/A";
+            const content = btn.dataset.content || "Không có nội dung.";
+
+            document.getElementById("promoDetailId").textContent = id;
+            document.getElementById("promoDetailName").textContent = name;
+            document.getElementById("promoDetailCode").textContent = code;
+            document.getElementById("promoDetailDiscount").textContent = discount;
+            document.getElementById("promoDetailTime").textContent = time;
+            document.getElementById("promoDetailContent").textContent = content;
+
+            document.getElementById("promoDetailBackdrop").style.display = "block";
+        }
+
+        function closePromotionDetail() {
+            document.getElementById("promoDetailBackdrop").style.display = "none";
+        }
+
+        document.getElementById("promoDetailBackdrop")
+            .addEventListener("click", function (e) {
+                if (e.target === this) {
+                    closePromotionDetail();
+                }
+            });
+    </script>
 }
-    </tbody>
-</table>

@@ -1,0 +1,152 @@
+﻿@* Views/TicketTypes/Index.cshtml *@
+@model IEnumerable<CinemaS.Models.TicketTypes>
+
+@{
+    ViewData["Title"] = "Quản lý Loại Vé";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/management.css" />
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1"><i class="fas fa-tags"></i> Quản lý Loại Vé</h1>
+
+            <div class="tt-subnote">
+                <i class="fa-solid fa-circle-info me-2"></i>
+                <span>Thiết lập và quản lý các loại vé bán tại rạp.</span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Tạo mới
+            </a>
+            <a asp-controller="Tickets" asp-action="Management" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Search Box -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group search-box">
+                            <input type="text"
+                                   name="searchString"
+                                   value="@ViewData["CurrentFilter"]"
+                                   class="form-control"
+                                   placeholder="Tìm theo mã, tên hoặc mô tả..." />
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+                            {
+                                <a href="@Url.Action("Index")" class="btn btn-outline-danger">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="admin-table-wrap">
+        <table class="table admin-table align-middle">
+            <thead>
+                <tr>
+                    <th><i class="fa-solid fa-tag"></i>Mã loại vé</th>
+                    <th><i class="fa-solid fa-ticket"></i>Tên loại vé</th>
+                    <th><i class="fa-solid fa-align-left"></i>Mô tả</th>
+                    <th class="text-end"><i class="fa-solid fa-money-bill"></i>Giá (VNĐ)</th>
+                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        var desc = item.Description ?? "Không có mô tả";
+                        var shortDesc = desc.Length > 80 ? desc.Substring(0, 80) + "..." : desc;
+
+                        <tr>
+                            <td><strong>@item.TicketTypeId</strong></td>
+                            <td>@item.Name</td>
+                            <td class="admin-text-muted">@shortDesc</td>
+                            <td class="text-end fw-semibold" style="color:#fbbf24;">
+                                @(item.Price.HasValue? item.Price.Value.ToString("N0") : "Chưa định giá")
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Edit"
+                                   asp-route-id="@item.TicketTypeId"
+                                   class="admin-icon-btn"
+                                   title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <a asp-action="Delete"
+                                   asp-route-id="@item.TicketTypeId"
+                                   class="admin-icon-btn admin-icon-btn-danger"
+                                   title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-center admin-text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            <strong>Không tìm thấy loại vé nào</strong>
+                            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
+                            {
+                                <p class="mb-0">
+                                    với từ khóa "<strong>@ViewData["CurrentFilter"]</strong>"
+                                </p>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+    </script>
+}

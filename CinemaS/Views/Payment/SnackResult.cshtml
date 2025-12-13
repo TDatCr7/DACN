@@ -1,0 +1,102 @@
+﻿@model CinemaS.Models.ViewModels.SnackPaymentResultVM
+@{
+    ViewData["Title"] = "Kết quả thanh toán (Đồ ăn)";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<div class="payment-result">
+    <div class="result-container">
+        <div class="result-content">
+
+            <div class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
+                <i class="fas @(Model.IsSuccess ? "fa-check-circle" : "fa-times-circle")"></i>
+                <span>@(Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "CHƯA THANH TOÁN")</span>
+            </div>
+
+            <div class="result-card">
+                <div class="card-header-custom">
+                    <div class="card-header-left">
+                        <div class="card-header-icon">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <h3 class="card-header-title">Hóa đơn đồ ăn</h3>
+                    </div>
+                    <div style="color:#cbd5e1;font-weight:700;font-size:13px;">
+                        Mã: <span style="color:#fbbf24;">@Model.OrderId</span>
+                    </div>
+                </div>
+
+                <div class="card-body-custom">
+                    @if (Model.Detail == null)
+                    {
+                        <div class="empty-detail">
+                            <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+                            <div class="empty-text">Không có dữ liệu chi tiết.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        var d = Model.Detail;
+
+                        <div class="ticket-detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <strong>Ngày tạo:</strong>
+                            <span>@(d.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</span>
+                        </div>
+
+                        <div class="ticket-detail-item">
+                            <i class="fas fa-envelope"></i>
+                            <strong>Email:</strong>
+                            <span>@(string.IsNullOrWhiteSpace(d.InvoiceEmail) ? "N/A" : d.InvoiceEmail)</span>
+                        </div>
+
+                        <div class="ticket-detail-item">
+                            <i class="fas fa-phone"></i>
+                            <strong>SĐT:</strong>
+                            <span>@(string.IsNullOrWhiteSpace(d.InvoicePhone) ? "N/A" : d.InvoicePhone)</span>
+                        </div>
+
+                        <div style="margin-top:18px;" class="pricing-item">
+                            <div class="pricing-title">DANH SÁCH ĐỒ ĂN</div>
+
+                            @if (d.SnackItems != null && d.SnackItems.Any())
+                            {
+                                <ul class="snack-list">
+                                    @foreach (var s in d.SnackItems)
+                                    {
+                                        <li>
+                                            <span class="snack-name">@s.Name × @s.Quantity</span>
+                                            <span class="snack-price">@s.LineTotal.ToString("N0") đ</span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <div class="empty-snacks">Không có dòng đồ ăn.</div>
+                            }
+                        </div>
+
+                        <div style="margin-top:14px;" class="pricing-item">
+                            <div class="pricing-title">TỔNG</div>
+                            <div class="pricing-value">@d.SnackTotal.ToString("N0") đ</div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <a class="btn-custom btn-home" href="/">
+                                <i class="fas fa-home"></i> Trang chủ
+                            </a>
+
+                            <a class="btn-custom btn-history" href="/Payment/SnackHistory">
+                                <i class="fas fa-history"></i> Lịch sử đồ ăn
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

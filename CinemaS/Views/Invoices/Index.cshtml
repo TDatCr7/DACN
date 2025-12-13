@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CinemaS.Models.Invoices>
+﻿@model IEnumerable<CinemaS.Models.ViewModels.InvoiceIndexVM>
 
 @{
     ViewData["Title"] = "Quản lý Hóa Đơn";
@@ -9,70 +9,147 @@
 
 <style>
     .page-invoice-index {
-        padding: 34px 0 60px;
-    }
-
-    .invoice-index-card {
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.22), transparent 55%), #020617;
-        border-radius: 24px;
-        border: 1px solid rgba(148,163,255,.45);
-        box-shadow: 0 20px 50px rgba(15,23,42,.95);
-        padding: 20px 22px;
+        padding: 26px 0 60px;
     }
 
     .invoice-index-header h1 {
         font-weight: 900;
         font-size: 24px;
         margin-bottom: 4px;
+        color: var(--text);
     }
 
     .invoice-index-header small {
-        color: #9ca3af;
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .invoice-index-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.32), transparent 60%), radial-gradient(circle at 100% 0, rgba(124,58,237,.28), transparent 60%), #020617;
+        border-radius: 24px;
+        border: 1px solid rgba(148,163,255,.55);
+        box-shadow: 0 22px 60px rgba(15,23,42,.95);
+        overflow: hidden;
+    }
+
+    .invoice-index-topbar {
+        padding: 14px 18px 10px;
+        border-bottom: 1px solid rgba(148,163,255,.35);
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+    }
+
+    .filter-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #c7d2fe;
+        margin-bottom: 4px;
+    }
+
+    .filter-input {
+        background: rgba(15,23,42,.96);
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--text);
+        font-size: 13px;
+        padding-inline: 14px;
+    }
+
+        .filter-input::placeholder {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .filter-input:focus {
+            border-color: var(--indigo);
+            box-shadow: 0 0 0 .12rem rgba(59,92,204,.55);
+            background: rgba(15,23,42,1);
+            color: var(--text);
+        }
+
+    .filter-btn-main {
+        border-radius: 999px;
+        padding-inline: 20px;
+        font-weight: 700;
+    }
+
+    .filter-btn-reset {
+        border-radius: 999px;
+        border-color: var(--line);
+        color: var(--muted);
+        background: rgba(15,23,42,.98);
+        width: 40px;
+    }
+
+        .filter-btn-reset:hover {
+            background: rgba(30,64,175,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+
+    .invoice-index-table-wrap {
+        padding: 0;
     }
 
     .admin-table {
         width: 100%;
         margin: 0;
         border-collapse: collapse;
-        color: #e5e7eb;
-        font-size: 14px;
+        color: var(--text);
+        font-size: 13px;
+        table-layout: fixed;
     }
 
+        .admin-table th.col-status,
+        .admin-table td.col-status {
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: nowrap !important;
+        }
+
+
+        .admin-table th.col-stt,
+        .admin-table td.col-stt {
+            text-overflow: clip; /* bỏ ... */
+            overflow: visible;
+        }
+
+
         .admin-table thead {
-            background: linear-gradient(135deg, rgba(59,130,246,.25), rgba(129,140,248,.25));
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
         }
 
         .admin-table th,
         .admin-table td {
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(148,163,255,.12);
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(15,23,42,.9);
             vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .admin-table th {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: .5px;
-            color: #a5b4fc;
+            letter-spacing: .12em;
+            color: #e0e7ff;
         }
 
-        .admin-table tbody tr:hover {
-            background: rgba(15,23,42,.85);
+        .admin-table tbody tr:nth-child(even) td {
+            background: rgba(15,23,42,.97);
         }
 
-    .badge-paid {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
-        background: rgba(16,185,129,.16);
-        border: 1px solid rgba(16,185,129,.6);
-        color: #10b981;
-    }
+        .admin-table tbody tr:nth-child(odd) td {
+            background: rgba(15,23,42,.93);
+        }
 
+        .admin-table tbody tr:hover td {
+            background: rgba(37,99,235,.40);
+        }
+
+    .badge-paid,
     .badge-unpaid {
         display: inline-flex;
         align-items: center;
@@ -81,9 +158,19 @@
         border-radius: 999px;
         font-size: 11px;
         font-weight: 700;
-        background: rgba(245,158,11,.16);
-        border: 1px solid rgba(245,158,11,.6);
-        color: #f59e0b;
+        white-space: nowrap;
+    }
+
+    .badge-paid {
+        background: rgba(16,185,129,.14);
+        border: 1px solid rgba(16,185,129,.7);
+        color: #22c55e;
+    }
+
+    .badge-unpaid {
+        background: rgba(245,158,11,.14);
+        border: 1px solid rgba(245,158,11,.7);
+        color: #fbbf24;
     }
 
     .admin-actions {
@@ -96,18 +183,19 @@
         width: 32px;
         height: 32px;
         border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.45);
-        background: rgba(15,23,42,.95);
+        border: 1px solid rgba(148,163,255,.50);
+        background: rgba(15,23,42,.98);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: #e5e7eb;
+        color: var(--text);
         text-decoration: none;
         font-size: 13px;
+        padding: 0;
     }
 
         .admin-icon-btn:hover {
-            background: rgba(59,130,246,.9);
+            background: rgba(59,130,246,.95);
             border-color: rgba(129,140,248,1);
             color: #fff;
         }
@@ -121,6 +209,20 @@
                 background: #ef4444;
                 color: #fff;
             }
+
+    @@media (max-width: 991.98px) {
+        .invoice-index-card {
+            border-radius: 18px;
+        }
+
+        .invoice-index-table-wrap {
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            min-width: 980px;
+        }
+    }
 </style>
 
 <div class="container page-invoice-index">
@@ -136,90 +238,137 @@
     </div>
 
     <div class="invoice-index-card">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th style="width:60px;">STT</th>
-                    <th>Mã đơn</th>
-                    <th>Email</th>
-                    <th>Điện thoại</th>
-                    <th style="width:80px;">Tổng vé</th>
-                    <th style="width:130px;">Phương thức</th>
-                    <th style="width:130px;">Tổng tiền</th>
-                    <th style="width:130px;">Trạng thái</th>
-                    <th style="width:150px;" class="text-end">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!Model.Any())
-                {
+        <!-- TOPBAR: TÌM KIẾM + LỌC NGÀY -->
+        <div class="invoice-index-topbar">
+            <form method="get" asp-action="Index">
+                <div class="row g-2 align-items-end">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="filter-label">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm
+                        </label>
+                        <input type="text"
+                               name="search"
+                               value="@(ViewBag.Search ?? string.Empty)"
+                               class="form-control filter-input"
+                               placeholder="Tên khách, email hoặc số điện thoại..." />
+                    </div>
+
+                    <div class="col-lg-2 col-md-3">
+                        <label class="filter-label">
+                            <i class="fa-regular fa-calendar me-1"></i> Từ ngày
+                        </label>
+                        <input type="date"
+                               name="fromDate"
+                               value="@(ViewBag.FromDate ?? string.Empty)"
+                               class="form-control filter-input" />
+                    </div>
+
+                    <div class="col-lg-2 col-md-3">
+                        <label class="filter-label">
+                            <i class="fa-regular fa-calendar me-1"></i> Đến ngày
+                        </label>
+                        <input type="date"
+                               name="toDate"
+                               value="@(ViewBag.ToDate ?? string.Empty)"
+                               class="form-control filter-input" />
+                    </div>
+
+                    <div class="col-lg-2 col-md-6">
+                        <label class="filter-label d-block">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary filter-btn-main flex-fill">
+                                <i class="fa-solid fa-filter me-1"></i> Lọc
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary filter-btn-reset">
+                                <i class="fa-solid fa-xmark"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- BẢNG -->
+        <div class="invoice-index-table-wrap">
+            <table class="admin-table">
+                <thead>
                     <tr>
-                        <td colspan="9" class="text-center py-4 text-muted">
-                            Không có hóa đơn nào.
-                        </td>
+                        <th class="col-stt" style="width:60px;">STT</th>
+                        <th>Tên khách</th>
+                        <th>Email</th>
+                        <th style="width:150px;">Số điện thoại</th>
+                        <th style="width:170px;">Ngày tạo</th>
+                        <th style="width:140px;">Tổng tiền</th>
+                        <th class="col-status" style="width:140px;">Trạng thái</th>
+                        <th style="width:150px;" class="text-end">Thao tác</th>
                     </tr>
-                }
-                else
-                {
-                    foreach (var item in Model)
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
                     {
-                        stt++;
                         <tr>
-                            <td>@stt</td>
-                            <td>@item.InvoiceId</td>
-                            <td>@(item.Email ?? "N/A")</td>
-                            <td>@(item.PhoneNumber ?? "N/A")</td>
-                            <td>@(item.TotalTicket ?? 0)</td>
-                            <td>@(item.PaymentMethod ?? item.PaymentMethodId ?? "N/A")</td>
-                            <td>@((item.TotalPrice ?? 0).ToString("#,0")) đ</td>
-                            <td>
-                                @if (item.Status == 1)
-                                {
-                                    <span class="badge-paid">
-                                        <i class="fa-solid fa-circle-check"></i> Đã thanh toán
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge-unpaid">
-                                        <i class="fa-solid fa-clock"></i> Chưa thanh toán
-                                    </span>
-                                }
-                            </td>
-                            <td class="text-end">
-                                <div class="admin-actions">
-                                    <a asp-action="Details"
-                                       asp-route-id="@item.InvoiceId"
-                                       class="admin-icon-btn"
-                                       title="Chi tiết">
-                                        <i class="fa-regular fa-eye"></i>
-                                    </a>
-
-                                    <a asp-action="Edit"
-                                       asp-route-id="@item.InvoiceId"
-                                       class="admin-icon-btn"
-                                       title="Chỉnh sửa">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </a>
-
-                                    <form asp-action="Delete"
-                                          asp-route-id="@item.InvoiceId"
-                                          method="post"
-                                          class="d-inline"
-                                          onsubmit="return confirm('Xóa hóa đơn này?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit"
-                                                class="admin-icon-btn danger"
-                                                title="Xóa">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                            <td colspan="8" class="text-center py-4" style="color:var(--muted);">
+                                Không có hóa đơn nào.
                             </td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            stt++;
+                            <tr>
+                                <td class="col-stt">@stt</td>
+                                <td>@(item.CustomerName ?? "N/A")</td>
+                                <td>@(item.Email ?? "N/A")</td>
+                                <td>@(item.PhoneNumber ?? "N/A")</td>
+                                <td>@(item.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
+                                <td>@item.TotalPrice.ToString("#,0") đ</td>
+                                <td class="col-status">
+                                    @if (item.Status == 1)
+                                    {
+                                        <span class="badge-paid">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            Đã thanh toán
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-unpaid">
+                                            <i class="fa-solid fa-clock"></i>
+                                            Chưa thanh toán
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="admin-actions">
+                                        <a asp-action="Details"
+                                           asp-route-id="@item.InvoiceId"
+                                           class="admin-icon-btn"
+                                           title="Xem chi tiết">
+                                            <i class="fa-regular fa-eye"></i>
+                                        </a>
+
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.InvoiceId"
+                                              method="post"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Xóa hóa đơn này?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="admin-icon-btn danger"
+                                                    title="Xóa">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

@@ -1,574 +1,227 @@
-﻿@* Views/Payment/Result.cshtml *@
-@model CinemaS.Models.ViewModels.PaymentResultVM
-
+﻿@model CinemaS.Models.ViewModels.PaymentResultVM
+@using System.Globalization
 @{
-    ViewData["Title"] = Model.IsSuccess ? "Thanh toán thành công" : "Kết quả thanh toán";
+    ViewData["Title"] = "Kết quả thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var d = Model.Detail;
 
-    DateTime? ToVietnamTime(DateTime? utcTime)
+    DateTime? paidAt = null;
+    if (!string.IsNullOrWhiteSpace(Model?.PayDateRaw))
     {
-        if (utcTime == null) return null;
-        try
+        if (DateTime.TryParseExact(
+            Model.PayDateRaw.Trim(),
+            "yyyyMMddHHmmss",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsed))
         {
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-            return TimeZoneInfo.ConvertTimeFromUtc(utcTime.Value, vnTimeZone);
-        }
-        catch
-        {
-            return utcTime.Value.AddHours(7);
+            paidAt = parsed;
         }
     }
 }
 
-<style>
-    :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        --card-bg: rgba(15, 23, 42, 0.95);
-        --card-border: rgba(148, 163, 255, 0.3);
-        --text-primary: #e5e7eb;
-        --text-secondary: #9ca3af;
-        --shadow-glow: 0 8px 32px rgba(59, 130, 246, 0.15);
-    }
+<div class="payment-result">
+    <div class="result-container">
+        <div class="result-content">
 
-    .result-container {
-        min-height: calc(100vh - 140px);
-        padding: 40px 20px 60px;
-        background: radial-gradient(circle at 20% 10%, rgba(99, 102, 241, 0.1), transparent 40%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 40%);
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-    }
-
-    .result-content {
-        width: 100%;
-        max-width: 900px;
-    }
-
-    .status-badge-compact {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 16px;
-        border: 1px solid;
-    }
-
-        .status-badge-compact.success {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(5, 150, 105, 0.18));
-            border-color: rgba(16, 185, 129, 0.5);
-            color: #10b981;
-        }
-
-        .status-badge-compact.danger {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
-            border-color: rgba(239, 68, 68, 0.5);
-            color: #ef4444;
-        }
-
-        .status-badge-compact i {
-            font-size: 14px;
-        }
-
-    .result-card {
-        background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15), transparent 50%), var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        overflow: hidden;
-        box-shadow: var(--shadow-glow);
-        display: flex;
-        flex-direction: column;
-    }
-
-    .card-header-custom {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
-        border-bottom: 1px solid var(--card-border);
-        padding: 18px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-    }
-
-    .card-header-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .card-header-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 16px;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    .card-header-title {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin: 0;
-    }
-
-    .card-body-custom {
-        padding: 24px;
-        color: var(--text-primary);
-    }
-
-    .ticket-header {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 24px;
-    }
-
-    .ticket-poster {
-        flex-shrink: 0;
-    }
-
-        .ticket-poster img {
-            width: 120px;
-            height: 160px;
-            object-fit: cover;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(148, 163, 255, 0.2);
-        }
-
-    .ticket-info {
-        flex: 1;
-    }
-
-    .movie-title {
-        font-size: 22px;
-        font-weight: 800;
-        background: linear-gradient(120deg, #60a5fa, #a78bfa);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 12px;
-    }
-
-    .ticket-detail-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-
-        .ticket-detail-item i {
-            color: #60a5fa;
-            width: 18px;
-            font-size: 13px;
-        }
-
-        .ticket-detail-item strong {
-            color: #fbbf24;
-        }
-
-    .contact-info {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(148, 163, 255, 0.15);
-    }
-
-    .contact-item {
-        font-size: 12px;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-        .contact-item i {
-            color: #60a5fa;
-            width: 14px;
-        }
-
-    .pricing-section {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        margin: 24px 0;
-    }
-
-    .pricing-item {
-        background: rgba(59, 130, 246, 0.05);
-        border: 1px solid rgba(148, 163, 255, 0.2);
-        border-radius: 16px;
-        padding: 16px;
-    }
-
-    .pricing-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #a5b4fc;
-        margin-bottom: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .pricing-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #fbbf24;
-    }
-
-    .snack-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-        .snack-list li {
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(148, 163, 255, 0.1);
-            font-size: 13px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-            .snack-list li:last-child {
-                border-bottom: none;
-            }
-
-    .snack-name {
-        color: var(--text-primary);
-    }
-
-    .snack-price {
-        color: #fbbf24;
-        font-weight: 600;
-    }
-
-    .empty-snacks {
-        color: var(--text-secondary);
-        font-size: 13px;
-        font-style: italic;
-    }
-
-    .total-section {
-        margin-top: 24px;
-        padding-top: 24px;
-        border-top: 2px solid rgba(148, 163, 255, 0.2);
-    }
-
-    .total-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-
-    .total-label {
-        font-size: 14px;
-        color: var(--text-secondary);
-    }
-
-    .total-value {
-        font-size: 16px;
-        font-weight: 700;
-        color: #fbbf24;
-    }
-
-    .grand-total {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(148, 163, 255, 0.15);
-    }
-
-        .grand-total .total-label {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .grand-total .total-value {
-            font-size: 26px;
-            font-weight: 900;
-            background: linear-gradient(120deg, #fbbf24, #f59e0b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-    .action-buttons {
-        margin-top: 32px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .btn-custom {
-        padding: 12px 24px;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 700;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-home {
-        background: rgba(59, 130, 246, 0.15);
-        border: 1px solid rgba(148, 163, 255, 0.4);
-        color: #60a5fa;
-    }
-
-        .btn-home:hover {
-            background: rgba(59, 130, 246, 0.25);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-            color: #60a5fa;
-        }
-
-    .btn-history {
-        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
-        border: 1px solid rgba(148, 163, 255, 0.4);
-        color: white;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    }
-
-        .btn-history:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
-            filter: brightness(1.1);
-            color: white;
-        }
-
-    .btn-custom i {
-        font-size: 13px;
-    }
-
-    .empty-detail {
-        text-align: center;
-        padding: 40px 20px;
-    }
-
-    .empty-icon {
-        width: 64px;
-        height: 64px;
-        margin: 0 auto 16px;
-        border-radius: 50%;
-        background: rgba(59, 130, 246, 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        color: #60a5fa;
-    }
-
-    .empty-text {
-        font-size: 15px;
-        color: var(--text-secondary);
-    }
-
-        .empty-text strong {
-            color: #60a5fa;
-        }
-
-    @@media (max-width: 991.98px) {
-        .pricing-section {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @@media (max-width: 767.98px) {
-        .result-container {
-            padding: 30px 16px 50px;
-        }
-
-        .ticket-header {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        .ticket-poster img {
-            width: 100px;
-            height: 133px;
-        }
-
-        .movie-title {
-            font-size: 20px;
-        }
-    }
-
-    @@media (max-width: 575.98px) {
-        .card-header-custom {
-            padding: 16px 20px;
-        }
-
-        .result-card {
-            border-radius: 20px;
-        }
-    }
-</style>
-
-<div class="result-container">
-    <div class="result-content">
-        <div class="result-card">
-            <div class="card-header-custom">
-                <div class="card-header-left">
-                    <div class="card-header-icon">
-                        <i class="fa-solid fa-ticket"></i>
-                    </div>
-                    <h2 class="card-header-title">Chi tiết vé</h2>
-                </div>
-
+            @if (Model != null)
+            {
                 <div class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
-                    @if (Model.IsSuccess)
-                    {
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>Thanh toán thành công</span>
-                    }
-                    else
-                    {
-                        <i class="fa-solid fa-circle-xmark"></i>
-                        <span>Thanh toán thất bại</span>
-                    }
+                    <i class="fas @(Model.IsSuccess ? "fa-check-circle" : "fa-times-circle")"></i>
+                    <span>@(Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "THANH TOÁN THẤT BẠI")</span>
                 </div>
-            </div>
 
-            <div class="card-body-custom">
-                @if (d == null)
-                {
-                    <div class="empty-detail">
-                        <div class="empty-icon">
-                            <i class="fa-solid fa-ticket-simple"></i>
+                <div class="result-card">
+                    <div class="card-header-custom">
+                        <div class="card-header-left">
+                            <div class="card-header-icon">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <h3 class="card-header-title">Thông tin hóa đơn</h3>
                         </div>
-                        <div class="empty-text">
-                            Không tìm thấy chi tiết vé cho đơn <strong>@Model.OrderId</strong>
+
+                        <div class="bill-code">
+                            Mã: <span class="bill-code-value">@Model.OrderId</span>
                         </div>
                     </div>
-                }
-                else
-                {
-                    <div class="ticket-header">
-                        <div class="ticket-poster">
-                            <img src="@(string.IsNullOrEmpty(d.MoviePoster) ? "/images/no-poster.png" : d.MoviePoster)"
-                                 alt="@d.MovieTitle" />
+
+                    <div class="card-body-custom">
+                        @if (Model.Detail == null)
+                        {
+                            <div class="empty-detail">
+                                <div class="empty-icon"><i class="fas fa-ticket-alt"></i></div>
+                                <div class="empty-text">Không có dữ liệu chi tiết hóa đơn.</div>
+                            </div>
+                        }
+                        else
+                        {
+                            var d = Model.Detail;
+
+                            <div class="ticket-header">
+                                <div class="ticket-poster">
+                                    @if (!string.IsNullOrWhiteSpace(d.MoviePoster))
+                                    {
+                                        <img src="@d.MoviePoster" alt="@d.MovieTitle" />
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/poster_default.jpg" alt="Poster" />
+                                    }
                         </div>
-                        <div class="ticket-info">
+
+                        <div class="ticket-main">
                             <div class="movie-title">@d.MovieTitle</div>
 
                             <div class="ticket-detail-item">
-                                <i class="fa-solid fa-location-dot"></i>
+                                <i class="fas fa-building"></i>
+                                <strong>Rạp/Phòng:</strong>
                                 <span>@d.CinemaTheater</span>
                             </div>
 
                             <div class="ticket-detail-item">
-                                <i class="fa-solid fa-calendar-day"></i>
-                                <span>@d.ShowDate?.ToString("dd/MM/yyyy")</span>
+                                <i class="fas fa-calendar-alt"></i>
+                                <strong>Ngày chiếu:</strong>
+                                <span>@(d.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A")</span>
                             </div>
 
                             <div class="ticket-detail-item">
-                                <i class="fa-solid fa-clock"></i>
-                                <span>@d.StartTime?.ToString("HH:mm") - @d.EndTime?.ToString("HH:mm")</span>
+                                <i class="fas fa-clock"></i>
+                                <strong>Giờ:</strong>
+                                <span>
+                                    @(d.StartTime?.ToString("HH:mm") ?? "N/A")
+                                    -
+                                    @(d.EndTime?.ToString("HH:mm") ?? "N/A")
+                                </span>
                             </div>
 
                             <div class="ticket-detail-item">
-                                <i class="fa-solid fa-couch"></i>
-                                <span>Ghế: <strong>@string.Join(", ", d.SeatLabels)</strong></span>
-                            </div>
+                                <i class="fas fa-chair"></i>
+                                <strong>Ghế:</strong>
+                                <span>
+                                    @(d.SeatLabels != null && d.SeatLabels.Any()
+                                                                        ? string.Join(", ", d.SeatLabels)
+                                                                        : "N/A")
+                                        </span>
+                                    </div>
 
-                            <div class="contact-info">
-                                <div class="contact-item">
-                                    <i class="fa-solid fa-clock-rotate-left"></i>
-                                    <span>@ToVietnamTime(d.CreatedAt)?.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <div class="ticket-detail-item">
+                                        <i class="fas fa-ticket-alt"></i>
+                                        <strong>Số vé:</strong>
+                                        <span>@d.TicketCount</span>
+                                    </div>
+
+                                    <div class="contact-info">
+                                        @if (!string.IsNullOrWhiteSpace(d.InvoiceEmail))
+                                        {
+                                            <div class="contact-item">
+                                                <i class="fas fa-envelope"></i>
+                                                <span>@d.InvoiceEmail</span>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(d.InvoicePhone))
+                                        {
+                                            <div class="contact-item">
+                                                <i class="fas fa-phone"></i>
+                                                <span>@d.InvoicePhone</span>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(d.PaymentMethod))
+                                        {
+                                            <div class="contact-item">
+                                                <i class="fas fa-credit-card"></i>
+                                                <span>
+                                                    @d.PaymentMethod
+                                                    @if (paidAt.HasValue)
+                                                    {
+                                                        <span style="opacity:.85;"> • @paidAt.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
-                                @if (!string.IsNullOrEmpty(d.InvoiceEmail))
-                                {
-                                    <div class="contact-item">
-                                        <i class="fa-solid fa-envelope"></i>
-                                        <span>@d.InvoiceEmail</span>
-                                    </div>
-                                }
-                                @if (!string.IsNullOrEmpty(d.InvoicePhone))
-                                {
-                                    <div class="contact-item">
-                                        <i class="fa-solid fa-phone"></i>
-                                        <span>@d.InvoicePhone</span>
-                                    </div>
-                                }
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="pricing-section">
-                        <div class="pricing-item">
-                            <div class="pricing-title">
-                                <i class="fa-solid fa-ticket"></i> Tiền vé (@d.TicketCount vé)
-                            </div>
-                            <div class="pricing-value">@d.TicketTotal.ToString("#,0") đ</div>
-                        </div>
+                            <div class="pricing-section">
+                                <div class="pricing-item">
+                                    <div class="pricing-title">TIỀN VÉ</div>
+                                    <div class="pricing-value">@d.TicketTotal.ToString("N0") đ</div>
+                                </div>
 
-                        <div class="pricing-item">
-                            <div class="pricing-title">
-                                <i class="fa-solid fa-popcorn"></i> Bắp nước
+                                <div class="pricing-item">
+                                    <div class="pricing-title">TIỀN ĐỒ ĂN</div>
+                                    <div class="pricing-value">@d.SnackTotal.ToString("N0") đ</div>
+                                </div>
                             </div>
-                            @if (d.SnackItems.Any())
-                            {
-                                <ul class="snack-list">
-                                    @foreach (var s in d.SnackItems)
+
+                            <div class="block-stack">
+                                <div class="pricing-item pricing-block">
+                                    <div class="pricing-title">BẮP NƯỚC</div>
+
+                                    @if (d.SnackItems != null && d.SnackItems.Any())
                                     {
-                                        <li>
-                                            <span class="snack-name">@s.Name × @s.Quantity</span>
-                                            <span class="snack-price">@s.LineTotal.ToString("#,0") đ</span>
-                                        </li>
+                                        <ul class="snack-list">
+                                            @foreach (var s in d.SnackItems)
+                                            {
+                                                <li>
+                                                    <span class="snack-name">@s.Name × @s.Quantity</span>
+                                                    <span class="snack-price">@s.LineTotal.ToString("N0") đ</span>
+                                                </li>
+                                            }
+                                        </ul>
                                     }
-                                </ul>
-                            }
-                            else
-                            {
-                                <div class="empty-snacks">Không có</div>
-                            }
-                        </div>
-                    </div>
+                                    else
+                                    {
+                                        <div class="empty-snacks">Không có đồ ăn kèm</div>
+                                    }
+                                </div>
 
-                    <div class="total-section">
-                        <div class="total-row">
-                            <div class="total-label">Tiền vé</div>
-                            <div class="total-value">@d.TicketTotal.ToString("#,0") đ</div>
-                        </div>
-                        <div class="total-row">
-                            <div class="total-label">Tiền đồ ăn</div>
-                            <div class="total-value">@d.SnackTotal.ToString("#,0") đ</div>
-                        </div>
-                        <div class="total-row grand-total">
-                            <div class="total-label">TỔNG CỘNG</div>
-                            <div class="total-value">@d.GrandTotal.ToString("#,0") đ</div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
+                                <div class="pricing-item pricing-block">
+                                    <div class="pricing-title pricing-title-tight">KHUYẾN MÃI</div>
 
-        <div class="action-buttons">
-            <a asp-controller="Home" asp-action="Index" class="btn-custom btn-home">
-                <i class="fa-solid fa-house"></i>
-                <span>Về trang chủ</span>
-            </a>
-            <a asp-action="History" class="btn-custom btn-history">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Lịch sử đặt vé</span>
-            </a>
+                                    <div class="promo-row-line">
+                                        <span>Chương trình</span>
+                                        <span class="promo-strong">
+                                            @(string.IsNullOrWhiteSpace(d.PromotionName) ? "-" : d.PromotionName)
+                                        </span>
+                                    </div>
+
+                                    <div class="promo-row-line">
+                                        <span>Giảm (%)</span>
+                                        <span class="promo-strong">
+                                            @(d.DiscountPercent.HasValue ? (d.DiscountPercent.Value.ToString("0.##") + "%") : "-")
+                                        </span>
+                                    </div>
+
+                                    <div class="promo-row-line">
+                                        <span>Giá gốc</span>
+                                        <span class="promo-original">@d.OriginalAmount.ToString("N0") đ</span>
+                                    </div>
+
+                                    <div class="promo-row-line">
+                                        <span>Giảm</span>
+                                        <span class="promo-discount">-@d.DiscountAmount.ToString("N0") đ</span>
+                                    </div>
+
+                                    <div class="promo-payable">
+                                        <span class="promo-payable-title">PHẢI TRẢ</span>
+                                        <span class="promo-payable-value">@d.PayableAmount.ToString("N0") đ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-buttons">
+                                <a class="btn-custom btn-home" href="/">
+                                    <i class="fas fa-home"></i> Trang chủ
+                                </a>
+
+                                <a class="btn-custom btn-history" href="/Payment/History">
+                                    <i class="fas fa-history"></i> Lịch sử
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </div>

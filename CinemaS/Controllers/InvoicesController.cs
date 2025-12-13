@@ -176,22 +176,69 @@ namespace CinemaS.Controllers
         }
 
         // ========== INDEX ==========
-           // nếu chưa có
+        public async Task<IActionResult> Index(string? search, DateTime? fromDate, DateTime? toDate)
+        {
+            ViewBag.Search = search;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
 
-public async Task<IActionResult> Index()
-    {
-        var invoices = await _context.Invoices
-            .AsNoTracking()
-            .OrderByDescending(i => i.CreatedAt)
-            .ToListAsync();     // -> List<Invoices>
+            var query =
+                from inv in _context.Invoices
+                join u in _context.Users on inv.CustomerId equals u.UserId into gj
+                from u in gj.DefaultIfEmpty()
+                select new
+                {
+                    inv.InvoiceId,
+                    FullName = u.FullName ?? "Khách lẻ",
+                    Email = inv.Email ?? u.Email,
+                    Phone = inv.PhoneNumber ?? u.PhoneNumber,
+                    inv.TotalPrice,
+                    Status = inv.Status ?? 0,
+                    inv.CreatedAt
+                };
 
-        return View(invoices);   // trùng với @model IEnumerable<Invoices>
-    }
+            // ===== FILTER: SEARCH =====
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim().ToLower();
+                query = query.Where(x =>
+                    (x.FullName != null && x.FullName.ToLower().Contains(search)) ||
+                    (x.Email != null && x.Email.ToLower().Contains(search)) ||
+                    (x.Phone != null && x.Phone.Contains(search))
+                );
+            }
+
+            // ===== FILTER: DATE =====
+            if (fromDate.HasValue)
+                query = query.Where(x => x.CreatedAt >= fromDate.Value);
+
+            if (toDate.HasValue)
+                query = query.Where(x => x.CreatedAt <= toDate.Value.AddDays(1).AddSeconds(-1));
+
+            // ===== RETURN DATA =====
+            var data = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => new InvoiceIndexVM
+                {
+                    InvoiceId = x.InvoiceId,
+                    CustomerName = x.FullName,
+                    Email = x.Email,
+                    PhoneNumber = x.Phone,
+                    TotalPrice = x.TotalPrice ?? 0m,
+                    Status = x.Status,
+                    CreatedAt = x.CreatedAt
+                })
+                .ToListAsync();
+
+            return View(data);
+        }
 
 
 
-    // ========== DETAILS ==========
-    public async Task<IActionResult> Details(string id)
+
+
+        // ========== DETAILS ==========
+        public async Task<IActionResult> Details(string id)
         {
             if (id == null) return NotFound();
 
@@ -228,7 +275,6 @@ public async Task<IActionResult> Index()
             invoice.PhoneNumber = model.PhoneNumber;
             invoice.Status = model.Status;
             invoice.TotalTicket = model.TotalTicket;
-            invoice.PaymentMethod = model.PaymentMethod;
             invoice.TotalPrice = model.TotalPrice;
             invoice.PaymentMethodId = model.PaymentMethodId;
             invoice.UpdatedAt = DateTime.UtcNow;
@@ -264,6 +310,7 @@ public async Task<IActionResult> Index()
 
             return RedirectToAction(nameof(Index));
         }
+
 
         // ========== DELETE NHIỀU (INDEX + 5 GIÂY UNDO) ==========
         [HttpPost]

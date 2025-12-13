@@ -1,0 +1,366 @@
+﻿@model List<CinemaS.Models.ViewModels.SnackInvoiceHistoryVM>
+
+@{
+    ViewData["Title"] = "Lịch sử mua bắp nước";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var list = Model ?? new List<CinemaS.Models.ViewModels.SnackInvoiceHistoryVM>();
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --card-bg: rgba(15, 23, 42, 0.95);
+        --card-border: rgba(148, 163, 255, 0.3);
+        --text-primary: #e5e7eb;
+        --text-secondary: #9ca3af;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --shadow-glow: 0 8px 32px rgba(59, 130, 246, 0.15);
+    }
+
+    .history-container {
+        min-height: calc(100vh - 140px);
+        padding: 40px 20px 60px;
+        background: radial-gradient(circle at 20% 10%, rgba(99, 102, 241, 0.1), transparent 40%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 40%);
+    }
+
+    .history-header {
+        max-width: 1200px;
+        margin: 0 auto 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* để switch nằm bên phải */
+        gap: 16px;
+    }
+
+    .history-header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .history-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #f97316, #facc15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        box-shadow: 0 8px 24px rgba(248, 181, 51, 0.5);
+        overflow: hidden; /* để ảnh bo góc theo khối */
+    }
+
+        .history-icon.snack-icon img {
+            width: 70%;
+            height: 70%;
+            object-fit: contain;
+        }
+
+    .history-title {
+        font-size: 28px;
+        font-weight: 800;
+        background: linear-gradient(120deg, #f97316, #facc15, #fbbf24);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .history-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* switch vé / snack */
+    .history-switch {
+        display: inline-flex;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(148, 163, 255, 0.4);
+        box-shadow: var(--shadow-glow);
+        gap: 4px;
+    }
+
+    .switch-btn {
+        position: relative;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        background: transparent;
+    }
+
+        .switch-btn i {
+            font-size: 12px;
+        }
+
+        .switch-btn:hover {
+            color: #e5e7eb;
+        }
+
+        .switch-btn.active {
+            color: #f9fafb;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+
+    .desktop-table {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: var(--shadow-glow);
+    }
+
+        .desktop-table table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+
+        .desktop-table thead {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+        }
+
+        .desktop-table th {
+            padding: 16px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #a5b4fc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--card-border);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+            .desktop-table th:last-child {
+                text-align: right;
+            }
+
+        .desktop-table td {
+            padding: 16px 20px;
+            color: var(--text-primary);
+            border-bottom: 1px solid rgba(148, 163, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .desktop-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+            .desktop-table tbody tr:hover {
+                background: rgba(59, 130, 246, 0.08);
+            }
+
+            .desktop-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+    .price-value {
+        font-weight: 700;
+        color: #fbbf24;
+        text-align: right;
+    }
+
+    .status-badge {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .status-badge.paid {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+
+        .status-badge.unpaid {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2));
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #f59e0b;
+        }
+
+        .status-badge i {
+            font-size: 10px;
+        }
+
+    .btn-detail {
+        padding: 8px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 255, 0.4);
+        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+        color: white;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+
+        .btn-detail:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+            color: white;
+        }
+
+        .btn-detail i {
+            font-size: 12px;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        box-shadow: var(--shadow-glow);
+    }
+
+    .empty-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: #60a5fa;
+    }
+
+    .empty-text {
+        font-size: 18px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .empty-subtext {
+        font-size: 14px;
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    @@media (max-width: 575.98px) {
+        .history-container {
+            padding: 30px 16px 50px;
+        }
+
+        .history-title {
+            font-size: 22px;
+        }
+    }
+</style>
+
+<div class="history-container">
+    <div class="history-header">
+        <div class="history-header-left">
+            <div class="history-icon snack-icon">
+                <img src="~/images/snacks/snack.jpg" alt="Snack" />
+            </div>
+
+            <h1 class="history-title">Lịch sử mua bắp nước</h1>
+        </div>
+
+        <div class="history-switch">
+            <a asp-controller="Payment"
+               asp-action="History"
+               class="switch-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "History" ? "active" : "")">
+                <i class="fa-solid fa-ticket"></i>
+                <span>Hóa đơn vé</span>
+            </a>
+
+            <a asp-controller="Payment"
+               asp-action="SnackHistory"
+               class="switch-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "SnackHistory" ? "active" : "")">
+                <i class="fa-solid fa-burger"></i>
+                <span>Hóa đơn snack</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="history-content">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fa-solid fa-inbox"></i>
+                </div>
+                <div class="empty-text">Chưa có hóa đơn bắp nước nào</div>
+                <div class="empty-subtext">Hãy đặt bắp nước để hiển thị ở đây</div>
+            </div>
+        }
+        else
+        {
+            <div class="desktop-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Mã đơn</th>
+                            <th>Ngày tạo</th>
+                            <th style="text-align:right;">Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th style="text-align:right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var idx = 0; idx < list.Count; idx++)
+                        {
+                            var i = list[idx];
+                            <tr>
+                                <td>@(idx + 1)</td>
+                                <td>@i.InvoiceId</td>
+                                <td>@(i.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
+                                <td class="price-value">@i.TotalPrice.ToString("#,0") đ</td>
+                                <td>
+                                    @if (i.Status == 1)
+                                    {
+                                        <span class="status-badge paid">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span>Đã thanh toán</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge unpaid">
+                                            <i class="fa-solid fa-clock"></i>
+                                            <span>Chưa thanh toán</span>
+                                        </span>
+                                    }
+                                </td>
+                                <td style="text-align:right;">
+                                    <a asp-action="SnackResult"
+                                       asp-route-invoiceId="@i.InvoiceId"
+                                       class="btn-detail">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span>Chi tiết</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

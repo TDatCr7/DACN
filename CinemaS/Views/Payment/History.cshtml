@@ -30,35 +30,84 @@
         margin: 0 auto 32px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 16px;
+    }
+
+    .history-header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        white-space: nowrap;
     }
 
     .history-icon {
         width: 56px;
         height: 56px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 20px;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
-        color: white;
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        font-size: 26px;
+        color: #f9fafb;
+        box-shadow: 0 10px 30px rgba(129, 140, 248, 0.6);
     }
 
     .history-title {
         font-size: 28px;
         font-weight: 800;
-        background: linear-gradient(120deg, #60a5fa, #a78bfa, #c084fc);
+        background: linear-gradient(120deg, #60a5fa, #a78bfa, #f472b6);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0;
+        white-space: nowrap;
     }
 
     .history-content {
         max-width: 1200px;
         margin: 0 auto;
     }
+
+    /* switch hóa đơn vé / snack */
+    .history-switch {
+        display: inline-flex;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 255, 0.5);
+        box-shadow: var(--shadow-glow);
+        gap: 4px;
+    }
+
+    .switch-btn {
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+        .switch-btn i {
+            font-size: 12px;
+        }
+
+        .switch-btn:hover {
+            color: #e5e7eb;
+        }
+
+        .switch-btn.active {
+            color: #f9fafb;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.45);
+        }
 
     .invoice-card {
         background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15), transparent 50%), var(--card-bg);
@@ -107,15 +156,7 @@
         font-size: 16px;
         font-weight: 700;
         color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: 8px;
     }
-
-        .invoice-id i {
-            color: #60a5fa;
-            font-size: 14px;
-        }
 
     .status-badge {
         padding: 6px 14px;
@@ -342,14 +383,8 @@
     }
 
     @@media (max-width: 575.98px) {
-        .history-header {
-            margin-bottom: 24px;
-        }
-
-        .history-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 20px;
+        .history-container {
+            padding: 30px 16px 50px;
         }
 
         .history-title {
@@ -373,10 +408,28 @@
 
 <div class="history-container">
     <div class="history-header">
-        <div class="history-icon">
-            <i class="fa-solid fa-ticket"></i>
+        <div class="history-header-left">
+            <div class="history-icon">
+                <i class="fa-solid fa-ticket"></i>
+            </div>
+            <h1 class="history-title">Lịch sử đặt vé</h1>
         </div>
-        <h1 class="history-title">Lịch sử đặt vé</h1>
+
+        <div class="history-switch">
+            <a asp-controller="Payment"
+               asp-action="History"
+               class="switch-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "History" ? "active" : "")">
+                <i class="fa-solid fa-ticket"></i>
+                <span>Hóa đơn vé</span>
+            </a>
+
+            <a asp-controller="Payment"
+               asp-action="SnackHistory"
+               class="switch-btn @(ViewContext.RouteData.Values["action"]?.ToString() == "SnackHistory" ? "active" : "")">
+                <i class="fa-solid fa-burger"></i>
+                <span>Hóa đơn snack</span>
+            </a>
+        </div>
     </div>
 
     <div class="history-content">
@@ -462,25 +515,28 @@
                                 <span>Chi tiết</span>
                             </a>
 
-                            <form asp-controller="Payment"
-                                  asp-action="DeleteHistory"
-                                  method="post"
-                                  class="ms-1"
-                                  onsubmit="return confirm('Xóa hóa đơn này khỏi lịch sử?');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="invoiceId" value="@i.InvoiceId" />
-                                <button type="submit"
-                                        class="btn-detail"
-                                        style="background:linear-gradient(120deg,#ef4444,#f97316);">
-                                    <i class="fa-solid fa-trash"></i>
-                                    <span>Xóa</span>
-                                </button>
-                            </form>
+                            @* chỉ cho xóa hóa đơn không có tên phim và chưa thanh toán thành công *@
+                            @if (i.Status != 1 && string.IsNullOrWhiteSpace(i.MovieTitle))
+                            {
+                                <form asp-controller="Payment"
+                                      asp-action="DeleteHistory"
+                                      method="post"
+                                      class="ms-1"
+                                      onsubmit="return confirm('Xóa hóa đơn này khỏi lịch sử?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="invoiceId" value="@i.InvoiceId" />
+                                    <button type="submit"
+                                            class="btn-detail"
+                                            style="background:linear-gradient(120deg,#ef4444,#f97316);">
+                                        <i class="fa-solid fa-trash"></i>
+                                        <span>Xóa</span>
+                                    </button>
+                                </form>
+                            }
                         </div>
                     </div>
                 }
             </div>
-
 
             <div class="desktop-table">
                 <table>
@@ -523,7 +579,7 @@
                                         </span>
                                     }
                                 </td>
-                                <td style="text-align: right;">
+                                <td style="text-align:right;">
                                     <div style="display:inline-flex; gap:6px; justify-content:flex-end;">
                                         <a asp-action="ResultById"
                                            asp-route-invoiceId="@i.InvoiceId"
@@ -533,7 +589,22 @@
                                             <span>Chi tiết</span>
                                         </a>
 
-                                        
+                                        @if (i.Status != 1 && string.IsNullOrWhiteSpace(i.MovieTitle))
+                                        {
+                                            <form asp-controller="Payment"
+                                                  asp-action="DeleteHistory"
+                                                  method="post"
+                                                  onsubmit="return confirm('Xóa hóa đơn này khỏi lịch sử?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="invoiceId" value="@i.InvoiceId" />
+                                                <button type="submit"
+                                                        class="btn-detail"
+                                                        style="background:linear-gradient(120deg,#ef4444,#f97316);">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                    <span>Xóa</span>
+                                                </button>
+                                            </form>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -541,7 +612,6 @@
                     </tbody>
                 </table>
             </div>
-
         }
     </div>
 </div>

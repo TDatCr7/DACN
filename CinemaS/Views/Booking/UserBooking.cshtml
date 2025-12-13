@@ -1,0 +1,1437 @@
+@model CinemaS.Models.ViewModels.SeatSelectionVM
+@{
+    ViewData["Title"] = "Đặt vé và thanh toán";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/booking-modal.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
+
+<div class="seat-selection-container">
+    <input type="hidden" id="showTimeId" value="@Model.ShowTimeId" />
+
+    <!-- Thông tin phim -->
+    <div class="movie-info">
+        <div class="movie-poster">
+            <img src="@Model.MoviePoster" alt="@Model.MovieTitle" />
+        </div>
+        <div class="movie-details">
+            <h2>@Model.MovieTitle</h2>
+            <p><i class="fas fa-door-open"></i> <strong>Phòng:</strong> @Model.CinemaTheaterName</p>
+            <p><i class="fas fa-calendar"></i> <strong>Ngày:</strong> @Model.ShowDate?.ToString("dd/MM/yyyy")</p>
+            <p><i class="fas fa-clock"></i> <strong>Giờ:</strong> @Model.StartTime?.ToString("HH:mm")</p>
+        </div>
+    </div>
+
+    <!-- Màn hình -->
+    <div class="screen-container">
+        <div class="screen">MÀN HÌNH</div>
+    </div>
+
+    <!-- Sơ đồ ghế -->
+    <div class="seat-layout-scroll-wrapper">
+        <div class="seats-grid-container">
+            @{
+                var rows = Model.Seats.GroupBy(s => s.RowIndex).OrderBy(g => g.Key);
+            }
+
+            @foreach (var row in rows)
+            {
+                <div class="seat-row">
+                    <div class="row-label">@row.Key</div>
+
+                    <div class="seats-in-row">
+                        @{
+                            var seatsInRow = row.OrderBy(s => s.ColumnIndex).ToList();
+                            var processedColumns = new HashSet<int>();
+                        }
+
+                        @for (int col = 1; col <= Model.NumOfColumns; col++)
+                        {
+                            var seat = seatsInRow.FirstOrDefault(s => s.ColumnIndex == col);
+
+                            if (seat == null)
+                            {
+                                <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;"></div>
+                                continue;
+                            }
+
+                            if (processedColumns.Contains(col))
+                            {
+                                continue;
+                            }
+
+                            if (!string.IsNullOrEmpty(seat.PairId))
+                            {
+                                var pairSeat = seatsInRow.FirstOrDefault(s => s.PairId == seat.PairId && s.SeatId != seat.SeatId);
+                                if (pairSeat != null)
+                                {
+                                    processedColumns.Add(seat.ColumnIndex ?? 0);
+                                    processedColumns.Add(pairSeat.ColumnIndex ?? 0);
+
+                                    var isBookedOrInactive = seat.Status == "Booked" || pairSeat.Status == "Booked" || !seat.IsActive || !pairSeat.IsActive;
+                                    var cssClass = isBookedOrInactive ? "booked" : "";
+
+                                    <div class="couple-seat-wrapper @cssClass"
+                                         data-seat-ids="@seat.SeatId,@pairSeat.SeatId"
+                                         data-seat-labels="@seat.Label,@pairSeat.Label"
+                                         data-seat-prices="@(seat.SeatTypePrice ?? 0),@(pairSeat.SeatTypePrice ?? 0)"
+                                         data-is-active="@(seat.IsActive && pairSeat.IsActive)"
+                                         onclick="toggleSeat(this, true)">
+                                        <div class="couple-seat">
+                                            @if (seat.Status == "Booked" || pairSeat.Status == "Booked")
+                                            {
+                                                <i class="fas fa-check" style="color: white; font-size: 20px;"></i>
+                                            }
+                                            else if (!seat.IsActive || !pairSeat.IsActive)
+                                            {
+                                                <span class="broken-icon" style="color: black;">✗</span>
+                                            }
+                                            else
+                                            {
+                                                <div class="user-icons" style="display:none;">
+                                                    <img src="~/images/user.png" alt="user" class="user-icon" />
+                                                    <img src="~/images/user.png" alt="user" class="user-icon" />
+                                                </div>
+                                            }
+                                            @if (seat.Status != "Booked" && !seat.Status.Contains("selected"))
+                                            {
+                                                <div class="seat-label-small">@seat.Label-@pairSeat.Label</div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    processedColumns.Add(col);
+                                    var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
+                                    seatClass += seat.IsVIP ? " vip" : " normal";
+
+                                    <div class="seat @seatClass"
+                                         data-seat-id="@seat.SeatId"
+                                         data-seat-price="@(seat.SeatTypePrice ?? 0)"
+                                         data-seat-label="@seat.Label"
+                                         data-is-active="@seat.IsActive"
+                                         onclick="toggleSeat(this, false)">
+                                        @if (seat.Status == "Booked")
+                                        {
+                                            <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
+                                        }
+                                        else if (seat.IsVIP)
+                                        {
+                                            <span class="seat-badge">V</span>
+                                        }
+                                        @if (!seat.IsActive && seat.Status != "Booked")
+                                        {
+                                            <span class="broken-icon" style="color: white;">✗</span>
+                                        }
+                                        <div class="user-icon-wrapper">
+                                            <img src="~/images/user.png" alt="user" class="user-icon" />
+                                        </div>
+                                        @if (seat.Status != "Booked" && !seat.Status.Contains("selected"))
+                                        {
+                                            <div class="seat-label-small">@seat.Label</div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                processedColumns.Add(col);
+                                var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
+                                seatClass += seat.IsVIP ? " vip" : " normal";
+
+                                <div class="seat @seatClass"
+                                     data-seat-id="@seat.SeatId"
+                                     data-seat-price="@(seat.SeatTypePrice ?? 0)"
+                                     data-seat-label="@seat.Label"
+                                     data-is-active="@seat.IsActive"
+                                     onclick="toggleSeat(this, false)">
+                                    @if (seat.Status == "Booked")
+                                    {
+                                        <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
+                                    }
+                                    else if (seat.IsVIP)
+                                    {
+                                        <span class="seat-badge">V</span>
+                                    }
+                                    @if (!seat.IsActive && seat.Status != "Booked")
+                                    {
+                                        <span class="broken-icon" style="color: white;">✗</span>
+                                    }
+                                    <div class="user-icon-wrapper">
+                                        <img src="~/images/user.png" alt="user" class="user-icon" />
+                                    </div>
+                                    @if (seat.Status != "Booked" && !seat.Status.Contains("selected"))
+                                    {
+                                        <div class="seat-label-small">@seat.Label</div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    <div class="row-label">@row.Key</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Chú thích -->
+    <div class="legend">
+        <div class="legend-title">
+            <i class="fas fa-info-circle"></i> Chú Thích
+        </div>
+        <div class="legend-items">
+            <div class="legend-item">
+                <div class="seat normal"></div>
+                <span>Ghế Trống</span>
+            </div>
+            <div class="legend-item">
+                <div class="seat normal selected">
+                    <img src="~/images/user.png" alt="user" class="user-icon" />
+                </div>
+                <span>Đang Chọn</span>
+            </div>
+            <div class="legend-item">
+                <div class="seat booked">
+                    <i class="fas fa-check" style="color: white; font-size: 16px;"></i>
+                </div>
+                <span>Đã Đặt</span>
+            </div>
+            <div class="legend-item">
+                <div class="seat normal broken">
+                    <span class="broken-icon">✗</span>
+                </div>
+                <span>Ghế Hỏng</span>
+            </div>
+            <div class="legend-item">
+                <div class="seat vip"><span class="seat-badge">V</span></div>
+                <span>Ghế VIP</span>
+            </div>
+            <div class="legend-item">
+                <div class="couple-seat-wrapper">
+                    <div class="couple-seat"></div>
+                </div>
+                <span>Ghế Đôi</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chọn đồ ăn kèm -->
+    <div class="snack-selection">
+        <div class="snack-header" onclick="toggleSnackSection()">
+            <h5 class="fw-bold mb-0">
+                <i class="fas fa-utensils"></i> Chọn đồ ăn kèm <span id="snackCount" class="snack-badge-count"></span>
+            </h5>
+            <button type="button" class="btn-collapse" id="snackToggleBtn">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+
+        <div class="snack-content" id="snackContent">
+            <div class="row g-3 mt-2">
+                @if (ViewBag.Snacks != null)
+                {
+                    @foreach (var snack in ViewBag.Snacks)
+                    {
+                        <div class="col-6 col-md-3 col-lg-2">
+                            <div class="snack-card">
+                                <div class="snack-image">
+                                    @if (!string.IsNullOrEmpty(snack.Image))
+                                    {
+                                        <img src="@snack.Image" alt="@snack.Name" onerror="this.src='/images/snacks/SnackCinema.jpg'">
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/snacks/SnackCinema.jpg" alt="@snack.Name">
+                                    }
+                                </div>
+                                <div class="snack-info">
+                                    <h6 class="snack-name">@snack.Name</h6>
+                                    <p class="snack-price">@snack.Price?.ToString("N0") đ</p>
+                                    <div class="snack-control"
+                                         data-snack-id="@snack.SnackId"
+                                         data-price="@snack.Price"
+                                         data-name="@snack.Name">
+                                        <button type="button" class="btn-choose-snack" onclick="handleChooseSnack(this)">Chọn</button>
+                                        <div class="quantity-control" style="display: none;">
+                                            <button type="button" class="quantity-btn-snack" onclick="updateSnackCardQuantity(this, -1)">-</button>
+                                            <input type="number" class="quantity-input-snack" value="1" readonly>
+                                            <button type="button" class="quantity-btn-snack" onclick="updateSnackCardQuantity(this, 1)">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- PAYMENT SUMMARY (USER) -->
+    <div class="booking-summary booking-summary--promo">
+        <div class="booking-summary-grid booking-summary-grid-3">
+            <!-- LEFT -->
+            <div class="summary-left">
+                <div class="selected-info">
+                    <strong>Ghế đã chọn:</strong>
+                    <span id="selectedSeats">Chưa chọn</span>
+                </div>
+
+                <div class="snack-summary">
+                    <div class="snack-summary-title">
+                        <strong>Bắp nước đã chọn:</strong>
+                        <span id="snackTotalInline">0 đ</span>
+                    </div>
+                    <div class="snack-summary-list" id="snackSummaryList">
+                        <div class="snack-empty">Chưa chọn</div>
+                    </div>
+                </div>
+
+                <div class="total-price">
+                    <strong>Tạm tính:</strong>
+                    <span id="subTotalPrice">0 đ</span>
+                </div>
+            </div>
+
+            <!-- MIDDLE: PROMO FIXED HEIGHT -->
+            <div class="promo-box">
+                <div class="promo-row">
+                    <div class="promo-left">
+                        <strong>Mã giảm giá</strong>
+                        <div class="promo-hint">Áp dụng trước khi tạo hóa đơn</div>
+                    </div>
+                    <div class="promo-right">
+                        <input id="promoCodeInput" type="text" class="promo-input" placeholder="Nhập mã (VD: SALE10)" />
+                        <button type="button" class="promo-btn" onclick="applyPromoBeforeInvoice()">Áp</button>
+                        <button type="button" class="promo-btn promo-btn-danger" onclick="clearPromoBeforeInvoice()">Gỡ mã</button>
+                    </div>
+                </div>
+
+                <div class="promo-meta">
+                    <div class="promo-line">
+                        <span>Chương trình:</span>
+                        <span id="promoNameText">-</span>
+                    </div>
+                    <div class="promo-line">
+                        <span>Giảm (%):</span>
+                        <span id="promoPercentText">-</span>
+                    </div>
+                    <div class="promo-line">
+                        <span>Giảm:</span>
+                        <span id="promoDiscountText">0 đ</span>
+                    </div>
+                </div>
+
+                <div class="promo-msg" id="promoMsg"></div>
+            </div>
+
+            <!-- RIGHT -->
+            <div class="booking-action-col">
+                <div class="payable-card">
+                    <div class="payable-row">
+                        <strong>Phải trả:</strong>
+                        <span id="totalPrice">0 đ</span>
+                    </div>
+                </div>
+
+                <button id="btnBook" class="btn-book" onclick="openBookingModal()" disabled>
+                    <i class="fas fa-ticket-alt"></i> Đặt vé
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== BOOKING MODAL ===== -->
+<div class="booking-modal-overlay" id="bookingModalOverlay">
+    <div class="booking-modal">
+        <div class="booking-modal-header">
+            <h3>Xác nhận đặt vé</h3>
+        </div>
+        <div class="booking-modal-body">
+            <div class="booking-info-item">
+                <span class="booking-info-label">Số ghế:</span>
+                <span class="booking-info-value" id="modalSeatCount">0</span>
+            </div>
+            <div class="booking-info-item">
+                <span class="booking-info-label">Ghế đã chọn:</span>
+                <span class="booking-info-value" id="modalSeatLabels">-</span>
+            </div>
+            <div class="booking-info-item">
+                <span class="booking-info-label">Tiền ghế:</span>
+                <span class="booking-info-value" id="modalSeatTotal">0 đ</span>
+            </div>
+
+            <div id="modalSnacksList" style="margin-top: 20px;"></div>
+
+            <div class="booking-info-item" style="margin-top: 10px;">
+                <span class="booking-info-label">Tiền đồ ăn:</span>
+                <span class="booking-info-value" id="modalSnackTotal">0 đ</span>
+            </div>
+
+            <div class="booking-info-item" style="margin-top: 10px;">
+                <span class="booking-info-label">Giảm:</span>
+                <span class="booking-info-value" id="modalDiscountTotal">0 đ</span>
+            </div>
+
+            <div class="booking-total">
+                <div class="booking-info-item">
+                    <span class="booking-info-label">TỔNG CỘNG:</span>
+                    <span class="booking-info-value" id="modalGrandTotal">0 đ</span>
+                </div>
+                <div class="booking-info-item" style="margin-top:10px;">
+                    <span class="booking-info-label">PHẢI TRẢ:</span>
+                    <span class="booking-info-value" id="modalPayableTotal">0 đ</span>
+                </div>
+            </div>
+        </div>
+        <div class="booking-modal-footer">
+            <button class="booking-modal-btn booking-modal-btn-cancel" onclick="closeBookingModal()">
+                <i class="fas fa-times"></i> Hủy
+            </button>
+            <button class="booking-modal-btn booking-modal-btn-confirm" onclick="confirmBooking()">
+                <i class="fas fa-check"></i> Xác nhận
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div class="booking-loading-overlay" id="bookingLoadingOverlay">
+    <div class="booking-loading-content">
+        <div class="booking-loading-spinner"></div>
+        <div class="booking-loading-text">Đang xử lý đặt vé...</div>
+    </div>
+</div>
+
+<!-- ===== TOAST NOTIFICATION ===== -->
+<div class="booking-toast" id="bookingToast"></div>
+
+@section Scripts {
+    <style>
+        .snack-control {
+            margin-top: 8px;
+        }
+
+        .btn-choose-snack {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+            .btn-choose-snack:hover {
+                background-color: #2563eb;
+            }
+
+        .quantity-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .quantity-btn-snack {
+            background-color: #facc15;
+            color: #1f2937;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .quantity-input-snack {
+            width: 40px;
+            height: 32px;
+            text-align: center;
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            color: white;
+            border-radius: 6px;
+            -moz-appearance: textfield;
+        }
+
+            .quantity-input-snack::-webkit-outer-spin-button,
+            .quantity-input-snack::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+        .booking-summary.booking-summary--promo {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid #1f2a44;
+            background: #0b1220;
+            box-shadow: 0 16px 28px rgba(0,0,0,.35);
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .booking-summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 14px;
+            align-items: start;
+        }
+
+            .booking-summary-grid.booking-summary-grid-3 {
+                grid-template-columns: 1fr 460px 320px;
+                gap: 14px;
+                align-items: start;
+            }
+
+        .summary-left,
+        .booking-action-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .booking-summary .selected-info,
+        .booking-summary .total-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #111a2c;
+            border: 1px solid #1f2a44;
+        }
+
+            .booking-summary .selected-info strong,
+            .booking-summary .total-price strong {
+                color: #cbd5e1;
+                font-weight: 800;
+                font-size: 13px;
+            }
+
+        .booking-summary #selectedSeats {
+            color: #e5e7eb;
+            font-weight: 800;
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 65%;
+        }
+
+        .booking-summary #subTotalPrice {
+            color: #fbbf24;
+            font-weight: 900;
+            font-size: 16px;
+        }
+
+        .snack-summary {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #111a2c;
+            border: 1px solid #1f2a44;
+            max-height: 220px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .snack-summary-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        #snackTotalInline {
+            font-weight: 900;
+            color: #22c55e;
+        }
+
+        .snack-summary-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+            .snack-summary-list::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .snack-summary-list::-webkit-scrollbar-thumb {
+                background: rgba(148,163,255,.35);
+                border-radius: 999px;
+            }
+
+            .snack-summary-list::-webkit-scrollbar-track {
+                background: rgba(255,255,255,.06);
+                border-radius: 999px;
+            }
+
+        .snack-empty {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        .snack-line {
+            display: grid;
+            grid-template-columns: 1fr 34px 110px;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #0e1728;
+            border: 1px solid #1f2a44;
+            min-height: 44px;
+        }
+
+        .snack-line-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 700;
+            color: #e5e7eb;
+        }
+
+        .snack-line-meta {
+            color: #9ca3af;
+            font-weight: 700;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .snack-line-price {
+            color: #e5e7eb;
+            font-weight: 800;
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .promo-box {
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #1f2a44;
+            background: #111a2c;
+            color: #e5e7f5;
+            min-height: 220px;
+        }
+
+        .promo-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .promo-left strong {
+            color: #e5e7eb;
+        }
+
+        .promo-hint {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .promo-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            width: 100%;
+        }
+
+        .promo-input {
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,255,.22);
+            background: #0b1220;
+            color: #e5e7eb;
+            outline: none;
+            flex: 1;
+            min-width: 200px;
+        }
+
+            .promo-input:focus {
+                border-color: rgba(102,126,234,.9);
+                box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+            }
+
+        .promo-btn {
+            height: 40px;
+            padding: 0 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,255,.22);
+            background: rgba(59,130,246,.18);
+            color: #cfe3ff;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+            .promo-btn:hover {
+                filter: brightness(1.1);
+            }
+
+        .promo-btn-danger {
+            background: rgba(239,68,68,.16);
+            color: #fecaca;
+            border-color: rgba(239,68,68,.35);
+        }
+
+        .promo-meta {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .promo-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            color: #cbd5e1;
+            font-size: 13px;
+        }
+
+        .promo-msg {
+            margin-top: 10px;
+            font-size: 12px;
+            min-height: 16px;
+            color: #9ca3af;
+        }
+
+        .promo-msg-ok {
+            color: #10b981;
+        }
+
+        .promo-msg-err {
+            color: #ef4444;
+        }
+
+        .promo-msg-warn {
+            color: #fbbf24;
+        }
+
+        .payable-card {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #111a2c;
+            border: 1px solid #1f2a44;
+            width: 100%;
+        }
+
+        .payable-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+            .payable-row strong {
+                color: #cbd5e1;
+                font-weight: 800;
+                font-size: 13px;
+            }
+
+            .payable-row #totalPrice {
+                color: #22c55e;
+                font-size: 18px;
+                font-weight: 900;
+            }
+
+        @@media (max-width: 992px) {
+            .booking-summary-grid,
+            .booking-summary-grid.booking-summary-grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-summary #selectedSeats {
+                max-width: 60%;
+            }
+        }
+
+        .booking-loading-overlay {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,.55);
+            z-index: 99999 !important;
+        }
+
+            .booking-loading-overlay.show {
+                display: flex !important;
+            }
+
+        .booking-loading-content {
+            max-width: 360px;
+            width: calc(100% - 32px);
+        }
+    </style>
+
+    <script>
+        const showTimeId = '@Model.ShowTimeId';
+
+        let selectedSeats = [];
+        let selectedSnacks = [];
+
+        let currentInvoiceId = null;
+        let currentInvoiceAmount = 0;
+
+        let currentBaseTotal = 0;
+        let currentPayableTotal = 0;
+
+        let promoDraftCode = '';
+        let promoApplied = false;
+        let promoName = '';
+        let promoPercent = null;
+        let promoDiscountAmount = 0;
+
+        const PROMO_VALIDATE_URL = '/Booking/ValidatePromotion';
+
+        async function readJsonSafe(res) {
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            const text = await res.text();
+
+            if (!text || !text.trim()) {
+                return { success: false, message: `Empty response (HTTP ${res.status})` };
+            }
+
+            if (!ct.includes('application/json')) {
+                return { success: false, message: `Non-JSON response (HTTP ${res.status})`, raw: text.slice(0, 300) };
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch {
+                return { success: false, message: `Invalid JSON (HTTP ${res.status})`, raw: text.slice(0, 300) };
+            }
+        }
+
+        function showBookingLoading(show) {
+            const overlay = document.getElementById('bookingLoadingOverlay');
+            if (!overlay) return;
+            if (show) overlay.classList.add('show'); else overlay.classList.remove('show');
+        }
+
+        function showBookingToast(message, type) {
+            const toast = document.getElementById('bookingToast');
+            if (!toast) return;
+            toast.innerHTML = message;
+            toast.className = 'booking-toast booking-toast-' + type + ' show';
+            setTimeout(() => { toast.classList.remove('show'); }, 5000);
+        }
+
+        function formatVND(n) {
+            return (n || 0).toLocaleString('vi-VN') + ' đ';
+        }
+
+        function setPromoMsg(text, kind) {
+            const el = document.getElementById('promoMsg');
+            if (!el) return;
+            el.textContent = text || '';
+            el.className = 'promo-msg' + (kind ? (' promo-msg-' + kind) : '');
+        }
+
+        function setPromoUI(nameText, percentText, discountText) {
+            const nameEl = document.getElementById('promoNameText');
+            const percentEl = document.getElementById('promoPercentText');
+            const discountEl = document.getElementById('promoDiscountText');
+
+            if (nameEl) nameEl.textContent = nameText;
+            if (percentEl) percentEl.textContent = percentText;
+            if (discountEl) discountEl.textContent = discountText;
+        }
+
+        function resetPromoState() {
+            promoDraftCode = '';
+            promoApplied = false;
+            promoName = '';
+            promoPercent = null;
+            promoDiscountAmount = 0;
+
+            const input = document.getElementById('promoCodeInput');
+            if (input) input.value = '';
+
+            setPromoUI('-', '-', formatVND(0));
+            setPromoMsg('', '');
+
+            currentPayableTotal = currentBaseTotal;
+            syncTotalsToUI();
+        }
+
+        function getSeatTotal() {
+            return selectedSeats.reduce((sum, s) => {
+                const base = s.price || 0;
+                const finalPrice = s.isCouple ? base * 2 : base;
+                return sum + finalPrice;
+            }, 0);
+        }
+
+        function renderSnackSummaryList() {
+            const list = document.getElementById('snackSummaryList');
+            if (!list) return;
+
+            if (!selectedSnacks.length) {
+                list.innerHTML = '<div class="snack-empty">Chưa chọn</div>';
+                return;
+            }
+
+            const lines = selectedSnacks
+                .map(s => {
+                    const qty = s.quantity || 1;
+                    const lineTotal = (s.price || 0) * qty;
+                    return `
+                        <div class="snack-line">
+                            <div class="snack-line-name">${(s.name || 'Snack')}</div>
+                            <div class="snack-line-meta">x${qty}</div>
+                            <div class="snack-line-price">${formatVND(lineTotal)}</div>
+                        </div>
+                    `;
+                })
+                .join('');
+
+            list.innerHTML = lines;
+        }
+
+        function syncTotalsToUI() {
+            const subEl = document.getElementById('subTotalPrice');
+            const seatEl = document.getElementById('selectedSeats');
+            const totalEl = document.getElementById('totalPrice');
+            const snackInline = document.getElementById('snackTotalInline');
+
+            if (subEl) subEl.textContent = formatVND(currentBaseTotal);
+            if (totalEl) totalEl.textContent = formatVND(currentPayableTotal);
+
+            const seatLabels = selectedSeats
+                .map(s => s.label)
+                .sort((a, b) => a.localeCompare(b, 'vi-VN', { numeric: true }));
+
+            if (seatEl) seatEl.textContent = seatLabels.length ? seatLabels.join(', ') : 'Chưa chọn';
+
+            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+            if (snackInline) snackInline.textContent = formatVND(snackTotal);
+        }
+
+        function updateSummary() {
+            const btnBook = document.getElementById('btnBook');
+
+            const seatTotal = getSeatTotal();
+            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+            const base = seatTotal + snackTotal;
+
+            currentBaseTotal = base;
+            currentPayableTotal = base;
+
+            renderSnackSummaryList();
+            syncTotalsToUI();
+
+            if (btnBook) btnBook.disabled = selectedSeats.length === 0;
+
+            updateSnackCounter();
+
+            if (promoApplied && promoDraftCode) {
+                revalidatePromoAfterAmountChanged();
+            } else {
+                setPromoUI('-', '-', formatVND(0));
+                setPromoMsg('', '');
+            }
+        }
+
+        window.handleChooseSnack = function (button) {
+            const control = button.closest('.snack-control');
+            if (!control) return;
+
+            const snackId = control.dataset.snackId;
+            const price = parseFloat(control.dataset.price) || 0;
+            const name = control.dataset.name;
+
+            selectedSnacks.push({ id: snackId, name, price, quantity: 1 });
+
+            button.style.display = 'none';
+            const qc = control.querySelector('.quantity-control');
+            if (qc) qc.style.display = 'flex';
+
+            const input = control.querySelector('.quantity-input-snack');
+            if (input) input.value = 1;
+
+            updateSummary();
+        }
+
+        window.updateSnackCardQuantity = function (button, change) {
+            const control = button.closest('.snack-control');
+            if (!control) return;
+
+            const snackId = control.dataset.snackId;
+            const input = control.querySelector('.quantity-input-snack');
+            const currentQuantity = parseInt(input?.value || '1', 10);
+            const newQuantity = currentQuantity + change;
+
+            const snack = selectedSnacks.find(s => s.id === snackId);
+
+            if (newQuantity <= 0) {
+                selectedSnacks = selectedSnacks.filter(s => s.id !== snackId);
+
+                const qc = control.querySelector('.quantity-control');
+                if (qc) qc.style.display = 'none';
+
+                const chooseBtn = control.querySelector('.btn-choose-snack');
+                if (chooseBtn) chooseBtn.style.display = 'block';
+            } else {
+                if (snack) snack.quantity = newQuantity;
+                if (input) input.value = newQuantity;
+            }
+
+            updateSummary();
+        }
+
+        window.toggleSeat = function (element, isCouple) {
+            if (element.classList.contains('booked') || element.getAttribute('data-is-active') === 'false') {
+                showBookingToast('⚠️ Ghế này không thể chọn!', 'error');
+                return;
+            }
+
+            if (isCouple) {
+                const ids = (element.getAttribute('data-seat-ids') || '').split(',').filter(Boolean);
+                const labels = (element.getAttribute('data-seat-labels') || '').split(',').filter(Boolean);
+                const prices = (element.getAttribute('data-seat-prices') || '').split(',').map(x => parseFloat(x) || 0);
+
+                if (!ids.length) return;
+
+                if (element.classList.contains('selected')) {
+                    element.classList.remove('selected');
+                    const userIcons = element.querySelector('.user-icons');
+                    if (userIcons) userIcons.style.display = 'none';
+                    ids.forEach(id => { selectedSeats = selectedSeats.filter(s => s.id !== id); });
+                } else {
+                    element.classList.add('selected');
+                    const userIcons = element.querySelector('.user-icons');
+                    if (userIcons) userIcons.style.display = 'flex';
+
+                    for (let i = 0; i < ids.length; i++) {
+                        selectedSeats.push({
+                            id: ids[i],
+                            label: labels[i] || ids[i],
+                            price: prices[i] ?? 0,
+                            isCouple: true
+                        });
+                    }
+                }
+            } else {
+                const id = element.getAttribute('data-seat-id');
+                const price = parseFloat(element.getAttribute('data-seat-price')) || 0;
+                const label = element.getAttribute('data-seat-label');
+
+                if (element.classList.contains('selected')) {
+                    element.classList.remove('selected');
+                    const userIcon = element.querySelector('.user-icon-wrapper');
+                    if (userIcon) userIcon.style.display = 'none';
+                    selectedSeats = selectedSeats.filter(s => s.id !== id);
+                } else {
+                    element.classList.add('selected');
+                    const userIcon = element.querySelector('.user-icon-wrapper');
+                    if (userIcon) userIcon.style.display = 'flex';
+                    selectedSeats.push({ id, label, price });
+                }
+            }
+
+            const uniq = [];
+            const seen = new Set();
+            for (const s of selectedSeats) {
+                if (!seen.has(s.id)) { uniq.push(s); seen.add(s.id); }
+            }
+            selectedSeats = uniq;
+
+            updateSummary();
+        };
+
+        window.toggleSnackSection = function () {
+            const content = document.getElementById('snackContent');
+            const btn = document.getElementById('snackToggleBtn');
+            const icon = btn?.querySelector('i');
+            if (!content || !icon) return;
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        };
+
+        window.updateSnackCounter = function () {
+            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
+            const countElement = document.getElementById('snackCount');
+            if (!countElement) return;
+
+            if (totalQuantity > 0) {
+                countElement.textContent = `(${totalQuantity} món đã chọn)`;
+                countElement.style.backgroundColor = '#364747';
+                countElement.style.color = '#fff';
+                countElement.style.marginLeft = '8px';
+                countElement.style.fontSize = '13px';
+                countElement.style.padding = '2px 8px';
+                countElement.style.borderRadius = '12px';
+            } else {
+                countElement.textContent = '';
+            }
+        };
+
+        async function applyPromoBeforeInvoice() {
+            if (currentBaseTotal <= 0) {
+                showBookingToast('⚠️ Vui lòng chọn ghế trước.', 'error');
+                return;
+            }
+
+            const code = (document.getElementById('promoCodeInput')?.value || '').trim();
+            if (!code) {
+                showBookingToast('⚠️ Vui lòng nhập mã giảm giá.', 'error');
+                return;
+            }
+
+            showBookingLoading(true);
+            try {
+                const vRes = await fetch(PROMO_VALIDATE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code, amount: currentBaseTotal })
+                });
+
+                const vData = await readJsonSafe(vRes);
+
+                if (!vRes.ok) {
+                    promoApplied = false;
+                    promoDraftCode = '';
+                    promoName = '';
+                    promoPercent = null;
+                    promoDiscountAmount = 0;
+
+                    currentPayableTotal = currentBaseTotal;
+                    syncTotalsToUI();
+
+                    setPromoUI('-', '-', formatVND(0));
+                    setPromoMsg(vData?.message || 'Lỗi kiểm tra mã', 'err');
+                    showBookingToast('❌ ' + (vData?.message || 'Lỗi kiểm tra mã'), 'error');
+                    return;
+                }
+
+                if (!vData?.success) {
+                    promoApplied = false;
+                    promoDraftCode = '';
+                    promoName = '';
+                    promoPercent = null;
+                    promoDiscountAmount = 0;
+
+                    currentPayableTotal = currentBaseTotal;
+                    syncTotalsToUI();
+
+                    setPromoUI('-', '-', formatVND(0));
+                    setPromoMsg(vData?.message || 'Mã không hợp lệ', 'err');
+                    showBookingToast('❌ ' + (vData?.message || 'Mã không hợp lệ'), 'error');
+                    return;
+                }
+
+                promoDraftCode = code;
+                promoApplied = true;
+
+                promoName = vData.promotionName || '-';
+                promoPercent = (typeof vData.discountPercent === 'number') ? vData.discountPercent : null;
+                promoDiscountAmount = vData.discountAmount || 0;
+
+                currentPayableTotal = vData.totalAfterDiscount ?? currentBaseTotal;
+                syncTotalsToUI();
+
+                const percentText = (promoPercent === null) ? '-' : (promoPercent.toLocaleString('vi-VN') + '%');
+                setPromoUI(promoName, percentText, formatVND(promoDiscountAmount));
+                setPromoMsg(vData?.message || 'Đã áp mã', 'ok');
+
+                showBookingToast('✅ ' + (vData?.message || 'Đã áp mã'), 'success');
+            } catch (e) {
+                currentPayableTotal = currentBaseTotal;
+                syncTotalsToUI();
+                setPromoMsg('Lỗi kiểm tra mã', 'err');
+                showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
+            } finally {
+                showBookingLoading(false);
+            }
+        }
+
+        async function revalidatePromoAfterAmountChanged() {
+            const code = promoDraftCode;
+            if (!code || currentBaseTotal <= 0) return;
+
+            try {
+                const vRes = await fetch(PROMO_VALIDATE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code, amount: currentBaseTotal })
+                });
+
+                const vData = await readJsonSafe(vRes);
+
+                if (!vRes.ok || !vData?.success) {
+                    resetPromoState();
+                    setPromoMsg('Mã không còn hợp lệ cho tổng mới', 'warn');
+                    return;
+                }
+
+                promoName = vData.promotionName || '-';
+                promoPercent = (typeof vData.discountPercent === 'number') ? vData.discountPercent : null;
+                promoDiscountAmount = vData.discountAmount || 0;
+
+                currentPayableTotal = vData.totalAfterDiscount ?? currentBaseTotal;
+                syncTotalsToUI();
+
+                const percentText = (promoPercent === null) ? '-' : (promoPercent.toLocaleString('vi-VN') + '%');
+                setPromoUI(promoName, percentText, formatVND(promoDiscountAmount));
+            } catch (_) { }
+        }
+
+        function clearPromoBeforeInvoice() {
+            resetPromoState();
+            showBookingToast('✅ Đã gỡ mã.', 'success');
+        }
+
+        window.applyPromoBeforeInvoice = applyPromoBeforeInvoice;
+        window.clearPromoBeforeInvoice = clearPromoBeforeInvoice;
+
+        window.openBookingModal = function () {
+            if (selectedSeats.length === 0) {
+                showBookingToast('⚠️ Vui lòng chọn ít nhất 1 ghế!', 'error');
+                return;
+            }
+
+            const seatTotal = getSeatTotal();
+            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+            const base = seatTotal + snackTotal;
+
+            const seatLabels = selectedSeats
+                .map(s => s.label)
+                .sort((a, b) => a.localeCompare(b, 'vi-VN', { numeric: true }))
+                .join(', ');
+
+            document.getElementById('modalSeatCount').textContent = selectedSeats.length + ' ghế';
+            document.getElementById('modalSeatLabels').textContent = seatLabels;
+            document.getElementById('modalSeatTotal').textContent = formatVND(seatTotal);
+
+            const snacksList = document.getElementById('modalSnacksList');
+            snacksList.innerHTML = '';
+
+            if (selectedSnacks.length > 0) {
+                selectedSnacks.forEach((snack, index) => {
+                    const snackDiv = document.createElement('div');
+                    snackDiv.className = 'snack-quantity-item';
+                    snackDiv.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+                          <span style="color:#fff;flex:1;">${snack.name || 'Snack'}</span>
+                          <div style="display:flex;align-items:center;gap:10px;">
+                            <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, -1)"><i class="fas fa-minus"></i></button>
+                            <input type="number" class="quantity-input" value="${snack.quantity}" min="1" max="10" readonly
+                                   style="width:50px;text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px;border-radius:5px;">
+                            <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, 1)"><i class="fas fa-plus"></i></button>
+                            <span style="color:#22c55e;font-weight:bold;min-width:100px;text-align:right;">${formatVND(snack.price * (snack.quantity || 1))}</span>
+                          </div>
+                        </div>`;
+                    snacksList.appendChild(snackDiv);
+                });
+            } else {
+                snacksList.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:10px 0;">Chưa chọn đồ ăn</p>';
+            }
+
+            document.getElementById('modalSnackTotal').textContent = formatVND(snackTotal);
+            document.getElementById('modalDiscountTotal').textContent = '-' + formatVND(promoDiscountAmount || 0);
+            document.getElementById('modalGrandTotal').textContent = formatVND(base);
+            document.getElementById('modalPayableTotal').textContent = formatVND(currentPayableTotal || base);
+
+            document.getElementById('bookingModalOverlay').classList.add('show');
+        };
+
+        window.updateSnackQuantity = function (index, change) {
+            if (index < 0 || index >= selectedSnacks.length) return;
+            const snack = selectedSnacks[index];
+            const newQuantity = (snack.quantity || 1) + change;
+
+            if (newQuantity < 1 || newQuantity > 10) {
+                showBookingToast('⚠️ Số lượng từ 1-10!', 'error');
+                return;
+            }
+
+            snack.quantity = newQuantity;
+
+            const controls = document.querySelectorAll('.snack-control');
+            controls.forEach(control => {
+                if (control.dataset.snackId === snack.id) {
+                    const input = control.querySelector('.quantity-input-snack');
+                    if (input) input.value = newQuantity;
+                }
+            });
+
+            updateSummary();
+            openBookingModal();
+        };
+
+        window.closeBookingModal = function () {
+            document.getElementById('bookingModalOverlay').classList.remove('show');
+        };
+
+        window.confirmBooking = async function () {
+            closeBookingModal();
+            showBookingLoading(true);
+
+            try {
+                const allSeatIds = Array.from(new Set(selectedSeats.map(s => s.id)));
+
+                const snacksData = selectedSnacks.map(snack => ({
+                    snackId: snack.id,
+                    quantity: snack.quantity || 1
+                }));
+
+                const bookRes = await fetch('/Booking/BookSeats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        showTimeId: '@Model.ShowTimeId',
+                        seatIds: allSeatIds,
+                        snacks: snacksData,
+                        loyaltyKey: null,
+                        promoCode: (promoApplied && promoDraftCode) ? promoDraftCode : null
+                    })
+                });
+
+                const bookData = await readJsonSafe(bookRes);
+
+                if (!bookRes.ok || !bookData?.success) {
+                    showBookingToast('❌ ' + (bookData?.message || 'Đặt vé thất bại'), 'error');
+                    return;
+                }
+
+                currentInvoiceId = bookData.invoiceId;
+                currentInvoiceAmount = bookData.totalPrice || 0;
+
+                const payRes = await fetch('/Payment/Create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: currentInvoiceId,
+                        amount: currentInvoiceAmount,
+                        orderInfo: `Dat ve ${'@Model.ShowTimeId'}`
+                    })
+                });
+
+                const payData = await readJsonSafe(payRes);
+
+                if (!payRes.ok) {
+                    showBookingToast('❌ ' + (payData?.message || 'Không tạo được URL thanh toán.'), 'error');
+                    return;
+                }
+
+                if (payData?.success && payData?.paymentUrl) {
+                    window.location.href = payData.paymentUrl;
+                    return;
+                }
+
+                showBookingToast('❌ Không tạo được URL thanh toán.', 'error');
+            } catch (error) {
+                showBookingToast('❌ Lỗi: ' + (error?.message || error), 'error');
+            } finally {
+                showBookingLoading(false);
+            }
+        };
+
+        async function refreshSeatsStatus() {
+            const showTimeId = '@Model.ShowTimeId';
+            try {
+                const res = await fetch(`/Booking/GetSeatsStatus?showTimeId=${encodeURIComponent(showTimeId)}`);
+                const data = await readJsonSafe(res);
+                if (!res.ok || !data?.success) return;
+
+                const booked = new Set(data.bookedSeats || []);
+                document.querySelectorAll('.seat:not(.booked)').forEach(el => {
+                    const id = el.getAttribute('data-seat-id');
+                    if (booked.has(id)) {
+                        el.classList.remove('selected');
+                        el.classList.add('booked');
+                        const existingIcon = el.querySelector('.fa-check');
+                        if (!existingIcon) {
+                            el.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 16px;"></i>';
+                        }
+                        selectedSeats = selectedSeats.filter(s => s.id !== id);
+                    }
+                });
+
+                document.querySelectorAll('.couple-seat-wrapper:not(.booked)').forEach(el => {
+                    const ids = (el.getAttribute('data-seat-ids') || '').split(',').filter(Boolean);
+                    if (ids.some(id => booked.has(id))) {
+                        el.classList.remove('selected');
+                        el.classList.add('booked');
+                        const coupleSeat = el.querySelector('.couple-seat');
+                        if (coupleSeat) {
+                            const existingIcon = coupleSeat.querySelector('.fa-check');
+                            if (!existingIcon) {
+                                coupleSeat.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 20px;"></i>';
+                            }
+                        }
+                        const userIcons = el.querySelector('.user-icons');
+                        if (userIcons) userIcons.style.display = 'none';
+                        ids.forEach(id => selectedSeats = selectedSeats.filter(s => s.id !== id));
+                    }
+                });
+
+                updateSummary();
+            } catch { }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            resetPromoState();
+            updateSummary();
+            setInterval(refreshSeatsStatus, 10000);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const wrapper = document.querySelector('.seat-layout-scroll-wrapper');
+            const inner = document.querySelector('.seats-grid-container');
+            function syncOverflowClass() {
+                if (!wrapper || !inner) return;
+                const isOverflowing = inner.scrollWidth > wrapper.clientWidth;
+                wrapper.classList.toggle('overflowing', isOverflowing);
+            }
+            syncOverflowClass();
+            window.addEventListener('resize', syncOverflowClass);
+            setTimeout(syncOverflowClass, 400);
+        });
+    </script>
+}

@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Đặt đồ ăn";
-    Layout = "~/Views/Shared/_LayoutHeader.cshtml";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -29,7 +29,7 @@
             <div class="row g-3 mt-2">
                 @if (ViewBag.Snacks != null)
                 {
-                    @foreach (var snack in ViewBag.Snacks)
+                    foreach (var snack in ViewBag.Snacks)
                     {
                         <div class="col-6 col-md-3 col-lg-2">
                             <div class="snack-card">
@@ -124,39 +124,6 @@
     </div>
 </div>
 
-<!-- ===== PAYMENT METHOD MODAL (CHO ADMIN) ===== -->
-<div class="booking-modal-overlay" id="paymentMethodOverlay">
-    <div class="booking-modal">
-        <div class="booking-modal-header">
-            <div class="icon">💳</div>
-            <h3>Chọn phương thức thanh toán</h3>
-        </div>
-        <div class="booking-modal-body">
-            <p style="color:#9ca3af;margin-bottom:16px;">
-                Vui lòng chọn phương thức thanh toán cho đơn hàng.
-            </p>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-                <button type="button"
-                        class="booking-modal-btn booking-modal-btn-confirm"
-                        onclick="payWithVnPay()">
-                    <i class="fas fa-qrcode"></i> Thanh toán VNPay
-                </button>
-                <button type="button"
-                        class="booking-modal-btn booking-modal-btn-confirm"
-                        style="background:#16a34a;border-color:#16a34a;"
-                        onclick="payWithCash()">
-                    <i class="fas fa-money-bill-wave"></i> Thanh toán tiền mặt
-                </button>
-            </div>
-        </div>
-        <div class="booking-modal-footer">
-            <button class="booking-modal-btn booking-modal-btn-cancel" onclick="closePaymentMethodModal()">
-                <i class="fas fa-times"></i> Đóng
-            </button>
-        </div>
-    </div>
-</div>
-
 <!-- ===== LOADING OVERLAY ===== -->
 <div class="booking-loading-overlay" id="bookingLoadingOverlay">
     <div class="booking-loading-content">
@@ -240,7 +207,6 @@
         let selectedSnacks = [];
         let currentInvoiceId = null;
         let currentInvoiceAmount = 0;
-        const isAdmin = @(User.IsInRole("Admin").ToString().ToLower());
 
         function showBookingLoading(show) {
             const overlay = document.getElementById('bookingLoadingOverlay');
@@ -264,7 +230,6 @@
             const btnOrder = document.getElementById('btnOrder');
 
             const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
-            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
 
             if (selectedSnacks.length > 0) {
                 const snackLabels = selectedSnacks.map(s => `${s.name} x${s.quantity}`).join(', ');
@@ -277,6 +242,22 @@
             btnOrder.disabled = selectedSnacks.length === 0;
 
             updateSnackCounter();
+        }
+
+        function updateSnackCounter() {
+            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
+            const countElement = document.getElementById('snackCount');
+            if (totalQuantity > 0) {
+                countElement.textContent = `(${totalQuantity} món đã chọn)`;
+                countElement.style.backgroundColor = '#364747';
+                countElement.style.color = '#fff';
+                countElement.style.marginLeft = '8px';
+                countElement.style.fontSize = '13px';
+                countElement.style.padding = '2px 8px';
+                countElement.style.borderRadius = '12px';
+            } else {
+                countElement.textContent = '';
+            }
         }
 
         window.handleChooseSnack = function (button) {
@@ -318,22 +299,6 @@
             updateSummary();
         }
 
-        window.updateSnackCounter = function () {
-            const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
-            const countElement = document.getElementById('snackCount');
-            if (totalQuantity > 0) {
-                countElement.textContent = `(${totalQuantity} món đã chọn)`;
-                countElement.style.backgroundColor = '#364747';
-                countElement.style.color = '#fff';
-                countElement.style.marginLeft = '8px';
-                countElement.style.fontSize = '13px';
-                countElement.style.padding = '2px 8px';
-                countElement.style.borderRadius = '12px';
-            } else {
-                countElement.textContent = '';
-            }
-        };
-
         window.openOrderModal = function () {
             if (selectedSnacks.length === 0) {
                 showBookingToast('⚠️ Vui lòng chọn ít nhất 1 món!', 'error');
@@ -347,7 +312,7 @@
 
             const snacksList = document.getElementById('modalSnacksList');
             snacksList.innerHTML = '';
-            
+
             selectedSnacks.forEach((snack, index) => {
                 const snackDiv = document.createElement('div');
                 snackDiv.className = 'snack-quantity-item';
@@ -379,8 +344,7 @@
                 return;
             }
             snack.quantity = newQuantity;
-            
-            // Update card display
+
             const controls = document.querySelectorAll('.snack-control');
             controls.forEach(control => {
                 if (control.dataset.snackId === snack.id) {
@@ -388,7 +352,7 @@
                     if (input) input.value = newQuantity;
                 }
             });
-            
+
             updateSummary();
             openOrderModal();
         };
@@ -407,6 +371,7 @@
                     quantity: snack.quantity || 1
                 }));
 
+                // Tạo hóa đơn Pending
                 const bookRes = await fetch('/Booking/BookSnacks', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -425,55 +390,7 @@
                 currentInvoiceId = bookData.invoiceId;
                 currentInvoiceAmount = bookData.totalPrice || 0;
 
-                if (!isAdmin) {
-                    const payRes = await fetch('/Payment/Create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            orderId: currentInvoiceId,
-                            amount: currentInvoiceAmount,
-                            orderInfo: `Dat do an ${currentInvoiceId}`
-                        })
-                    });
-                    const payData = await payRes.json();
-
-                    if (payData?.success && payData?.paymentUrl) {
-                        window.location.href = payData.paymentUrl;
-                        return;
-                    }
-
-                    showBookingToast('❌ Không tạo được URL thanh toán.', 'error');
-                    return;
-                }
-
-                openPaymentMethodModal();
-            } catch (error) {
-                showBookingToast('❌ Lỗi: ' + (error?.message || error), 'error');
-            } finally {
-                showBookingLoading(false);
-            }
-        };
-
-        function openPaymentMethodModal() {
-            const ov = document.getElementById('paymentMethodOverlay');
-            if (ov) ov.classList.add('show');
-        }
-
-        function closePaymentMethodModal() {
-            const ov = document.getElementById('paymentMethodOverlay');
-            if (ov) ov.classList.remove('show');
-        }
-
-        async function payWithVnPay() {
-            if (!currentInvoiceId || !currentInvoiceAmount) {
-                showBookingToast('❌ Thiếu thông tin đơn hàng.', 'error');
-                return;
-            }
-
-            closePaymentMethodModal();
-            showBookingLoading(true);
-
-            try {
+                // Khách tự đặt -> luôn thanh toán VNPay
                 const payRes = await fetch('/Payment/Create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -485,48 +402,19 @@
                 });
 
                 const payData = await payRes.json();
+
                 if (payData?.success && payData?.paymentUrl) {
                     window.location.href = payData.paymentUrl;
                     return;
                 }
 
-                showBookingToast('❌ Không tạo được URL thanh toán VNPay.', 'error');
-            } catch (e) {
-                showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
+                showBookingToast('❌ Không tạo được URL thanh toán.', 'error');
+            } catch (error) {
+                showBookingToast('❌ Lỗi: ' + (error?.message || error), 'error');
             } finally {
                 showBookingLoading(false);
             }
-        }
-
-        async function payWithCash() {
-            if (!currentInvoiceId) {
-                showBookingToast('❌ Thiếu mã đơn hàng.', 'error');
-                return;
-            }
-
-            closePaymentMethodModal();
-            showBookingLoading(true);
-
-            try {
-                const res = await fetch('/Payment/PayByCash', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ invoiceId: currentInvoiceId })
-                });
-
-                const data = await res.json();
-                if (data?.success && data?.redirectUrl) {
-                    window.location.href = data.redirectUrl;
-                    return;
-                }
-
-                showBookingToast('❌ ' + (data?.message || 'Thanh toán tiền mặt thất bại.'), 'error');
-            } catch (e) {
-                showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
-            } finally {
-                showBookingLoading(false);
-            }
-        }
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             updateSummary();

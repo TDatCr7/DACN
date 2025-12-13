@@ -1,7 +1,11 @@
-﻿@model CinemaS.Models.ShowTimes
+﻿@using CinemaS.Models
+@model CinemaS.Models.ShowTimes
+
 @{
     ViewData["Title"] = "Tạo suất chiếu mới";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var seatTypes = ViewBag.SeatTypes as IEnumerable<SeatTypes>;
 }
 
 <!-- CSS -->
@@ -20,7 +24,6 @@
                 </div>
 
                 <div class="card-body">
-                    <!-- Thông báo lỗi -->
                     @if (TempData["Error"] != null)
                     {
                         <div class="alert alert-danger alert-dismissible fade show" role="alert" style="white-space: pre-line;">
@@ -36,19 +39,22 @@
                         <!-- Hàng 1: Chọn phim và phòng -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fa-solid fa-film"></i> Phim <span class="text-danger">*</span></label>
+                                <label class="form-label">
+                                    <i class="fa-solid fa-film"></i> Phim <span class="text-danger">*</span>
+                                </label>
                                 <div class="input-group">
                                     <select asp-for="MoviesId" class="form-select" id="movieSelect">
                                         <option value="">-- Chọn phim --</option>
                                         @if (ViewBag.Movies != null)
                                         {
-                                            foreach (var item in ViewBag.Movies)
+                                            foreach (SelectListItem item in ViewBag.Movies)
                                             {
                                                 <option value="@item.Value">@item.Text</option>
                                             }
                                         }
                                     </select>
-                                    <a href="@Url.Action("Index", "Movies")" class="btn btn-outline-info" title="Xem danh sách phim">
+                                    <a href="@Url.Action("Index", "Movies")"
+                                       class="btn btn-outline-info" title="Xem danh sách phim">
                                         <i class="fa-solid fa-video"></i>
                                     </a>
                                 </div>
@@ -56,19 +62,22 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fa-solid fa-door-open"></i> Phòng chiếu <span class="text-danger">*</span></label>
+                                <label class="form-label">
+                                    <i class="fa-solid fa-door-open"></i> Phòng chiếu <span class="text-danger">*</span>
+                                </label>
                                 <div class="input-group">
                                     <select asp-for="CinemaTheaterId" class="form-select" id="cinemaSelect">
                                         <option value="">-- Chọn phòng --</option>
                                         @if (ViewBag.CinemaTheaters != null)
                                         {
-                                            foreach (var item in ViewBag.CinemaTheaters)
+                                            foreach (SelectListItem item in ViewBag.CinemaTheaters)
                                             {
                                                 <option value="@item.Value">@item.Text</option>
                                             }
                                         }
                                     </select>
-                                    <a href="@Url.Action("Index", "CinemaTheaters")" class="btn btn-outline-info" title="Xem danh sách phòng">
+                                    <a href="@Url.Action("Index", "CinemaTheaters")"
+                                       class="btn btn-outline-info" title="Xem danh sách phòng">
                                         <i class="fa-solid fa-building"></i>
                                     </a>
                                 </div>
@@ -78,7 +87,6 @@
 
                         <!-- Hàng 2: Ngày và giờ -->
                         <div class="row">
-                            <!-- Ngày chiếu -->
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">
                                     <i class="fa-solid fa-calendar"></i> Ngày chiếu <span class="text-danger">*</span>
@@ -88,7 +96,6 @@
                                 <span asp-validation-for="ShowDate" class="text-danger"></span>
                             </div>
 
-                            <!-- Giờ bắt đầu -->
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">
                                     <i class="fa-solid fa-clock"></i> Giờ bắt đầu <span class="text-danger">*</span>
@@ -104,13 +111,15 @@
                                 </label>
                                 <div class="input-group">
                                     <input type="time" name="endTimeInput" class="form-control" id="endTime" />
-                                    <button type="button" id="clearTimeBtn" class="btn btn-outline-danger" title="Xóa giờ bắt đầu & kết thúc">
+                                    <button type="button" id="clearTimeBtn" class="btn btn-outline-danger"
+                                            title="Xóa giờ bắt đầu & kết thúc">
                                         <i class="fa-solid fa-xmark"></i>
                                     </button>
                                 </div>
 
                                 <small class="text-white-50" id="movieDurationInfo" style="display:none;">
-                                    <i class="fa-solid fa-circle-info"></i> Thời lượng phim: <span id="movieDuration">0</span>
+                                    <i class="fa-solid fa-circle-info"></i> Thời lượng phim:
+                                    <span id="movieDuration">0</span>
                                 </small>
                             </div>
                         </div>
@@ -125,10 +134,12 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    @if (ViewBag.SeatTypes != null)
+                                    @if (seatTypes != null)
                                     {
-                                        foreach (var seatType in ViewBag.SeatTypes)
+                                        foreach (var seatType in seatTypes)
                                         {
+                                            var priceInt = (int)(seatType.Price ?? 0);
+
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">
                                                     @seatType.Name
@@ -148,7 +159,7 @@
                                                 <input type="number"
                                                        name="seatTypePrices[@seatType.SeatTypeId]"
                                                        class="form-control"
-                                                       value="@seatType.Price"
+                                                       value="@priceInt"
                                                        placeholder="Nhập giá..." />
                                             </div>
                                         }
@@ -177,9 +188,7 @@
     @await Html.PartialAsync("_ValidationScriptsPartial")
 }
 
-<!-- ====================== SCRIPT ====================== -->
 <script>
-    // --- Dữ liệu phim: ID -> thời lượng (phút)
     const moviesData = {
         @if (ViewBag.MoviesWithDuration is Dictionary<string, int> moviesWithDuration)
         {
@@ -204,18 +213,12 @@
     const endTime = document.getElementById('endTime');
     const durationInfo = document.getElementById('movieDurationInfo');
     const durationSpan = document.getElementById('movieDuration');
-    const warningDiv = document.getElementById('durationWarning');
-    const warningMsg = document.getElementById('warningMessage');
     let userEditedEndTime = false;
 
-
-
-    // --- Ngăn Enter submit form
     form.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
     });
 
-    // --- Khi chọn phim
     movieSelect.addEventListener('change', () => {
         const movieId = movieSelect.value;
         if (movieId && moviesData[movieId]) {
@@ -235,15 +238,12 @@
         }
     });
 
-    // --- Khi chọn giờ bắt đầu
     startTime.addEventListener('change', () => {
         if (!userEditedEndTime) updateEndTime();
     });
 
-    // --- Khi chỉnh tay giờ kết thúc
     endTime.addEventListener('input', () => userEditedEndTime = true);
 
-    // --- Cập nhật giờ kết thúc tự động
     function updateEndTime() {
         const movieId = movieSelect.value;
         const start = startTime.value;
@@ -262,17 +262,13 @@
         const h12 = endH % 12 || 12;
         endTime.title = `Giờ kết thúc: ${pad(h12)}:${pad(endM)} ${ampm}`;
 
-        const startMinutes = h * 60 + m;
-        const endMinutes = endH * 60 + endM;
-
         userEditedEndTime = false;
     }
-        const clearBtn = document.getElementById('clearTimeBtn');
+
+    const clearBtn = document.getElementById('clearTimeBtn');
     clearBtn.addEventListener('click', () => {
         startTime.value = '';
         endTime.value = '';
         userEditedEndTime = false;
-        warningDiv.style.display = 'none';
     });
-
 </script>

@@ -5,58 +5,273 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0"><i class="fa-solid fa-film"></i> Quản lý Thể Loại</h1>
-        <div class="d-flex gap-2">
-            <a asp-action="Create" class="btn btn-primary">
-                <i class="fa-solid fa-plus-circle"></i> Tạo mới
-            </a>
-            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
+<style>
+    .page-genres-index {
+        padding: 32px 0 50px;
+    }
 
-    <div class="admin-table-wrap">
-        <table class="table admin-table align-middle">
-            <thead>
-                <tr>
-                    <th><i class="fa-solid fa-tag"></i>Tên thể loại</th>
-                    <th><i class="fa-solid fa-align-left"></i>Mô tả</th>
-                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!Model.Any())
-                {
+    .genres-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.22), transparent 55%), #020617;
+        border-radius: 24px;
+        border: 1px solid rgba(148,163,255,.5);
+        box-shadow: 0 20px 50px rgba(15,23,42,.95);
+        padding: 18px 20px 20px;
+    }
+
+    .genres-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .genres-header-title {
+        font-weight: 900;
+        font-size: 22px;
+        margin: 0;
+        color: #e5e7eb;
+    }
+
+    .genres-header-sub {
+        font-size: 13px;
+        color: #9ca3af;
+    }
+
+    .genres-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .admin-table-wrap {
+        margin-top: 10px;
+    }
+
+    .admin-table th i,
+    .admin-table td i {
+        margin-right: 4px;
+    }
+
+    /* Modal detail thể loại */
+    #genreDetailBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,.85);
+        z-index: 1050;
+        display: none;
+    }
+
+    .genre-detail-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .genre-detail-card {
+        width: 100%;
+        max-width: 520px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.28), transparent 60%), #020617;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,255,.6);
+        box-shadow: 0 22px 60px rgba(15,23,42,.96);
+        overflow: hidden;
+        color: #e5e7eb;
+    }
+
+    .genre-detail-header {
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: radial-gradient(circle at 0 0, rgba(37,99,235,.7), transparent 60%), rgba(15,23,42,.98);
+        border-bottom: 1px solid rgba(148,163,255,.5);
+        font-weight: 700;
+        font-size: 15px;
+    }
+
+    .genre-detail-body {
+        padding: 18px 20px 16px;
+        font-size: 14px;
+    }
+
+    .genre-detail-row {
+        margin-bottom: 10px;
+    }
+
+    .genre-detail-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        color: #9ca3af;
+        margin-bottom: 2px;
+    }
+
+    .genre-detail-value {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .genre-detail-desc {
+        font-size: 14px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    .genre-detail-close {
+        border: none;
+        background: transparent;
+        color: #e5e7eb;
+        font-size: 18px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container page-genres-index">
+    <div class="genres-card">
+        <div class="genres-header">
+            <div>
+                <h1 class="genres-header-title">
+                    <i class="fa-solid fa-film me-2"></i>Quản lý Thể Loại
+                </h1>
+                <div class="genres-header-sub">
+                    Tổng: @Model.Count() thể loại
+                </div>
+            </div>
+            <div class="genres-actions">
+                <a asp-action="Create" class="btn btn-primary rounded-pill">
+                    <i class="fa-solid fa-plus-circle me-1"></i> Tạo mới
+                </a>
+                <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
+                    <i class="fas fa-arrow-left me-1"></i> Quay lại
+                </a>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="table admin-table align-middle">
+                <thead>
                     <tr>
-                        <td colspan="3" class="text-center admin-text-muted py-4">
-                            Không có thể loại nào.
-                        </td>
+                        <th style="width:130px;"><i class="fa-solid fa-hashtag"></i>Mã</th>
+                        <th style="width:220px;"><i class="fa-solid fa-tag"></i>Tên thể loại</th>
+                        <th><i class="fa-solid fa-align-left"></i>Mô tả</th>
+                        <th style="text-align:right; width:160px;">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>Thao tác
+                        </th>
                     </tr>
-                }
-                else
-                {
-                    foreach (var item in Model)
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
                     {
                         <tr>
-                            <td><strong>@item.Name</strong></td>
-                            <td class="admin-text-muted">@(item.Description ?? "N/A")</td>
-                            <td class="text-end">
-                                <a asp-action="Edit" asp-route-id="@item.GenresId" 
-                                   class="admin-icon-btn" title="Chỉnh sửa">
-                                    <i class="fa-solid fa-pen"></i>
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@item.GenresId" 
-                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </a>
+                            <td colspan="4" class="text-center admin-text-muted py-4">
+                                Không có thể loại nào.
                             </td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            var fullDesc = item.Description ?? "N/A";
+                            var shortDesc = fullDesc;
+                            if (!string.IsNullOrEmpty(fullDesc) && fullDesc.Length > 50)
+                            {
+                                shortDesc = fullDesc.Substring(0, 50) + "...";
+                            }
+
+                            <tr>
+                                <td class="admin-text-muted">@item.GenresId</td>
+                                <td><strong>@(item.Name ?? "N/A")</strong></td>
+                                <td class="admin-text-muted">@shortDesc</td>
+                                <td class="text-end">
+                                    <button type="button"
+                                            class="admin-icon-btn"
+                                            title="Chi tiết"
+                                            data-id="@item.GenresId"
+                                            data-name="@item.Name"
+                                            data-desc="@fullDesc"
+                                            onclick="openGenreDetail(this)">
+                                        <i class="fa-regular fa-circle-question"></i>
+                                    </button>
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.GenresId"
+                                       class="admin-icon-btn"
+                                       title="Chỉnh sửa">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+
+                                    <a asp-action="Delete"
+                                       asp-route-id="@item.GenresId"
+                                       class="admin-icon-btn admin-icon-btn-danger"
+                                       title="Xóa">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<!-- Modal chi tiết thể loại -->
+<div id="genreDetailBackdrop">
+    <div class="genre-detail-wrap">
+        <div class="genre-detail-card">
+            <div class="genre-detail-header">
+                <span><i class="fa-solid fa-circle-info me-2"></i>Chi tiết thể loại</span>
+                <button type="button" class="genre-detail-close" onclick="closeGenreDetail()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="genre-detail-body">
+                <div class="genre-detail-row">
+                    <div class="genre-detail-label">Mã thể loại</div>
+                    <div id="genreDetailId" class="genre-detail-value"></div>
+                </div>
+                <div class="genre-detail-row">
+                    <div class="genre-detail-label">Tên thể loại</div>
+                    <div id="genreDetailName" class="genre-detail-value"></div>
+                </div>
+                <div class="genre-detail-row">
+                    <div class="genre-detail-label">Mô tả</div>
+                    <div id="genreDetailDesc" class="genre-detail-desc"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openGenreDetail(btn) {
+            const id = btn.dataset.id || "";
+            const name = btn.dataset.name || "N/A";
+            const desc = btn.dataset.desc || "N/A";
+
+            document.getElementById("genreDetailId").textContent = id;
+            document.getElementById("genreDetailName").textContent = name;
+            document.getElementById("genreDetailDesc").textContent = desc;
+
+            const backdrop = document.getElementById("genreDetailBackdrop");
+            backdrop.style.display = "block";
+        }
+
+        function closeGenreDetail() {
+            const backdrop = document.getElementById("genreDetailBackdrop");
+            backdrop.style.display = "none";
+        }
+
+        document.getElementById("genreDetailBackdrop")
+            .addEventListener("click", function (e) {
+                if (e.target === this) {
+                    closeGenreDetail();
+                }
+            });
+    </script>
+}

@@ -99,21 +99,11 @@ namespace CinemaS.Controllers
             
             return View(showTimes);
         }
-
         // ======================= CREATE (GET) =======================
         public IActionResult Create()
         {
             LoadDropdowns();
-
-            if (_context.SeatTypes != null)
-                ViewBag.SeatTypes = _context.SeatTypes.ToList();
-
-            var moviesWithDuration = _context.Movies
-                .Where(m => m.StatusId == "RELEASED" || m.StatusId == "COMING")
-                .Select(m => new { m.MoviesId, m.Duration })
-                .ToDictionary(m => m.MoviesId, m => m.Duration ?? 0);
-
-            ViewBag.MoviesWithDuration = moviesWithDuration;
+            LoadSeatTypesAndMoviesDuration();
             return View();
         }
 
@@ -126,69 +116,84 @@ namespace CinemaS.Controllers
             string endTimeInput,
             Dictionary<string, decimal>? seatTypePrices)
         {
+            // các field set thủ công -> bỏ khỏi validate
             ModelState.Remove(nameof(showTime.ShowTimeId));
             ModelState.Remove(nameof(showTime.StartTime));
             ModelState.Remove(nameof(showTime.EndTime));
 
-            if (!ModelState.IsValid)
+            void ReloadViewBags()
             {
                 LoadDropdowns();
-                if (_context.SeatTypes != null)
-                    ViewBag.SeatTypes = _context.SeatTypes.ToList();
+                LoadSeatTypesAndMoviesDuration();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ReloadViewBags();
                 TempData["Error"] = "Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(showTime);
             }
 
             try
             {
+                // Ngày chiếu không được trong quá khứ
                 if (showTime.ShowDate.HasValue && showTime.ShowDate.Value.Date < DateTime.Today)
                 {
                     TempData["Error"] = "Ngày chiếu không được trong quá khứ!";
-                    LoadDropdowns();
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Parse giờ bắt đầu
                 if (!TimeSpan.TryParse(startTimeInput, out var startSpan))
                 {
                     TempData["Error"] = "Giờ bắt đầu không hợp lệ!";
-                    LoadDropdowns();
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Parse giờ kết thúc
                 if (!TimeSpan.TryParse(endTimeInput, out var endSpan))
                 {
                     TempData["Error"] = "Giờ kết thúc không hợp lệ!";
-                    LoadDropdowns();
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Kết thúc phải sau bắt đầu
                 if (endSpan <= startSpan)
                 {
                     TempData["Error"] = "Giờ kết thúc phải sau giờ bắt đầu!";
-                    LoadDropdowns();
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Bắt buộc chọn ngày chiếu
                 if (!showTime.ShowDate.HasValue)
                 {
                     TempData["Error"] = "Vui lòng chọn ngày chiếu!";
-                    LoadDropdowns();
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Gộp ngày + giờ
                 showTime.StartTime = showTime.ShowDate.Value.Date.Add(startSpan);
                 showTime.EndTime = showTime.ShowDate.Value.Date.Add(endSpan);
 
-                var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MoviesId == showTime.MoviesId);
-                var cinema = await _context.CinemaTheaters.FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTime.CinemaTheaterId);
+                // Kiểm tra phim + phòng chiếu tồn tại
+                var movie = await _context.Movies
+                    .FirstOrDefaultAsync(m => m.MoviesId == showTime.MoviesId);
+                var cinema = await _context.CinemaTheaters
+                    .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTime.CinemaTheaterId);
 
                 if (movie == null || cinema == null)
                 {
                     TempData["Error"] = "Phim hoặc phòng chiếu không tồn tại!";
-                    LoadDropdowns();
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Check trùng suất chiếu
                 var conflict = await _context.ShowTimes
                     .Where(st => st.CinemaTheaterId == showTime.CinemaTheaterId &&
                                  st.ShowDate == showTime.ShowDate &&
@@ -201,37 +206,74 @@ namespace CinemaS.Controllers
 
                 if (conflict != null)
                 {
-                    TempData["Error"] = $"Phòng '{cinema.Name}' đã có suất chiếu trùng thời gian ({conflict.StartTime:HH:mm}-{conflict.EndTime:HH:mm})!";
-                    LoadDropdowns();
+                    TempData["Error"] =
+                        $"Phòng '{cinema.Name}' đã có suất chiếu trùng thời gian ({conflict.StartTime:HH:mm}-{conflict.EndTime:HH:mm})!";
+                    ReloadViewBags();
                     return View(showTime);
                 }
 
+                // Sinh mã suất chiếu
                 showTime.ShowTimeId = await GenerateNewIdAsync();
-                showTime.TotalCinema = await _context.Seats.CountAsync(s => s.CinemaTheaterId == showTime.CinemaTheaterId && s.IsActive);
+
+                // Tổng số ghế
+                showTime.TotalCinema = await _context.Seats
+                    .CountAsync(s => s.CinemaTheaterId == showTime.CinemaTheaterId && s.IsActive);
+
                 showTime.CreatedAt = DateTime.UtcNow;
                 showTime.UpdatedAt = DateTime.UtcNow;
 
-                if (seatTypePrices != null && seatTypePrices.Any())
+                // ====== GIÁ GỐC LẤY TỪ BẢNG LOẠI GHẾ (ST001 / NORMAL) ======
+
+                // Giá mặc định trong bảng Seat_Types
+                var normalSeatType = await _context.SeatTypes
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(st => st.SeatTypeId == "ST001");   // NORMAL
+
+                decimal baseNormalPrice = normalSeatType?.Price ?? 75000m;
+
+                // Nếu form có sửa giá NORMAL cho suất này thì ưu tiên dùng
+                if (seatTypePrices != null &&
+                    seatTypePrices.TryGetValue("ST001", out var normalPriceFromForm) &&
+                    normalPriceFromForm > 0)
                 {
-                    var normal = seatTypePrices.FirstOrDefault(x =>
-                        x.Key.Contains("ST001", StringComparison.OrdinalIgnoreCase) ||
-                        x.Key.Contains("NORMAL", StringComparison.OrdinalIgnoreCase));
-                    showTime.OriginPrice = normal.Value > 0 ? (int)normal.Value : 75000;
+                    baseNormalPrice = normalPriceFromForm;
                 }
+
+                showTime.OriginPrice = (int)baseNormalPrice;
+
+                // ===========================================================
 
                 _context.Add(showTime);
                 await _context.SaveChangesAsync();
 
-                TempData["Message"] = $"✅ Đã tạo suất chiếu: {movie.Title} - {cinema.Name} ({showTime.ShowDate:dd/MM/yyyy} {showTime.StartTime:HH:mm})";
+                TempData["Message"] =
+                    $"✅ Đã tạo suất chiếu: {movie.Title} - {cinema.Name} ({showTime.ShowDate:dd/MM/yyyy} {showTime.StartTime:HH:mm})";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 TempData["Error"] = $"Lỗi: {ex.Message}";
-                LoadDropdowns();
+                ReloadViewBags();
                 return View(showTime);
             }
         }
+
+        // ======================= HELPER =======================
+        private void LoadSeatTypesAndMoviesDuration()
+        {
+            ViewBag.SeatTypes = _context.SeatTypes
+                .AsNoTracking()
+                .OrderBy(st => st.SeatTypeId)
+                .ToList();
+
+            var moviesWithDuration = _context.Movies
+                .Where(m => m.StatusId == "RELEASED" || m.StatusId == "COMING")
+                .Select(m => new { m.MoviesId, m.Duration })
+                .ToDictionary(m => m.MoviesId, m => m.Duration ?? 0);
+
+            ViewBag.MoviesWithDuration = moviesWithDuration;
+        }
+
 
         // ======================= EDIT (GET) =======================
         public async Task<IActionResult> Edit(string id)
