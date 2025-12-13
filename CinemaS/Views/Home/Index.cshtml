@@ -4,20 +4,20 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+
 @if (TempData["Message"] != null)
 {
     <div class="container mt-3">
         <div class="alert alert-success text-center mb-3"
              data-auto-dismiss="true"
              style="border-radius:999px;
-                        background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.6);
-                        color:#bbf7d0;">
+                            background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.6);
+                            color:#bbf7d0;">
             <i class="fa-solid fa-circle-check me-2"></i>
             @TempData["Message"]
         </div>
     </div>
 }
-
 
 <style>
     :root {
@@ -32,8 +32,185 @@
         --line: rgba(255,255,255,.12);
     }
 
-    /* KHÔNG override body nữa – để body + glow dùng theo _Layout */
+    /* ===== INTRO SPLASH ===== */
+    .splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(1200px 800px at 20% 10%, rgba(59, 92, 204, 0.35), transparent 60%), radial-gradient(1000px 700px at 80% 20%, rgba(124, 58, 237, 0.30), transparent 60%), radial-gradient(900px 700px at 60% 100%, rgba(162, 28, 175, 0.22), transparent 60%), rgba(2,6,23,.92);
+        backdrop-filter: blur(18px);
+        opacity: 1;
+        transition: opacity .6s ease, transform .6s ease;
+    }
 
+        .splash.splash-hide {
+            opacity: 0;
+            transform: scale(1.02);
+            pointer-events: none;
+        }
+
+    .splash-inner {
+        width: min(860px, 92vw);
+        text-align: center;
+        position: relative;
+        padding: 34px 18px 26px;
+        border-radius: 28px;
+        border: 1px solid rgba(148,163,255,.28);
+        background: radial-gradient(circle at 15% 10%, rgba(255, 213, 77, 0.14), transparent 55%), radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.22), transparent 60%), rgba(2,6,23,.55);
+        box-shadow: 0 26px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(15,23,42,.75);
+        overflow: hidden;
+    }
+
+    .splash-burst {
+        position: absolute;
+        inset: -40%;
+        background: conic-gradient(from 220deg, rgba(255,213,77,0.0), rgba(255,213,77,0.95), rgba(59,92,204,0.85), rgba(124,58,237,0.85), rgba(162,28,175,0.75), rgba(255,213,77,0.0));
+        filter: blur(10px);
+        opacity: 0;
+        transform: scale(.7);
+        animation: burst 1.15s ease-out forwards;
+        pointer-events: none;
+        mix-blend-mode: screen;
+    }
+
+    @@keyframes burst {
+        0% {
+            opacity: 0;
+            transform: scale(.65) rotate(-10deg);
+        }
+
+        25% {
+            opacity: 1;
+        }
+
+        65% {
+            opacity: 1;
+            transform: scale(1.08) rotate(10deg);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.25) rotate(18deg);
+        }
+    }
+
+    .splash-logo {
+        width: 98px;
+        height: 98px;
+        border-radius: 26px;
+        background: rgba(2,6,23,.7);
+        border: 1px solid rgba(148,163,255,.35);
+        box-shadow: 0 18px 55px rgba(0,0,0,.55);
+        display: grid;
+        place-items: center;
+        margin: 0 auto 12px;
+        position: relative;
+        overflow: hidden;
+        transform: translateY(14px) scale(.92);
+        opacity: 0;
+        animation: popIn .75s .12s cubic-bezier(.2,.9,.25,1) forwards;
+    }
+
+        .splash-logo img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            border-radius: 18px;
+            filter: drop-shadow(0 0 18px rgba(255,213,77,.45));
+        }
+
+        .splash-logo::after {
+            content: "";
+            position: absolute;
+            inset: -60%;
+            background: radial-gradient(circle, rgba(255,213,77,.75), transparent 55%);
+            opacity: .25;
+            filter: blur(10px);
+            animation: logoGlow 1.2s ease-in-out infinite alternate;
+        }
+
+    @@keyframes logoGlow {
+        from {
+            transform: scale(.9);
+            opacity: .18;
+        }
+
+        to {
+            transform: scale(1.08);
+            opacity: .35;
+        }
+    }
+
+    @@keyframes popIn {
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+    }
+
+    .splash-title {
+        margin: 0;
+        font-weight: 1000;
+        letter-spacing: .8px;
+        text-transform: uppercase;
+        font-size: clamp(26px, 4.2vw, 44px);
+        background: linear-gradient(120deg, #ffffff, #ffd54d, #c7d2fe, #ffffff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 28px rgba(255,213,77,.35);
+        opacity: 0;
+        transform: translateY(12px);
+        animation: textIn .75s .22s ease forwards;
+    }
+
+    .splash-subtitle {
+        margin: 10px 0 0;
+        font-weight: 800;
+        font-size: clamp(13px, 2.2vw, 18px);
+        color: rgba(233,236,246,.9);
+        opacity: 0;
+        transform: translateY(10px);
+        animation: textIn .75s .34s ease forwards;
+    }
+
+    @@keyframes textIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .splash-floor {
+        margin: 18px auto 0;
+        width: min(520px, 92%);
+        height: 14px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(255,213,77,0), rgba(255,213,77,.85), rgba(124,58,237,.65), rgba(255,213,77,0));
+        filter: blur(2px);
+        opacity: 0;
+        animation: floorIn .9s .45s ease forwards;
+    }
+
+    @@keyframes floorIn {
+        0% {
+            opacity: 0;
+            transform: scaleX(.6);
+        }
+
+        60% {
+            opacity: 1;
+            transform: scaleX(1.02);
+        }
+
+        100% {
+            opacity: .55;
+            transform: scaleX(1);
+        }
+    }
+
+    /* ===== existing Home styles (giữ nguyên) ===== */
     .section {
         padding: 32px 0;
     }
@@ -72,7 +249,6 @@
         box-shadow: 0 4px 10px rgba(0,0,0,.25);
     }
 
-    /* ===== HERO ===== */
     .hero .swiper {
         height: 420px;
         border-radius: 12px;
@@ -102,8 +278,7 @@
             font-weight: 900;
         }
 
-    .hero .swiper-button-prev,
-    .hero .swiper-button-next {
+    .hero .swiper-button-prev, .hero .swiper-button-next {
         color: #fff;
     }
 
@@ -117,7 +292,6 @@
         opacity: 1;
     }
 
-    /* ===== RAIL ===== */
     .rail {
         padding: 36px 0 10px;
     }
@@ -132,8 +306,7 @@
             padding-bottom: 16px;
         }
 
-        .rail .swiper-button-prev,
-        .rail .swiper-button-next {
+        .rail .swiper-button-prev, .rail .swiper-button-next {
             width: 56px;
             height: 56px;
             border-radius: 50%;
@@ -144,15 +317,13 @@
             transition: transform .2s ease, filter .2s ease, box-shadow .2s;
         }
 
-            .rail .swiper-button-prev:hover,
-            .rail .swiper-button-next:hover {
+            .rail .swiper-button-prev:hover, .rail .swiper-button-next:hover {
                 transform: scale(1.08);
                 filter: brightness(1.08);
                 box-shadow: 0 0 22px rgba(255,213,77,.55);
             }
 
-            .rail .swiper-button-prev::after,
-            .rail .swiper-button-next::after {
+            .rail .swiper-button-prev::after, .rail .swiper-button-next::after {
                 font-size: 22px;
                 font-weight: 700;
             }
@@ -173,7 +344,6 @@
             opacity: 1;
         }
 
-    /* ===== POSTER CARD ===== */
     .poster {
         height: 100%;
         display: flex;
@@ -352,8 +522,7 @@
             text-decoration: none !important;
         }
 
-    .poster .btn-ghost,
-    .poster .btn-primary {
+    .poster .btn-ghost, .poster .btn-primary {
         border-radius: 8px;
         font-weight: 800;
         font-size: 13px;
@@ -407,16 +576,12 @@
             transform: translateX(0);
         }
 
-    .btn-cine.btn-sweep,
-    .poster .btn-primary.btn-sweep,
-    .btn-more.btn-sweep {
+    .btn-cine.btn-sweep, .poster .btn-primary.btn-sweep, .btn-more.btn-sweep {
         background: var(--accent);
         color: #111;
     }
 
-        .btn-cine.btn-sweep:hover,
-        .poster .btn-primary.btn-sweep:hover,
-        .btn-more.btn-sweep:hover {
+        .btn-cine.btn-sweep:hover, .poster .btn-primary.btn-sweep:hover, .btn-more.btn-sweep:hover {
             color: #fff;
             box-shadow: 0 0 12px rgba(124,58,237,.5);
         }
@@ -474,13 +639,27 @@
     }
 </style>
 
+<!-- THÊM NGAY DƯỚI <style> (đầu file) -->
+<div class="splash" id="introSplash" aria-hidden="true">
+    <div class="splash-inner">
+        <div class="splash-burst"></div>
+
+        <div class="splash-logo">
+            <img src="~/images/logo/Logo.jpg" alt="GL Cinema" />
+        </div>
+
+        <h1 class="splash-title">GL Cinema</h1>
+        <div class="splash-subtitle">Nơi thượng đế xem phim</div>
+        <div class="splash-floor"></div>
+    </div>
+</div>
+
 <!-- ===== HERO ===== -->
 <div class="container hero section">
     @if (Model.Carousel.Any() || Model.ExtraBanners.Any())
     {
         <div class="swiper" id="swiper-hero">
             <div class="swiper-wrapper">
-                @* Banner từ phim đang chiếu (chịu ảnh hưởng ẩn/hiện trong EditBanner) *@
                 @foreach (var item in Model.Carousel)
                 {
                     var img = !string.IsNullOrWhiteSpace(item.BannerImage)
@@ -513,7 +692,6 @@
                     </div>
                 }
 
-                @* Banner thêm ngoài (extra) *@
                 @foreach (var b in Model.ExtraBanners)
                 {
                     <div class="swiper-slide" style="position:relative;">
@@ -537,7 +715,6 @@
         </div>
     }
 </div>
-
 
 <!-- ===== PHIM ĐANG CHIẾU ===== -->
 <section class="rail">
@@ -563,36 +740,26 @@
                                         <img class="thumb" src="@poster" alt="@mv.Title" />
                                     </div>
 
-                                    <!-- overlay giữa màn hình -->
                                     <div class="hover">
                                         <div class="hover-inner">
                                             <h4 class="hover-title">@mv.Title</h4>
                                             <ul class="hover-meta">
-                                                @* Thể loại *@
                                                 @if (!string.IsNullOrWhiteSpace(mv.GenreName))
                                                 {
                                                     <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
                                                 }
-
-                                                @* Độ dài *@
                                                 @if (mv.Duration.HasValue)
                                                 {
                                                     <li><i class="fa-regular fa-clock"></i><span>@mv.Duration’</span></li>
                                                 }
-
-                                                @* Quốc gia *@
                                                 @if (!string.IsNullOrWhiteSpace(mv.Country))
                                                 {
                                                     <li><i class="fa-solid fa-globe"></i><span>@mv.Country</span></li>
                                                 }
-
-                                                @* Âm thanh/Phụ đề *@
                                                 @if (!string.IsNullOrWhiteSpace(mv.AudioOption))
                                                 {
                                                     <li><i class="fa-solid fa-language"></i><span>@mv.AudioOption</span></li>
                                                 }
-
-                                                @* Khởi chiếu *@
                                                 @if (mv.ReleaseDate.HasValue)
                                                 {
                                                     <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
@@ -620,7 +787,6 @@
                                 </div>
                             </article>
                         </div>
-
                     }
                 </div>
                 <div class="swiper-button-prev"></div>
@@ -628,9 +794,7 @@
                 <div class="swiper-pagination"></div>
             </div>
 
-            <!--  Bọc bằng .more-row để căn giữa và khoảng cách -->
             <div class="more-row">
-                <!-- status đúng cho ĐANG CHIẾU là RELEASED -->
                 <a class="btn-more btn-sweep" asp-controller="Home" asp-action="ListByStatus" asp-route-status="RELEASED">
                     Xem thêm
                 </a>
@@ -663,36 +827,26 @@
                                         <img class="thumb" src="@poster" alt="@mv.Title" />
                                     </div>
 
-                                    <!-- overlay giữa màn hình -->
                                     <div class="hover">
                                         <div class="hover-inner">
                                             <h4 class="hover-title">@mv.Title</h4>
                                             <ul class="hover-meta">
-                                                @* Thể loại *@
                                                 @if (!string.IsNullOrWhiteSpace(mv.GenreName))
                                                 {
                                                     <li><i class="fa-solid fa-film"></i><span>@mv.GenreName</span></li>
                                                 }
-
-                                                @* Độ dài *@
                                                 @if (mv.Duration.HasValue)
                                                 {
                                                     <li><i class="fa-regular fa-clock"></i><span>@mv.Duration’</span></li>
                                                 }
-
-                                                @* Quốc gia *@
                                                 @if (!string.IsNullOrWhiteSpace(mv.Country))
                                                 {
                                                     <li><i class="fa-solid fa-globe"></i><span>@mv.Country</span></li>
                                                 }
-
-                                                @* Âm thanh/Phụ đề *@
                                                 @if (!string.IsNullOrWhiteSpace(mv.AudioOption))
                                                 {
                                                     <li><i class="fa-solid fa-language"></i><span>@mv.AudioOption</span></li>
                                                 }
-
-                                                @* Khởi chiếu *@
                                                 @if (mv.ReleaseDate.HasValue)
                                                 {
                                                     <li><i class="fa-regular fa-calendar-days"></i><span>@mv.ReleaseDate.Value.ToString("dd/MM/yyyy")</span></li>
@@ -720,7 +874,6 @@
                                 </div>
                             </article>
                         </div>
-
                     }
                 </div>
                 <div class="swiper-button-prev"></div>
@@ -728,9 +881,7 @@
                 <div class="swiper-pagination"></div>
             </div>
 
-            <!--  Bọc bằng .more-row để căn giữa và khoảng cách -->
             <div class="more-row">
-                <!--  status đúng cho SẮP CHIẾU là COMING (không phải COMMING) -->
                 <a class="btn-more btn-sweep" asp-controller="Home" asp-action="ListByStatus" asp-route-status="COMING">
                     Xem thêm
                 </a>
@@ -796,13 +947,28 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script>
-    // Khởi tạo 1 lần/element
     function initSwiperOnce(id, opts) {
         const el = document.getElementById(id);
         if (!el || el.dataset.inited === "1") return;
         new Swiper(el, opts);
         el.dataset.inited = "1";
     }
+
+    // THÊM Ở TRÊN DOMContentLoaded HOẶC TRONG DOMContentLoaded
+        // THAY TOÀN BỘ IIFE intro hiện tại BẰNG đoạn này
+    (function () {
+        const splash = document.getElementById("introSplash");
+        if (!splash) return;
+
+        // mỗi lần load trang đều hiện
+        splash.classList.remove("splash-hide");
+
+        // giữ splash ~1.6s rồi fade out
+        setTimeout(() => {
+            splash.classList.add("splash-hide");
+        }, 1650);
+    })();
+
 
     document.addEventListener('DOMContentLoaded', function () {
         initSwiperOnce('swiper-hero', {
@@ -832,14 +998,12 @@
             breakpoints: { 768: { slidesPerView: 2 }, 1200: { slidesPerView: 3 } },
             navigation: { nextEl: '#swiper-trailer .swiper-button-next', prevEl: '#swiper-trailer .swiper-button-prev' }
         });
+
         const alerts = document.querySelectorAll('.alert[data-auto-dismiss="true"]');
-    if (alerts.length > 0) {
-        setTimeout(function () {
-            alerts.forEach(function (el) {
-                el.classList.add('d-none');
-            });
-        }, 5000); // 5s
-    }
+        if (alerts.length > 0) {
+            setTimeout(function () {
+                alerts.forEach(function (el) { el.classList.add('d-none'); });
+            }, 5000);
+        }
     });
 </script>
-

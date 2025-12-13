@@ -39,8 +39,18 @@ namespace CinemaS.Models.ViewModels
         public decimal TicketTotal { get; set; }
         public List<TicketSnackLineVM> SnackItems { get; set; } = new();
         public decimal SnackTotal { get; set; }
-        public decimal GrandTotal { get; set; }
+
+        // NEW
+        public decimal SubTotalBase { get; set; }          // TicketTotal + SnackTotal (trước giảm)
+        public decimal DiscountAmount { get; set; }        // số tiền giảm
+        public string? PromotionName { get; set; }
+        public double? DiscountPercent { get; set; }
+
+        public decimal GrandTotal { get; set; }            // số tiền phải trả (sau giảm)
+        public decimal OriginalAmount { get; set; }
+        public decimal PayableAmount { get; set; }
     }
+
 
     public class TicketSnackLineVM
     {
@@ -48,6 +58,8 @@ namespace CinemaS.Models.ViewModels
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal LineTotal { get; set; }
+        public string? Image { get; set; }
+
     }
 
     public class InvoiceHistoryVM

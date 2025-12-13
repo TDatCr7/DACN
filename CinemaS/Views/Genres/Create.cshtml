@@ -1,53 +1,157 @@
 ﻿@model CinemaS.Models.Genres
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Tạo thể loại";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var suggestedId = (string)ViewBag.SuggestedId ?? Model?.GenresId;
 }
 
-<h1>Create</h1>
+<style>
+    .page-genres-form {
+        padding: 34px 0 60px;
+    }
 
-<h4>Genres</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    .genres-form-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.3), transparent 55%), linear-gradient(145deg, #020617, #020617);
+        border: 1px solid rgba(148,163,255,.55);
+        border-radius: 24px;
+        padding: 20px 22px;
+        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
+        color: #e9ecf6;
+    }
 
-            <div class="form-group">
-                <label asp-for="GenresId" class="control-label"></label>
-                <input asp-for="GenresId"
-                       class="form-control"
-                       value="@(Model?.GenresId ?? (string)ViewBag.SuggestedId)" />
-                <span asp-validation-for="GenresId" class="text-danger"></span>
+    .genres-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .genres-form-title {
+        font-weight: 900;
+        font-size: 20px;
+        margin: 0;
+    }
+
+    .genres-form-sub {
+        font-size: 13px;
+        color: #9ca3af;
+    }
+
+    .field-label {
+        font-weight: 700;
+        font-size: 13px;
+        color: #c7d2fe;
+    }
+
+    .genres-input,
+    .form-control {
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.35);
+        color: #e5e7f5;
+        font-size: 14px;
+    }
+
+        .genres-input::placeholder {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .genres-input:focus,
+        .form-control:focus {
+            background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(2,6,23,1));
+            color: #e5e7f5;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.35);
+        }
+
+    .btn-primary {
+        background: linear-gradient(90deg,#3b5ccc,#7c3aed);
+        border: none;
+        font-weight: 800;
+        border-radius: 999px;
+        padding-inline: 22px;
+    }
+
+    .btn-outline-light {
+        border-radius: 999px;
+        padding-inline: 18px;
+        border-color: rgba(148,163,255,.75);
+        color: #e5e7ff;
+        background: rgba(15,23,42,.9);
+    }
+
+        .btn-outline-light:hover {
+            background: rgba(37,99,235,.9);
+            border-color: rgba(129,140,248,1);
+            color: #fff;
+        }
+</style>
+
+<div class="container page-genres-form">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-7">
+            <div class="genres-form-card">
+                <div class="genres-form-header">
+                    <div>
+                        <h3 class="genres-form-title">
+                            <i class="fa-solid fa-layer-group me-2"></i>Tạo thể loại
+                        </h3>
+                        <div class="genres-form-sub">
+                            Thêm thể loại phim để sử dụng khi tạo phim.
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="GenresId" class="field-label">Mã thể loại</label>
+                        <input asp-for="GenresId"
+                               class="form-control genres-input"
+                               value="@(Model?.GenresId ?? suggestedId)"
+                               placeholder="Ví dụ: @suggestedId" />
+                        <span class="text-muted small">
+                            Gợi ý: <strong>@suggestedId</strong>
+                        </span>
+                        <span asp-validation-for="GenresId" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="field-label">Tên thể loại</label>
+                        <input asp-for="Name"
+                               class="form-control genres-input"
+                               placeholder="Ví dụ: Hài, Hành động, Lãng mạn..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="field-label">Mô tả</label>
+                        <textarea asp-for="Description"
+                                  class="form-control genres-input"
+                                  rows="3"
+                                  placeholder="Mô tả ngắn gọn về thể loại này..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-action="Index" class="btn btn-outline-light">
+                            <i class="fa-solid fa-list-ul me-1"></i> Về danh sách
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-save me-1"></i> Tạo mới
+                        </button>
+                    </div>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-                <button type="button" class="btn btn-secondary" onclick="history.back()">
-                    <i class="fas fa-arrow-left"></i> Quay lại
-                </button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fa-solid fa-save"></i> Tạo mới
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @await Html.PartialAsync("_ValidationScriptsPartial")
 }

@@ -1,150 +1,20 @@
+@* ===== FILE: Views/Admin/AdminBooking.cshtml ===== *@
 @model CinemaS.Models.ViewModels.AdminBookingVM
 @{
-    ViewData["Title"] = "Đặt vé hộ khách hàng (Admin)";
-    Layout = "~/Views/Shared/_LayoutHeader.cshtml";
+    ViewData["Title"] = "Đặt vé cho khách hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/booking-modal.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
-
-<style>
-    .admin-booking-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .admin-booking-header h2 {
-        margin: 0;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .admin-booking-header .subtitle {
-        margin: 5px 0 0 0;
-        opacity: 0.9;
-        font-size: 14px;
-    }
-
-    .customer-info-section {
-        background: #1f2937;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        border: 2px solid #667eea;
-    }
-
-    .customer-info-section h5 {
-        color: #fbbf24;
-        margin-bottom: 15px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .customer-input-group {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-    }
-
-    .customer-input-field {
-        flex: 1;
-        min-width: 300px;
-    }
-
-    .customer-input-field label {
-        display: block;
-        color: #9ca3af;
-        margin-bottom: 5px;
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .customer-input-field input {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #4b5563;
-        background-color: #111827;
-        color: #f9fafb;
-        font-size: 14px;
-        outline: none;
-        transition: all 0.2s;
-    }
-
-    .customer-input-field input:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .customer-input-field input.valid {
-        border-color: #10b981;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-    }
-
-    .customer-input-field input.invalid {
-        border-color: #ef4444;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-    }
-
-    .validation-message {
-        margin-top: 4px;
-        font-size: 12px;
-        min-height: 16px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .validation-message.success {
-        color: #10b981;
-    }
-
-    .validation-message.error {
-        color: #ef4444;
-    }
-
-    .validation-message.info {
-        color: #9ca3af;
-    }
-
-    .customer-info-display {
-        background: rgba(102, 126, 234, 0.1);
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 4px solid #667eea;
-        margin-top: 8px;
-        display: none;
-    }
-
-    .customer-info-display.show {
-        display: block;
-    }
-
-    .customer-info-display .info-row {
-        color: #e5e7eb;
-        font-size: 13px;
-        line-height: 1.6;
-        margin: 4px 0;
-    }
-</style>
+<link rel="stylesheet" href="~/css/booking-site.css" asp-append-version="true" />
 
 <div class="container mt-4 mb-5">
     <!-- Admin Header -->
     <div class="admin-booking-header">
         <h2>
             <i class="fas fa-user-tie"></i>
-            Đặt vé hộ khách hàng (Admin)
+            Đặt vé cho khách hàng
         </h2>
         <p class="subtitle">
             <i class="fas fa-info-circle"></i>
@@ -158,25 +28,23 @@
             <i class="fas fa-user-circle"></i>
             Thông tin khách hàng (không bắt buộc)
         </h5>
-        
+
         <div class="customer-input-group">
             <div class="customer-input-field">
                 <label for="customerKey">
                     <i class="fas fa-search"></i> Số điện thoại hoặc Email khách hàng
                 </label>
-                <input type="text" 
-                       id="customerKey" 
+                <input type="text"
+                       id="customerKey"
                        placeholder="Nhập SĐT hoặc Email"
                        autocomplete="off" />
+
                 <div id="customerValidation" class="validation-message info">
                     <i class="fas fa-info-circle"></i>
                     <span>Để trống nếu muốn lưu vào tài khoản Admin</span>
                 </div>
-                
-                <!-- Hiển thị thông tin khách hàng khi tìm thấy -->
-                <div id="customerInfoDisplay" class="customer-info-display">
-                    <!-- Nội dung sẽ được thêm bằng JavaScript -->
-                </div>
+
+                <div id="customerInfoDisplay" class="customer-info-display"></div>
             </div>
         </div>
     </div>
@@ -268,6 +136,7 @@
                                                         <img src="~/images/user.png" alt="user" class="user-icon" />
                                                     </div>
                                                 }
+
                                                 @if (seat.Status != "Booked" && !seat.Status.Contains("selected"))
                                                 {
                                                     <div class="seat-label-small">@seat.Label-@pairSeat.Label</div>
@@ -446,19 +315,78 @@
 
         <!-- Thông tin đặt vé -->
         <div class="booking-summary">
-            <div class="summary-content">
-                <div class="selected-info">
-                    <strong>Ghế đã chọn:</strong> <span id="selectedSeats">Chưa chọn</span>
+            <div class="booking-summary-grid booking-summary-grid-3">
+                <!-- LEFT -->
+                <div class="summary-left">
+                    <div class="selected-info">
+                        <strong>Ghế đã chọn:</strong> <span id="selectedSeats">Chưa chọn</span>
+                    </div>
+
+                    <div class="snack-summary">
+                        <div class="snack-summary-title">
+                            <strong>Bắp nước đã chọn:</strong>
+                            <span id="snackTotalInline">0 đ</span>
+                        </div>
+                        <div id="selectedSnacksList" class="snack-summary-list">
+                            <div class="snack-empty">Chưa chọn</div>
+                        </div>
+                    </div>
+
+                    <div class="total-price">
+                        <strong>Tạm tính:</strong> <span id="subTotalPrice">0 đ</span>
+                    </div>
                 </div>
-                <div class="total-price">
-                    <strong>Tổng tiền:</strong> <span id="totalPrice">0 đ</span>
+
+                <!-- MIDDLE: khung giảm giá (đã tách "Phải trả" ra ngoài) -->
+                <div class="summary-middle">
+                    <div class="promo-box promo-box-compact">
+                        <div class="promo-row">
+                            <div class="promo-left">
+                                <strong>Mã giảm giá</strong>
+                                <div class="promo-hint">Áp dụng trước khi tạo hoá đơn</div>
+                            </div>
+                            <div class="promo-right">
+                                <input id="promoCode" class="promo-input" type="text" placeholder="Nhập mã (VD: SALE10)" autocomplete="off" />
+                                <button type="button" id="btnApplyPromo" class="promo-btn" onclick="applyPromo()">Áp</button>
+                                <button type="button" id="btnRemovePromo" class="promo-btn promo-btn-danger" onclick="removePromo()" style="display:none;">Gỡ</button>
+                            </div>
+                        </div>
+
+                        <div class="promo-meta">
+                            <div class="promo-line">
+                                <span>Chương trình:</span>
+                                <span id="promoName">-</span>
+                            </div>
+                            <div class="promo-line">
+                                <span>Giảm (%):</span>
+                                <span id="promoPercent">-</span>
+                            </div>
+                            <div class="promo-line">
+                                <span>Giảm:</span>
+                                <span id="discountAmount">0 đ</span>
+                            </div>
+
+                            <div id="promoMessage" class="promo-msg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: khung phải trả + nút đặt vé -->
+                <div class="summary-right booking-action-col">
+                    <div class="payable-card">
+                        <div class="payable-row">
+                            <strong>Phải trả:</strong>
+                            <span id="totalPrice">0 đ</span>
+                        </div>
+                    </div>
+
+                    <button id="btnBook" class="btn-book" onclick="openBookingModal()" disabled>
+                        <i class="fas fa-ticket-alt"></i> Đặt vé cho khách
+                    </button>
                 </div>
             </div>
-
-            <button id="btnBook" class="btn-book" onclick="openBookingModal()" disabled>
-                <i class="fas fa-ticket-alt"></i> Đặt vé cho khách
-            </button>
         </div>
+
     </div>
 </div>
 
@@ -496,13 +424,10 @@
                 </div>
             </div>
 
-            <!-- Hiển thị thông tin khách hàng -->
             <div style="margin-top: 20px; padding: 15px; background: rgba(251, 191, 36, 0.1); border-left: 4px solid #fbbf24; border-radius: 4px;">
                 <div style="color: #fef3c7; font-size: 13px;">
                     <strong><i class="fas fa-user-circle"></i> Thông tin khách hàng:</strong>
-                    <div id="modalCustomerInfo" style="margin-top: 8px; line-height: 1.6;">
-                        <!-- Sẽ được cập nhật bằng JavaScript -->
-                    </div>
+                    <div id="modalCustomerInfo" style="margin-top: 8px; line-height: 1.6;"></div>
                 </div>
             </div>
         </div>
@@ -562,81 +487,29 @@
 <div class="booking-toast" id="bookingToast"></div>
 
 @section Scripts {
-    <style>
-        .snack-control {
-            margin-top: 8px;
-        }
-
-        .btn-choose-snack {
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            width: 100%;
-            transition: background-color 0.2s;
-        }
-
-            .btn-choose-snack:hover {
-                background-color: #2563eb;
-            }
-
-        .quantity-control {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .quantity-btn-snack {
-            background-color: #facc15;
-            color: #1f2937;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .quantity-input-snack {
-            width: 40px;
-            height: 32px;
-            text-align: center;
-            border: 1px solid #4b5563;
-            background-color: #374151;
-            color: white;
-            border-radius: 6px;
-            -moz-appearance: textfield;
-        }
-
-            .quantity-input-snack::-webkit-outer-spin-button,
-            .quantity-input-snack::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-    </style>
     <script>
         const showTimeId = '@Model.ShowTimeId';
+
         let selectedSeats = [];
         let selectedSnacks = [];
+
         let currentInvoiceId = null;
         let currentInvoiceAmount = 0;
         let currentCustomerInfo = null;
 
+        // Promo state:
+        // appliedPromo = { code, promotionId, promotionName, discountPercent, discountAmount, totalAfterDiscount, subTotalSnapshot }
+        let appliedPromo = null;
+
         function showBookingLoading(show) {
             const overlay = document.getElementById('bookingLoadingOverlay');
+            if (!overlay) return;
             if (show) overlay.classList.add('show'); else overlay.classList.remove('show');
         }
 
         function showBookingToast(message, type) {
             const toast = document.getElementById('bookingToast');
+            if (!toast) return;
             toast.innerHTML = message;
             toast.className = 'booking-toast booking-toast-' + type + ' show';
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
@@ -646,21 +519,181 @@
             return (n || 0).toLocaleString('vi-VN') + ' đ';
         }
 
+        // GHẾ ĐÔI: mỗi ghế trong cặp được tính gấp đôi price gốc
+        function getSeatTotal() {
+            return selectedSeats.reduce((sum, s) => {
+                const base = s.price || 0;
+                const finalPrice = s.isCouple ? base * 2 : base;
+                return sum + finalPrice;
+            }, 0);
+        }
+
+        function getSnackTotal() {
+            return selectedSnacks.reduce((sum, s) => sum + ((s.price || 0) * (s.quantity || 1)), 0);
+        }
+
+        function getSubTotal() {
+            return getSeatTotal() + getSnackTotal();
+        }
+
+        function resetPromoUI(message, msgClass) {
+            appliedPromo = null;
+
+            const msgEl = document.getElementById('promoMessage');
+            const discountEl = document.getElementById('discountAmount');
+            const nameEl = document.getElementById('promoName');
+            const percentEl = document.getElementById('promoPercent');
+
+            if (discountEl) discountEl.textContent = formatVND(0);
+            if (nameEl) nameEl.textContent = '-';
+            if (percentEl) percentEl.textContent = '-';
+
+            if (msgEl) {
+                msgEl.textContent = message || '';
+                msgEl.className = msgClass ? ('promo-msg ' + msgClass) : 'promo-msg';
+            }
+
+            const btnRemove = document.getElementById('btnRemovePromo');
+            const btnApply = document.getElementById('btnApplyPromo');
+            if (btnRemove) btnRemove.style.display = 'none';
+            if (btnApply) btnApply.style.display = 'inline-flex';
+        }
+
         function updateSummary() {
             const selectedSeatsSpan = document.getElementById('selectedSeats');
+            const subTotalSpan = document.getElementById('subTotalPrice');
             const totalPriceSpan = document.getElementById('totalPrice');
             const btnBook = document.getElementById('btnBook');
+
+            const snackListEl = document.getElementById('selectedSnacksList');
+            const snackTotalInline = document.getElementById('snackTotalInline');
 
             const labels = selectedSeats.map(s => s.label);
             labels.sort((a, b) => a.localeCompare(b, 'vi-VN', { numeric: true }));
 
-            const seatTotal = selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
-            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
-            const grand = seatTotal + snackTotal;
+            const seatTotal = getSeatTotal();
+            const snackTotal = getSnackTotal();
+            const subTotal = seatTotal + snackTotal;
 
-            selectedSeatsSpan.textContent = labels.length ? labels.join(', ') : 'Chưa chọn';
-            totalPriceSpan.textContent = formatVND(grand);
-            btnBook.disabled = selectedSeats.length === 0;
+            if (selectedSeatsSpan) selectedSeatsSpan.textContent = labels.length ? labels.join(', ') : 'Chưa chọn';
+            if (subTotalSpan) subTotalSpan.textContent = formatVND(subTotal);
+            if (snackTotalInline) snackTotalInline.textContent = formatVND(snackTotal);
+
+            // render danh sách snack (text-only)
+            if (snackListEl) {
+                if (!selectedSnacks.length) {
+                    snackListEl.innerHTML = `<div class="snack-empty">Chưa chọn</div>`;
+                } else {
+                    snackListEl.innerHTML = selectedSnacks.map(s => {
+                        const qty = s.quantity || 1;
+                        const line = (s.price || 0) * qty;
+                        const name = (s.name || 'Snack');
+                        return `
+                            <div class="snack-line">
+                                <div class="snack-line-name">${name}</div>
+                                <div class="snack-line-meta">x${qty}</div>
+                                <div class="snack-line-price">${formatVND(line)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            let totalAfter = subTotal;
+            if (appliedPromo && appliedPromo.totalAfterDiscount != null) {
+                totalAfter = appliedPromo.totalAfterDiscount;
+            }
+
+            const discount = Math.max(0, subTotal - totalAfter);
+            const discountEl = document.getElementById('discountAmount');
+            if (discountEl) discountEl.textContent = formatVND(discount);
+
+            if (totalPriceSpan) totalPriceSpan.textContent = formatVND(totalAfter);
+            if (btnBook) btnBook.disabled = (selectedSeats.length === 0);
+
+            // subtotal thay đổi sau khi áp mã => reset
+            if (appliedPromo && appliedPromo.subTotalSnapshot !== subTotal) {
+                resetPromoUI('Mã đã bị gỡ vì tổng tiền thay đổi.', 'promo-msg-warn');
+                const promoInput = document.getElementById('promoCode');
+                if (promoInput) promoInput.value = '';
+                if (totalPriceSpan) totalPriceSpan.textContent = formatVND(subTotal);
+            }
+        }
+
+
+        async function applyPromo() {
+            const code = (document.getElementById('promoCode')?.value || '').trim();
+            const msgEl = document.getElementById('promoMessage');
+            const nameEl = document.getElementById('promoName');
+            const percentEl = document.getElementById('promoPercent');
+
+            if (!code) {
+                if (msgEl) {
+                    msgEl.textContent = 'Vui lòng nhập mã.';
+                    msgEl.className = 'promo-msg promo-msg-err';
+                }
+                return;
+            }
+
+            const subTotal = getSubTotal();
+            if (subTotal <= 0) {
+                if (msgEl) {
+                    msgEl.textContent = 'Tổng tiền không hợp lệ.';
+                    msgEl.className = 'promo-msg promo-msg-err';
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch('/Admin/ValidatePromotion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, amount: subTotal })
+                });
+
+                const data = await res.json();
+
+                if (!data?.success) {
+                    resetPromoUI(data?.message || 'Mã không hợp lệ.', 'promo-msg-err');
+                    updateSummary();
+                    return;
+                }
+
+                appliedPromo = {
+                    code: code,
+                    promotionId: data.promotionId,
+                    promotionName: data.promotionName,
+                    discountPercent: data.discountPercent,
+                    discountAmount: data.discountAmount || 0,
+                    totalAfterDiscount: data.totalAfterDiscount || subTotal,
+                    subTotalSnapshot: subTotal
+                };
+
+                if (nameEl) nameEl.textContent = data.promotionName || '-';
+                if (percentEl) percentEl.textContent = (data.discountPercent != null ? (data.discountPercent + '%') : '-');
+
+                if (msgEl) {
+                    msgEl.textContent = 'Đã áp mã.';
+                    msgEl.className = 'promo-msg promo-msg-ok';
+                }
+
+                const btnRemove = document.getElementById('btnRemovePromo');
+                const btnApply = document.getElementById('btnApplyPromo');
+                if (btnRemove) btnRemove.style.display = 'inline-flex';
+                if (btnApply) btnApply.style.display = 'none';
+
+                updateSummary();
+            } catch {
+                resetPromoUI('Lỗi áp mã.', 'promo-msg-err');
+                updateSummary();
+            }
+        }
+
+        function removePromo() {
+            const promoInput = document.getElementById('promoCode');
+            if (promoInput) promoInput.value = '';
+            resetPromoUI('Đã gỡ mã.', 'promo-msg-warn');
+            updateSummary();
         }
 
         window.handleChooseSnack = function (button) {
@@ -694,9 +727,7 @@
                 control.querySelector('.quantity-control').style.display = 'none';
                 control.querySelector('.btn-choose-snack').style.display = 'block';
             } else {
-                if (snack) {
-                    snack.quantity = newQuantity;
-                }
+                if (snack) snack.quantity = newQuantity;
                 input.value = newQuantity;
             }
 
@@ -734,7 +765,8 @@
                         selectedSeats.push({
                             id: ids[i],
                             label: labels[i] || ids[i],
-                            price: prices[i] ?? 0
+                            price: prices[i] ?? 0,
+                            isCouple: true
                         });
                     }
                 }
@@ -754,7 +786,7 @@
                     const userIcon = element.querySelector('.user-icon-wrapper');
                     if (userIcon) userIcon.style.display = 'flex';
 
-                    selectedSeats.push({ id, label, price });
+                    selectedSeats.push({ id, label, price, isCouple: false });
                 }
             }
 
@@ -771,7 +803,9 @@
         window.toggleSnackSection = function () {
             const content = document.getElementById('snackContent');
             const btn = document.getElementById('snackToggleBtn');
-            const icon = btn.querySelector('i');
+            const icon = btn?.querySelector('i');
+
+            if (!content || !btn || !icon) return;
 
             if (content.style.display === 'none') {
                 content.style.display = 'block';
@@ -787,6 +821,8 @@
         window.updateSnackCounter = function () {
             const uniqueSnackCount = selectedSnacks.length;
             const countElement = document.getElementById('snackCount');
+            if (!countElement) return;
+
             countElement.textContent = `(${uniqueSnackCount} mục đã chọn)`;
             countElement.style.backgroundColor = '#364747';
             countElement.style.color = '#fff';
@@ -800,10 +836,19 @@
                 return;
             }
 
-            const seatTotal = selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
-            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
-            const grandTotal = seatTotal + snackTotal;
-            const seatLabels = selectedSeats.map(s => s.label).sort((a, b) => a.localeCompare(b, 'vi-VN', { numeric: true })).join(', ');
+            const seatTotal = getSeatTotal();
+            const snackTotal = getSnackTotal();
+            const subTotal = seatTotal + snackTotal;
+
+            let totalAfter = subTotal;
+            if (appliedPromo && appliedPromo.totalAfterDiscount != null && appliedPromo.subTotalSnapshot === subTotal) {
+                totalAfter = appliedPromo.totalAfterDiscount;
+            }
+
+            const seatLabels = selectedSeats
+                .map(s => s.label)
+                .sort((a, b) => a.localeCompare(b, 'vi-VN', { numeric: true }))
+                .join(', ');
 
             document.getElementById('modalSeatCount').textContent = selectedSeats.length + ' ghế';
             document.getElementById('modalSeatLabels').textContent = seatLabels;
@@ -811,21 +856,22 @@
 
             const snacksList = document.getElementById('modalSnacksList');
             snacksList.innerHTML = '';
+
             if (selectedSnacks.length > 0) {
                 selectedSnacks.forEach((snack, index) => {
                     const snackDiv = document.createElement('div');
                     snackDiv.className = 'snack-quantity-item';
                     snackDiv.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <span style="color:#fff;flex:1;">${snack.name || 'Snack'}</span>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, -1)"><i class="fas fa-minus"></i></button>
-            <input type="number" class="quantity-input" value="${snack.quantity}" min="1" max="10" readonly
-                   style="width:50px;text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px;border-radius:5px;">
-            <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, 1)"><i class="fas fa-plus"></i></button>
-            <span style="color:#22c55e;font-weight:bold;min-width:100px;text-align:right;">${formatVND(snack.price * (snack.quantity || 1))}</span>
-          </div>
-        </div>`;
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+                            <span style="color:#fff;flex:1;">${snack.name || 'Snack'}</span>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, -1)"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="quantity-input" value="${snack.quantity}" min="1" max="10" readonly
+                                       style="width:50px;text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px;border-radius:5px;">
+                                <button type="button" class="quantity-btn" onclick="updateSnackQuantity(${index}, 1)"><i class="fas fa-plus"></i></button>
+                                <span style="color:#22c55e;font-weight:bold;min-width:100px;text-align:right;">${formatVND((snack.price || 0) * (snack.quantity || 1))}</span>
+                            </div>
+                        </div>`;
                     snacksList.appendChild(snackDiv);
                 });
             } else {
@@ -833,9 +879,8 @@
             }
 
             document.getElementById('modalSnackTotal').textContent = formatVND(snackTotal);
-            document.getElementById('modalGrandTotal').textContent = formatVND(grandTotal);
+            document.getElementById('modalGrandTotal').textContent = formatVND(totalAfter);
 
-            // Hiển thị thông tin khách hàng trong modal
             updateModalCustomerInfo();
 
             document.getElementById('bookingModalOverlay').classList.add('show');
@@ -844,39 +889,51 @@
         function updateModalCustomerInfo() {
             const customerKey = document.getElementById('customerKey').value.trim();
             const modalInfo = document.getElementById('modalCustomerInfo');
+            if (!modalInfo) return;
 
             if (!customerKey) {
                 modalInfo.innerHTML = '<i class="fas fa-user-tie"></i> Vé sẽ lưu vào tài khoản Admin đang đăng nhập';
-            } else if (currentCustomerInfo && currentCustomerInfo.exists) {
+                return;
+            }
+
+            if (currentCustomerInfo && currentCustomerInfo.exists) {
                 let html = '';
-                
-                // Nếu là Admin, hiển thị badge đặc biệt
+
                 if (currentCustomerInfo.isAdmin) {
                     html += '<div style="color:#fbbf24;font-weight:700;margin-bottom:8px;"><i class="fas fa-crown"></i> ĐÂY LÀ TÀI KHOẢN ADMIN</div>';
                 }
-                
+
                 html += `<div style="color: #10b981;"><i class="fas fa-check-circle"></i> <strong>Khách hàng:</strong> ${currentCustomerInfo.fullName || 'N/A'}</div>`;
                 if (currentCustomerInfo.email) html += `<div>📧 Email: ${currentCustomerInfo.email}</div>`;
                 if (currentCustomerInfo.phone) html += `<div>📱 SĐT: ${currentCustomerInfo.phone}</div>`;
                 if (currentCustomerInfo.address) html += `<div>📍 Địa chỉ: ${currentCustomerInfo.address}</div>`;
                 if (currentCustomerInfo.age) html += `<div>🎂 Tuổi: ${currentCustomerInfo.age}</div>`;
                 html += '<div style="margin-top:6px;"><i class="fas fa-star" style="color:#fbbf24;"></i> Vé sẽ được lưu vào tài khoản này và tích điểm</div>';
+
                 modalInfo.innerHTML = html;
-            } else {
-                modalInfo.innerHTML = `<div style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Không tìm thấy tài khoản với thông tin: <strong>${customerKey}</strong></div><div style="margin-top:6px;color:#fbbf24;">⚠️ Vé vẫn được tạo nhưng KHÔNG tích điểm</div>`;
+                return;
             }
+
+            modalInfo.innerHTML =
+                `<div style="color:#ef4444;"><i class="fas fa-exclamation-triangle"></i> Không tìm thấy tài khoản với thông tin: <strong>${customerKey}</strong></div>
+                 <div style="margin-top:6px;color:#fbbf24;">⚠️ Vé vẫn được tạo nhưng KHÔNG tích điểm</div>`;
         }
 
         window.updateSnackQuantity = function (index, change) {
             if (index < 0 || index >= selectedSnacks.length) return;
+
             const snack = selectedSnacks[index];
             const newQuantity = (snack.quantity || 1) + change;
+
             if (newQuantity < 1 || newQuantity > 10) {
                 showBookingToast('⚠️ Số lượng từ 1-10!', 'error');
                 return;
             }
+
             snack.quantity = newQuantity;
             openBookingModal();
+            updateSummary();
+            updateSnackCounter();
         };
 
         window.closeBookingModal = function () {
@@ -922,6 +979,37 @@
                 currentInvoiceId = bookData.invoiceId;
                 currentInvoiceAmount = bookData.totalPrice || 0;
 
+                // Lưu promo vào Invoice (chỉ khi đang còn hợp lệ theo subtotal hiện tại)
+                const subTotalNow = getSubTotal();
+                if (appliedPromo && appliedPromo.code && appliedPromo.subTotalSnapshot === subTotalNow) {
+                    try {
+                        const pr = await fetch('/Admin/ApplyPromotionToInvoice', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                invoiceId: currentInvoiceId,
+                                code: appliedPromo.code
+                            })
+                        });
+
+                        const pd = await pr.json();
+
+                        if (pd?.success) {
+                            currentInvoiceAmount = pd.totalAfterDiscount || currentInvoiceAmount;
+
+                            const msgEl = document.getElementById('promoMessage');
+                            if (msgEl) {
+                                msgEl.textContent = 'Đã lưu mã vào hóa đơn.';
+                                msgEl.className = 'promo-msg promo-msg-ok';
+                            }
+                        } else {
+                            resetPromoUI(pd?.message || 'Không lưu được mã vào hóa đơn.', 'promo-msg-err');
+                        }
+                    } catch {
+                        resetPromoUI('Lỗi lưu mã vào hóa đơn.', 'promo-msg-err');
+                    }
+                }
+
                 openPaymentMethodModal();
             } catch (error) {
                 showBookingToast('❌ Lỗi: ' + (error?.message || error), 'error');
@@ -935,7 +1023,7 @@
             if (!container) return;
 
             container.className = `validation-message ${type}`;
-            
+
             let iconClass = 'fas fa-info-circle';
             if (type === 'success') iconClass = 'fas fa-check-circle';
             if (type === 'error') iconClass = 'fas fa-exclamation-triangle';
@@ -949,12 +1037,11 @@
             if (!displayDiv) return;
 
             let html = '<div style="padding:8px 0;">';
-            
-            // Nếu là Admin, hiển thị badge đặc biệt
+
             if (data.isAdmin) {
                 html += '<div class="info-row" style="color:#fbbf24;font-weight:700;margin-bottom:8px;"><i class="fas fa-crown"></i> ĐÂY LÀ TÀI KHOẢN ADMIN</div>';
             }
-            
+
             html += `<div class="info-row"><strong>👤 Tên:</strong> ${data.fullName || 'Chưa cập nhật'}</div>`;
             html += `<div class="info-row"><strong>📧 Email:</strong> ${data.email || 'Chưa cập nhật'}</div>`;
             html += `<div class="info-row"><strong>📱 SĐT:</strong> ${data.phone || 'Chưa cập nhật'}</div>`;
@@ -968,10 +1055,9 @@
 
         function hideCustomerInfo() {
             const displayDiv = document.getElementById('customerInfoDisplay');
-            if (displayDiv) {
-                displayDiv.classList.remove('show');
-                displayDiv.innerHTML = '';
-            }
+            if (!displayDiv) return;
+            displayDiv.classList.remove('show');
+            displayDiv.innerHTML = '';
         }
 
         async function checkCustomerAccount(key) {
@@ -979,9 +1065,10 @@
                 updateValidationMessage('info', 'Để trống nếu muốn lưu vào tài khoản Admin');
                 currentCustomerInfo = null;
                 hideCustomerInfo();
-                
+
                 const input = document.getElementById('customerKey');
-                input.classList.remove('valid', 'invalid');
+                if (input) input.classList.remove('valid', 'invalid');
+
                 return;
             }
 
@@ -989,87 +1076,68 @@
 
             try {
                 const response = await fetch(`/Booking/CheckCustomerAccount?key=${encodeURIComponent(trimmedKey)}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
                 const data = await response.json();
                 const input = document.getElementById('customerKey');
 
                 if (data.exists) {
                     updateValidationMessage('success', data.message);
-                    input.classList.add('valid');
-                    input.classList.remove('invalid');
+                    if (input) {
+                        input.classList.add('valid');
+                        input.classList.remove('invalid');
+                    }
                     currentCustomerInfo = data;
                     displayCustomerInfo(data);
                 } else {
                     updateValidationMessage('error', data.message);
-                    input.classList.add('invalid');
-                    input.classList.remove('valid');
+                    if (input) {
+                        input.classList.add('invalid');
+                        input.classList.remove('valid');
+                    }
                     currentCustomerInfo = { exists: false };
                     hideCustomerInfo();
                 }
-            } catch (error) {
-                console.error('Error checking customer account:', error);
+            } catch {
                 updateValidationMessage('error', 'Lỗi kiểm tra tài khoản. Vui lòng thử lại.');
                 currentCustomerInfo = null;
                 hideCustomerInfo();
-                
+
                 const input = document.getElementById('customerKey');
-                input.classList.remove('valid', 'invalid');
+                if (input) input.classList.remove('valid', 'invalid');
             }
         }
 
         function debounce(func, wait) {
             let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
+            return function (...args) {
                 clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
+                timeout = setTimeout(() => func(...args), wait);
             };
         }
 
-        const debouncedCheckCustomer = debounce((value) => {
-            checkCustomerAccount(value);
-        }, 500);
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initSnackCheckboxesState();
-            setInterval(refreshSeatsStatus, 10000);
-
-            const customerInput = document.getElementById('customerKey');
-            customerInput.addEventListener('input', function() {
-                const value = this.value.trim();
-                debouncedCheckCustomer(value);
-            });
-        });
-
-        function initSnackCheckboxesState() {
-            updateSnackCounter();
-            updateSummary();
-        }
+        const debouncedCheckCustomer = debounce((value) => checkCustomerAccount(value), 500);
 
         async function refreshSeatsStatus() {
-            const showTimeId = '@Model.ShowTimeId';
+            const stId = '@Model.ShowTimeId';
             try {
-                const res = await fetch(`/Booking/GetSeatsStatus?showTimeId=${encodeURIComponent(showTimeId)}`);
+                const res = await fetch(`/Booking/GetSeatsStatus?showTimeId=${encodeURIComponent(stId)}`);
                 const data = await res.json();
                 if (!data?.success) return;
 
                 const booked = new Set(data.bookedSeats || []);
+
                 document.querySelectorAll('.seat:not(.booked)').forEach(el => {
                     const id = el.getAttribute('data-seat-id');
-                    if (booked.has(id)) {
+                    if (id && booked.has(id)) {
                         el.classList.remove('selected');
                         el.classList.add('booked');
+
                         const existingIcon = el.querySelector('.fa-check');
                         if (!existingIcon) {
                             el.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 16px;"></i>';
                         }
+
                         selectedSeats = selectedSeats.filter(s => s.id !== id);
                     }
                 });
@@ -1079,6 +1147,7 @@
                     if (ids.some(id => booked.has(id))) {
                         el.classList.remove('selected');
                         el.classList.add('booked');
+
                         const coupleSeat = el.querySelector('.couple-seat');
                         if (coupleSeat) {
                             const existingIcon = coupleSeat.querySelector('.fa-check');
@@ -1086,9 +1155,13 @@
                                 coupleSeat.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 20px;"></i>';
                             }
                         }
+
                         const userIcons = el.querySelector('.user-icons');
                         if (userIcons) userIcons.style.display = 'none';
-                        ids.forEach(id => selectedSeats = selectedSeats.filter(s => s.id !== id));
+
+                        ids.forEach(id => {
+                            selectedSeats = selectedSeats.filter(s => s.id !== id);
+                        });
                     }
                 });
 
@@ -1127,6 +1200,7 @@
                 });
 
                 const payData = await payRes.json();
+
                 if (payData?.success && payData?.paymentUrl) {
                     window.location.href = payData.paymentUrl;
                     return;
@@ -1136,7 +1210,7 @@
             } catch (e) {
                 showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
             } finally {
-                showBooking_LOADING(false);
+                showBookingLoading(false);
             }
         }
 
@@ -1157,6 +1231,7 @@
                 });
 
                 const data = await res.json();
+
                 if (data?.success && data?.redirectUrl) {
                     window.location.href = data.redirectUrl;
                     return;
@@ -1170,17 +1245,30 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        function syncSeatOverflowClass() {
             const wrapper = document.querySelector('.seat-layout-scroll-wrapper');
             const inner = document.querySelector('.seats-grid-container');
-            function syncOverflowClass() {
-                if (!wrapper || !inner) return;
-                const isOverflowing = inner.scrollWidth > wrapper.clientWidth;
-                wrapper.classList.toggle('overflowing', isOverflowing);
+            if (!wrapper || !inner) return;
+            const isOverflowing = inner.scrollWidth > wrapper.clientWidth;
+            wrapper.classList.toggle('overflowing', isOverflowing);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSnackCounter();
+            updateSummary();
+
+            setInterval(refreshSeatsStatus, 10000);
+
+            const customerInput = document.getElementById('customerKey');
+            if (customerInput) {
+                customerInput.addEventListener('input', function () {
+                    debouncedCheckCustomer(this.value.trim());
+                });
             }
-            syncOverflowClass();
-            window.addEventListener('resize', syncOverflowClass);
-            setTimeout(syncOverflowClass, 400);
+
+            syncSeatOverflowClass();
+            window.addEventListener('resize', syncSeatOverflowClass);
+            setTimeout(syncSeatOverflowClass, 400);
         });
     </script>
 }

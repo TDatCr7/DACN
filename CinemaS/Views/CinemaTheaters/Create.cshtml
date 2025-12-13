@@ -12,9 +12,13 @@
 	<div class="row justify-content-center">
 		<div class="col-md-8">
 			<div class="card shadow">
-				<div class="card-header text-white">
-					<h3><i class="fas fa-door-open"></i> Tạo phòng chiếu mới</h3>
+				<div class="card-header text-white d-flex justify-content-between align-items-center">
+					<h3 class="mb-0">
+						<i class="fas fa-door-open"></i> Tạo phòng chiếu mới
+					</h3>
+					
 				</div>
+
 				<div class="card-body">
 					<!-- Thông báo lỗi từ server -->
 					@if (TempData["Error"] != null)
@@ -67,10 +71,9 @@
 
 
 						<div class="d-flex justify-content-between align-items-center mt-4">
-							<!-- Bên trái: Quay lại -->
-							<button type="button" class="btn btn-secondary" onclick="history.back()">
+							<a asp-controller="CinemaTheaters" asp-action="Index" class="btn btn-secondary">
 								<i class="fas fa-arrow-left"></i> Quay lại
-							</button>
+							</a>
 
 							<!-- Giữa: Liên kết quản lý loại ghế -->
 							<a asp-action="Index" asp-controller="SeatTypes" class="btn btn-info">

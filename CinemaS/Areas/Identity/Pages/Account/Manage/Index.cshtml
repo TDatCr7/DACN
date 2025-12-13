@@ -929,25 +929,38 @@
                             <table class="history-table">
                                 <thead>
                                     <tr>
-                                        <th>Mã đơn</th>
+                                        <th>STT</th> @* đổi từ Mã đơn -> STT *@
                                         <th>Hoạt động</th>
                                         <th>Chi nhánh</th>
                                         <th>Ngày</th>
                                         <th>Tổng cộng</th>
                                         <th>Điểm</th>
-                                        <th>Xem vé</th>
+                                        <th>Xem hóa đơn</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @{
+                                        var stt = 0;
+                                    }
                                     @foreach (var i in Model.History)
                                     {
-                                        var orderDate = i.ShowDate?.ToString("dd/MM/yyyy") ?? i.CreatedAt?.ToString("dd/MM/yyyy");
+                                        stt++;
+
+                                        var isSnackInvoice = string.IsNullOrEmpty(i.MovieTitle)
+                                        && i.ShowDate == null
+                                        && i.StartTime == null;
+
+                                        var activity = isSnackInvoice ? "Mua bắp nước" : "Mua vé";
+                                        var branch = isSnackInvoice ? "Quầy bắp nước" : (i.Room ?? "N/A");
+                                        var orderDate = i.ShowDate?.ToString("dd/MM/yyyy")
+                                        ?? i.CreatedAt?.ToString("dd/MM/yyyy");
+
                                         var total = i.TotalPrice;
                                         var points = (int)(total / 1000m);
                                         <tr>
-                                            <td>@i.InvoiceId</td>
-                                            <td>Mua vé</td>
-                                            <td>@(i.Room ?? "N/A")</td>
+                                            <td>@stt</td> @* hiển thị số thứ tự *@
+                                            <td>@activity</td>
+                                            <td>@branch</td>
                                             <td>@(orderDate ?? "N/A")</td>
                                             <td>@total.ToString("#,0") đ</td>
                                             <td>@points Điểm</td>
@@ -955,7 +968,7 @@
                                                 <a href="javascript:void(0);"
                                                    class="history-action ticket-view-link"
                                                    data-invoice-id="@i.InvoiceId">
-                                                    Xem vé
+                                                    Xem chi tiết
                                                 </a>
                                             </td>
                                         </tr>
@@ -965,17 +978,18 @@
                         </div>
                     }
                 </div>
+
             </div>
         </section>
     </div>
 </div>
 
-<!-- MODAL CHI TIẾT VÉ -->
+<!-- MODAL CHI TIẾT HÓA ĐƠN -->
 <div id="ticket-modal-backdrop">
     <div class="ticket-modal-wrap">
         <div id="ticket-modal" class="ticket-modal-card">
             <div class="ticket-modal-header">
-                <span>Chi tiết vé</span>
+                <span>Chi tiết hóa đơn</span>
                 <button type="button" id="ticket-modal-close" class="ticket-modal-close">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -1017,7 +1031,8 @@
                 });
             });
 
-            // ====== MODAL XEM VÉ ======
+            // ====== MODAL XEM HÓA ĐƠN (VÉ / SNACK) ======
+
             const backdrop = document.getElementById('ticket-modal-backdrop');
             const bodyEl = document.getElementById('ticket-modal-body');
             const closeBtn = document.getElementById('ticket-modal-close');

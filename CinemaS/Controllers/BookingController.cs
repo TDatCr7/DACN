@@ -31,24 +31,28 @@ namespace CinemaS.Controllers
         {
             if (string.IsNullOrWhiteSpace(id)) return NotFound();
 
-            var showTime = await _context.ShowTimes.AsNoTracking().FirstOrDefaultAsync(x => x.ShowTimeId == id);
+            var showTime = await _context.ShowTimes.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ShowTimeId == id);
             if (showTime == null) return NotFound();
 
-            var movie = await _context.Movies.AsNoTracking().FirstOrDefaultAsync(m => m.MoviesId == showTime.MoviesId);
-            var theater = await _context.CinemaTheaters.AsNoTracking().FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTime.CinemaTheaterId);
+            var movie = await _context.Movies.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MoviesId == showTime.MoviesId);
+            var theater = await _context.CinemaTheaters.AsNoTracking()
+                .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTime.CinemaTheaterId);
             if (movie == null || theater == null) return NotFound();
 
             // Chỉ khoá ghế đã thanh toán (Status = 2)
             var paidSeatIds = await _context.Tickets.AsNoTracking()
-                                  .Where(t => t.ShowTimeId == id && t.Status == 2)
-                                  .Select(t => t.SeatId)
-                                  .ToListAsync();
+                .Where(t => t.ShowTimeId == id && t.Status == 2)
+                .Select(t => t.SeatId)
+                .ToListAsync();
 
-            // ✅ FIX: Filter ra ghế IsDeleted = true - chỉ load ghế chưa bị xóa
+            // Chỉ load ghế chưa bị xóa
             var seats = await _context.Seats.AsNoTracking()
-                            .Where(s => s.CinemaTheaterId == theater.CinemaTheaterId && !s.IsDeleted)
-                            .OrderBy(s => s.RowIndex).ThenBy(s => s.ColumnIndex)
-                            .ToListAsync();
+                .Where(s => s.CinemaTheaterId == theater.CinemaTheaterId && !s.IsDeleted)
+                .OrderBy(s => s.RowIndex)
+                .ThenBy(s => s.ColumnIndex)
+                .ToListAsync();
 
             var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
 
@@ -72,7 +76,9 @@ namespace CinemaS.Controllers
                 };
             }).ToList();
 
-            ViewBag.Snacks = await _context.Snacks.AsNoTracking().Where(s => s.IsActive == true).ToListAsync();
+            ViewBag.Snacks = await _context.Snacks.AsNoTracking()
+                .Where(s => s.IsActive)
+                .ToListAsync();
 
             var vm = new SeatSelectionVM
             {
@@ -88,7 +94,8 @@ namespace CinemaS.Controllers
                 NumOfRows = theater.NumOfRows ?? 6,
                 NumOfColumns = theater.NumOfColumns ?? 14
             };
-            return View(vm);
+            return View("UserBooking", vm);
+
         }
 
         /* ============= Real-time status (chỉ ghế đã thanh toán) ============= */
@@ -96,10 +103,39 @@ namespace CinemaS.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetSeatsStatus(string showTimeId)
         {
+            if (string.IsNullOrWhiteSpace(showTimeId))
+                return Json(new { success = false, bookedSeats = Array.Empty<string>() });
+
             var paid = await _context.Tickets.AsNoTracking()
-                         .Where(t => t.ShowTimeId == showTimeId && t.Status == 2)
-                         .Select(t => t.SeatId).ToListAsync();
+                .Where(t => t.ShowTimeId == showTimeId && t.Status == 2)
+                .Select(t => t.SeatId)
+                .ToListAsync();
+
             return Json(new { success = true, bookedSeats = paid });
+        }
+
+        /* ============= ValidatePromotion (pre-invoice) ============= */
+        [HttpPost("ValidatePromotion")]
+        [Authorize]
+        public async Task<IActionResult> ValidatePromotion([FromBody] PromotionValidateRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Code) || request.Amount <= 0)
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
+
+            var result = await ValidatePromotionInternalAsync(request.Code, request.Amount);
+
+            if (!result.Success)
+                return Json(new { success = false, message = result.Message });
+
+            return Json(new
+            {
+                success = true,
+                message = result.Message,
+                promotionName = result.PromotionName,
+                discountPercent = result.DiscountPercent,
+                discountAmount = result.DiscountAmount,
+                totalAfterDiscount = result.TotalAfterDiscount
+            });
         }
 
         /* ============= Chọn suất ============= */
@@ -109,24 +145,28 @@ namespace CinemaS.Controllers
         {
             if (string.IsNullOrWhiteSpace(movieId)) return BadRequest("Vui lòng chọn phim!");
 
-            var movie = await _context.Movies.AsNoTracking().FirstOrDefaultAsync(m => m.MoviesId == movieId);
+            var movie = await _context.Movies.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MoviesId == movieId);
             if (movie == null) return NotFound("Phim không tồn tại!");
 
             var today = DateTime.Today;
             var showTimes = await _context.ShowTimes.AsNoTracking()
                 .Where(st => st.MoviesId == movieId && st.ShowDate >= today && st.CinemaTheaterId != null)
-                .OrderBy(st => st.ShowDate).ThenBy(st => st.StartTime)
+                .OrderBy(st => st.ShowDate)
+                .ThenBy(st => st.StartTime)
                 .ToListAsync();
 
             var list = new List<ShowTimeVM>();
             foreach (var st in showTimes)
             {
                 var cinema = await _context.CinemaTheaters.AsNoTracking()
-                                  .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == st.CinemaTheaterId);
+                    .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == st.CinemaTheaterId);
+
                 var totalSeats = await _context.Seats.AsNoTracking()
-                                  .CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId);
+                    .CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId && !s.IsDeleted);
+
                 var paid = await _context.Tickets.AsNoTracking()
-                              .CountAsync(t => t.ShowTimeId == st.ShowTimeId && t.Status == 2);
+                    .CountAsync(t => t.ShowTimeId == st.ShowTimeId && t.Status == 2);
 
                 list.Add(new ShowTimeVM
                 {
@@ -152,123 +192,137 @@ namespace CinemaS.Controllers
         [Authorize]
         public async Task<IActionResult> BookSeats([FromBody] BookSeatRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.ShowTimeId)
-                || request.SeatIds == null || !request.SeatIds.Any())
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.ShowTimeId) ||
+                request.SeatIds == null ||
+                !request.SeatIds.Any())
+            {
                 return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
+            }
 
             var userEmail = User.Identity?.Name;
-
-            // BẢNG KHÁCH HÀNG (Users), KHÔNG PHẢI AppUser
             var currentUser = await _context.Users.AsNoTracking()
-                                .FirstOrDefaultAsync(u => u.Email == userEmail);
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
 
             if (currentUser == null)
                 return Json(new { success = false, message = "Không tìm thấy tài khoản đang đăng nhập." });
 
             var showTime = await _context.ShowTimes.AsNoTracking()
-                                .FirstOrDefaultAsync(st => st.ShowTimeId == request.ShowTimeId);
+                .FirstOrDefaultAsync(st => st.ShowTimeId == request.ShowTimeId);
             if (showTime == null)
                 return Json(new { success = false, message = "Suất chiếu không tồn tại!" });
 
-            // ===== Xác định khách được tích điểm (loyaltyUser) =====
-            // Nếu admin gõ SĐT/Email khách -> tìm user tương ứng
-            // Nếu bỏ trống -> mặc định chính user đang đăng nhập
-            string? loyaltyKey = request.LoyaltyKey?.Trim().ToLower(); // NORMALIZE: trim + lowercase
+            var distinctSeatIds = request.SeatIds
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct()
+                .ToList();
 
-            CinemaS.Models.Users? loyaltyUser = null;
-            bool memberNotFound = false;
+            if (!distinctSeatIds.Any())
+                return Json(new { success = false, message = "Danh sách ghế không hợp lệ!" });
 
-            if (!string.IsNullOrWhiteSpace(loyaltyKey))
-            {
-                loyaltyUser = await _context.Users.AsNoTracking()
-                    .FirstOrDefaultAsync(u =>
-                        (u.PhoneNumber != null && u.PhoneNumber.ToLower() == loyaltyKey) ||
-                        (u.Email != null && u.Email.ToLower() == loyaltyKey));
+            // ===== 1) Tính TỔNG GỐC (baseTotal) =====
 
-                if (loyaltyUser == null)
-                {
-                    // vẫn cho đặt vé nhưng KHÔNG tích điểm
-                    memberNotFound = true;
-                }
-            }
-            else
-            {
-                loyaltyUser = currentUser;
-            }
-
-            // Cả loyaltyUser và currentUser đều là CinemaS.Models.Users
-            var invoiceOwner = loyaltyUser ?? currentUser;
-
-            // ===== TÍNH TỔNG TIỀN =====
-            // tiền ghế
             var seatTypes = await _context.Seats.AsNoTracking()
-                               .Where(s => request.SeatIds.Contains(s.SeatId))
-                               .Join(_context.SeatTypes.AsNoTracking(),
-                                     s => s.SeatTypeId, t => t.SeatTypeId,
-                                     (s, t) => new { s.SeatId, t.Price })
-                               .ToListAsync();
+                .Where(s => distinctSeatIds.Contains(s.SeatId) && !s.IsDeleted)
+                .Join(_context.SeatTypes.AsNoTracking(),
+                    s => s.SeatTypeId,
+                    t => t.SeatTypeId,
+                    (s, t) => new { s.SeatId, t.Price })
+                .ToListAsync();
 
-            decimal total = seatTypes.Sum(x => Convert.ToDecimal(x.Price ?? 0m));
+            decimal baseTotal = seatTypes.Sum(x => Convert.ToDecimal(x.Price ?? 0m));
 
-            // tiền snack
             if (request.Snacks?.Any() == true)
             {
                 var reqSnackIds = request.Snacks.Select(x => x.SnackId).Distinct().ToList();
 
                 var snacks = await _context.Snacks.AsNoTracking()
-                                  .Where(s => reqSnackIds.Contains(s.SnackId))
-                                  .ToDictionaryAsync(s => s.SnackId, s => (decimal)(s.Price ?? 0m));
+                    .Where(s => reqSnackIds.Contains(s.SnackId))
+                    .ToDictionaryAsync(s => s.SnackId, s => (decimal)(s.Price ?? 0m));
 
                 foreach (var s in request.Snacks)
                 {
                     if (snacks.TryGetValue(s.SnackId, out var p))
-                    {
-                        total += p * Math.Max(1, s.Quantity);
-                    }
+                        baseTotal += p * Math.Max(1, s.Quantity);
                 }
             }
 
-            // ===== TẠO HÓA ĐƠN PENDING =====
+            // ===== 2) Nếu có promo: CHỈ set PromotionId (KHÔNG ghi TotalPrice = đã giảm) =====
+            string? appliedPromoCode = null;
+            decimal discountAmount = 0m;
+            decimal payableTotal = baseTotal;
+            string? promoIdToSave = null;
+
+            if (!string.IsNullOrWhiteSpace(request.PromoCode))
+            {
+                var code = request.PromoCode.Trim();
+
+                // validate theo đúng logic hiện có (status/start/end/discount...)
+                var promoCheck = await ValidatePromotionInternalAsync(code, baseTotal);
+                if (promoCheck.Success)
+                {
+                    appliedPromoCode = code;
+                    discountAmount = promoCheck.DiscountAmount;
+                    payableTotal = promoCheck.TotalAfterDiscount;
+
+                    // lấy PromotionId để lưu vào invoice => các màn Result/History tính đúng giảm giá
+                    var norm = code.Trim().ToLower();
+                    var promoEntity = await _context.Promotion.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Code != null && p.Code.Trim().ToLower() == norm);
+
+                    if (promoEntity != null)
+                        promoIdToSave = promoEntity.PromotionId;
+                }
+            }
+
             var invoiceId = await GenerateInvoiceIdAsync();
             var now = DateTime.UtcNow;
 
             var invoice = new Invoices
             {
                 InvoiceId = invoiceId,
-                CustomerId = invoiceOwner.UserId,   // người đứng tên hóa đơn
-                Email = invoiceOwner.Email,
-                PhoneNumber = invoiceOwner.PhoneNumber,
+                CustomerId = currentUser.UserId,
+                Email = currentUser.Email,
+                PhoneNumber = currentUser.PhoneNumber,
                 CreatedAt = now,
                 UpdatedAt = now,
-                TotalTicket = request.SeatIds.Count,
-                TotalPrice = total,
-                Status = 0,                         // Pending
-                PaymentMethod = "Chưa thanh toán"
+                TotalTicket = distinctSeatIds.Count,
+
+                // ✅ LUÔN LƯU TỔNG GỐC
+                TotalPrice = baseTotal,
+
+                // ✅ LƯU PromotionId nếu có
+                PromotionId = promoIdToSave,
+
+                Status = 0
             };
 
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
 
-            // ===== LƯU LỰA CHỌN VÀO SESSION (chưa tạo Ticket ở đây) =====
             var payload = new PendingSelection
             {
                 ShowTimeId = request.ShowTimeId,
-                SeatIds = request.SeatIds,
-                Snacks = request.Snacks ?? new List<SnackRequest>()
+                SeatIds = distinctSeatIds,
+                Snacks = request.Snacks ?? new List<SnackRequest>(),
+                PromoCode = appliedPromoCode,
+                DiscountAmount = discountAmount
             };
 
             HttpContext.Session.SetString(
                 $"pending:{invoiceId}",
                 JsonSerializer.Serialize(payload));
 
+            // ✅ trả về số tiền SAU GIẢM để UI hiển thị đúng khi bấm thanh toán
             return Json(new
             {
                 success = true,
                 invoiceId,
-                totalPrice = total,
-                memberNotFound // để JS hiển thị cảnh báo "tài khoản tích điểm không tồn tại"
+                totalPrice = payableTotal
             });
         }
+
 
         /* ============= Snacks - Đặt riêng đồ ăn ============= */
         [HttpGet("Snacks")]
@@ -276,7 +330,7 @@ namespace CinemaS.Controllers
         public async Task<IActionResult> Snacks()
         {
             ViewBag.Snacks = await _context.Snacks.AsNoTracking()
-                .Where(s => s.IsActive == true)
+                .Where(s => s.IsActive)
                 .ToListAsync();
 
             return View();
@@ -292,16 +346,15 @@ namespace CinemaS.Controllers
 
             var userEmail = User.Identity?.Name;
             var currentUser = await _context.Users.AsNoTracking()
-                                .FirstOrDefaultAsync(u => u.Email == userEmail);
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
 
             if (currentUser == null)
                 return Json(new { success = false, message = "Không tìm thấy tài khoản đang đăng nhập." });
 
-            // ===== TÍNH TỔNG TIỀN =====
             var reqSnackIds = request.Snacks.Select(x => x.SnackId).Distinct().ToList();
             var snacks = await _context.Snacks.AsNoTracking()
-                              .Where(s => reqSnackIds.Contains(s.SnackId))
-                              .ToDictionaryAsync(s => s.SnackId, s => (decimal)(s.Price ?? 0m));
+                .Where(s => reqSnackIds.Contains(s.SnackId))
+                .ToDictionaryAsync(s => s.SnackId, s => (decimal)(s.Price ?? 0m));
 
             decimal total = 0m;
             foreach (var s in request.Snacks)
@@ -312,7 +365,6 @@ namespace CinemaS.Controllers
                 }
             }
 
-            // ===== TẠO HÓA ĐƠN PENDING =====
             var invoiceId = await GenerateInvoiceIdAsync();
             var now = DateTime.UtcNow;
 
@@ -324,16 +376,14 @@ namespace CinemaS.Controllers
                 PhoneNumber = currentUser.PhoneNumber,
                 CreatedAt = now,
                 UpdatedAt = now,
-                TotalTicket = 0, // Không có vé, chỉ đồ ăn
+                TotalTicket = 0,
                 TotalPrice = total,
-                Status = 0, // Pending
-                PaymentMethod = "Chưa thanh toán"
+                Status = 0
             };
 
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
 
-            // ===== LƯU LỰA CHỌN VÀO SESSION =====
             var payload = new PendingSnacksSelection
             {
                 Snacks = request.Snacks
@@ -359,9 +409,8 @@ namespace CinemaS.Controllers
             if (string.IsNullOrWhiteSpace(key))
                 return Json(new { exists = false, message = "Vui lòng nhập thông tin" });
 
-            key = key.Trim().ToLower(); // Normalize: trim + lowercase
+            key = key.Trim().ToLower();
 
-            // Bước 1: Tìm trong bảng Users (dbo.Users) - ưu tiên vì có đầy đủ thông tin
             var user = await _context.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u =>
                     (u.PhoneNumber != null && u.PhoneNumber.ToLower() == key) ||
@@ -369,7 +418,6 @@ namespace CinemaS.Controllers
 
             if (user != null)
             {
-                // Tính tuổi từ DateOfBirth
                 int? age = null;
                 if (user.DateOfBirth.HasValue)
                 {
@@ -378,7 +426,6 @@ namespace CinemaS.Controllers
                         age--;
                 }
 
-                // Kiểm tra xem user có phải Admin không (từ AspNetUsers)
                 bool isAdmin = false;
                 if (!string.IsNullOrEmpty(user.Email))
                 {
@@ -404,7 +451,6 @@ namespace CinemaS.Controllers
                 });
             }
 
-            // Bước 2: Nếu không tìm thấy trong Users, tìm trong AspNetUsers
             var appUserOnly = await _userManager.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u =>
                     (u.PhoneNumber != null && u.PhoneNumber.ToLower() == key) ||
@@ -412,12 +458,11 @@ namespace CinemaS.Controllers
 
             if (appUserOnly != null)
             {
-                // Kiểm tra role Admin
                 bool isAdmin = await _userManager.IsInRoleAsync(appUserOnly, "Admin");
 
-                // Tính tuổi từ Age field (nếu có)
                 int? age = null;
-                if (!string.IsNullOrWhiteSpace(appUserOnly.Age) && int.TryParse(appUserOnly.Age, out var parsedAge))
+                if (!string.IsNullOrWhiteSpace(appUserOnly.Age) &&
+                    int.TryParse(appUserOnly.Age, out var parsedAge))
                 {
                     age = parsedAge;
                 }
@@ -426,16 +471,16 @@ namespace CinemaS.Controllers
                 {
                     exists = true,
                     message = $"Tìm thấy tài khoản: {appUserOnly.FullName ?? appUserOnly.Email}",
-                    userId = appUserOnly.Id, // AspNetUsers dùng Id (GUID)
+                    userId = appUserOnly.Id,
                     fullName = appUserOnly.FullName ?? "",
                     email = appUserOnly.Email ?? "",
                     phone = appUserOnly.PhoneNumber ?? "",
                     address = appUserOnly.Address ?? "",
+                    age = age,
                     isAdmin = isAdmin
                 });
             }
 
-            // Không tìm thấy ở cả 2 bảng
             return Json(new
             {
                 exists = false,
@@ -474,9 +519,30 @@ Found user: {(user != null ? $"{user.UserId}: {user.Email} / {user.PhoneNumber} 
         }
 
         /* ============= Helpers ============= */
+        private static DateTime NowVn()
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        }
+
+        private static (bool ok, double percent) NormalizeDiscountPercent(double raw)
+        {
+            // chấp nhận (0..100]
+            if (raw <= 0 || raw > 100) return (false, 0);
+            return (true, raw);
+        }
+
+        private async Task<CinemaS.Models.Users?> GetCurrentUserEntityAsync()
+        {
+            var email = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(email)) return null;
+
+            return await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
         private async Task<string> GenerateInvoiceIdAsync()
         {
-            // Get count of invoices today to determine sequence number
             var vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
             var today = vietnamTime.Date;
@@ -492,14 +558,150 @@ Found user: {(user != null ? $"{user.UserId}: {user.Email} / {user.PhoneNumber} 
             return formatted;
         }
 
+        private async Task<PromotionValidateResult> ValidatePromotionInternalAsync(string code, decimal amount)
+        {
+            if (string.IsNullOrWhiteSpace(code) || amount <= 0)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Dữ liệu không hợp lệ.",
+                    PromotionName = "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            // Vẫn giữ check đăng nhập (Authorize đã có, nhưng giữ an toàn)
+            var currentUser = await GetCurrentUserEntityAsync();
+            if (currentUser == null)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Không tìm thấy tài khoản đang đăng nhập.",
+                    PromotionName = "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            var normCode = code.Trim();
+
+            // ✅ GLOBAL: KHÔNG ràng buộc promo theo user
+            // Promotion.UserId chỉ dùng để lưu người tạo (admin/nhân viên), không dùng để giới hạn người áp mã
+            var promo = await _context.Promotion.AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.Code != null &&
+                    p.Code.Trim().ToLower() == normCode.ToLower());
+
+            if (promo == null)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Mã khuyến mãi không tồn tại.",
+                    PromotionName = "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            var nowVn = NowVn();
+
+            // Status / ngày hiệu lực
+            if (promo.Status != true)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Mã khuyến mãi không còn hoạt động.",
+                    PromotionName = promo.Name ?? "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            if (promo.StartDay.HasValue && nowVn < promo.StartDay.Value)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Mã khuyến mãi chưa đến ngày áp dụng.",
+                    PromotionName = promo.Name ?? "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            if (promo.EndDay.HasValue && nowVn > promo.EndDay.Value)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Mã khuyến mãi đã hết hạn.",
+                    PromotionName = promo.Name ?? "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            if (!promo.Discount.HasValue)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Mã khuyến mãi thiếu giá trị giảm.",
+                    PromotionName = promo.Name ?? "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            var (ok, percent) = NormalizeDiscountPercent((double)promo.Discount.Value);
+            if (!ok)
+            {
+                return new PromotionValidateResult
+                {
+                    Success = false,
+                    Message = "Giá trị giảm không hợp lệ (phải trong (0..100]).",
+                    PromotionName = promo.Name ?? "-",
+                    DiscountPercent = null,
+                    DiscountAmount = 0m,
+                    TotalAfterDiscount = amount
+                };
+            }
+
+            decimal discountAmount = Math.Round(amount * (decimal)percent / 100m, 0, MidpointRounding.AwayFromZero);
+            decimal after = amount - discountAmount;
+            if (after < 0) after = 0;
+
+            return new PromotionValidateResult
+            {
+                Success = true,
+                Message = "Mã hợp lệ.",
+                PromotionName = promo.Name ?? "-",
+                DiscountPercent = (decimal)percent,
+                DiscountAmount = discountAmount,
+                TotalAfterDiscount = after
+            };
+        }
+
+
+
         public class BookSeatRequest
         {
             public string ShowTimeId { get; set; } = default!;
             public List<string> SeatIds { get; set; } = new();
             public List<SnackRequest>? Snacks { get; set; }
-
-            // NEW – SĐT hoặc Email để tích điểm cho khách
-            public string? LoyaltyKey { get; set; }
+            public string? PromoCode { get; set; }
         }
 
         public class BookSnacksRequest
@@ -513,16 +715,34 @@ Found user: {(user != null ? $"{user.UserId}: {user.Email} / {user.PhoneNumber} 
             public int Quantity { get; set; }
         }
 
+        public class PromotionValidateRequest
+        {
+            public string Code { get; set; } = default!;
+            public decimal Amount { get; set; }
+        }
+
         private class PendingSelection
         {
             public string ShowTimeId { get; set; } = default!;
             public List<string> SeatIds { get; set; } = new();
             public List<SnackRequest> Snacks { get; set; } = new();
+            public string? PromoCode { get; set; }
+            public decimal DiscountAmount { get; set; }
         }
 
         private class PendingSnacksSelection
         {
             public List<SnackRequest> Snacks { get; set; } = new();
+        }
+
+        private class PromotionValidateResult
+        {
+            public bool Success { get; set; }
+            public string Message { get; set; } = "";
+            public string PromotionName { get; set; } = "-";
+            public decimal? DiscountPercent { get; set; }
+            public decimal DiscountAmount { get; set; }
+            public decimal TotalAfterDiscount { get; set; }
         }
     }
 }

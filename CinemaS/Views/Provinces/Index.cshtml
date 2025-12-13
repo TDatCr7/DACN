@@ -13,7 +13,7 @@
             <a asp-action="Create" class="btn btn-primary">
                 <i class="fas fa-plus-circle"></i> Tạo mới
             </a>
-            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
+            <a asp-controller="MovieTheaters" asp-action="Create" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Quay lại
             </a>
         </div>
@@ -85,7 +85,7 @@
                             <td>@(item.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
                             <td>@(item.UpdatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
                             <td class="text-end">
-                                <a asp-action="Edit" asp-route-id="@item.ProvinceId" 
+                                <a asp-action="Edit" asp-route-id="@item.ProvinceId"
                                    class="admin-icon-btn" title="Sửa">
                                     <i class="fa-solid fa-pen"></i>
                                 </a>
@@ -108,12 +108,6 @@
                 }
             </tbody>
         </table>
-    </div>
-
-    <div class="d-flex justify-content-between mt-4">
-            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
     </div>
 </div>
 

@@ -1,0 +1,1230 @@
+﻿/* ======================================================================
+   wwwroot/css/booking-site.css
+   Tách phần: Admin header + Customer + Snacks + Payment/Promo + Toast/Modal
+   Ghi chú theo từng phần (không chú thích từng dòng)
+   ====================================================================== */
+
+/* =========================
+   1) ADMIN BOOKING: HEADER
+   ========================= */
+.admin-booking-header {
+    background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,.1);
+}
+
+    .admin-booking-header h2 {
+        margin: 0;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .admin-booking-header .subtitle {
+        margin: 6px 0 0 0;
+        opacity: .9;
+        font-size: 14px;
+    }
+
+/* ============================
+   2) CUSTOMER INFO (ADMIN)
+   ============================ */
+.customer-info-section {
+    background: #1f2937;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 2px solid #667eea;
+}
+
+    .customer-info-section h5 {
+        color: #fbbf24;
+        margin-bottom: 15px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+.customer-input-group {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.customer-input-field {
+    flex: 1;
+    min-width: 300px;
+}
+
+    .customer-input-field label {
+        display: block;
+        color: #9ca3af;
+        margin-bottom: 5px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .customer-input-field input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: #f9fafb;
+        font-size: 14px;
+        outline: none;
+        transition: all .2s;
+    }
+
+        .customer-input-field input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+        }
+
+        .customer-input-field input.valid {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+        }
+
+        .customer-input-field input.invalid {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+        }
+
+.validation-message {
+    margin-top: 4px;
+    font-size: 12px;
+    min-height: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+    .validation-message.success {
+        color: #10b981;
+    }
+
+    .validation-message.error {
+        color: #ef4444;
+    }
+
+    .validation-message.info {
+        color: #9ca3af;
+    }
+
+.customer-info-display {
+    background: rgba(102,126,234,.1);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    margin-top: 8px;
+    display: none;
+}
+
+    .customer-info-display.show {
+        display: block;
+    }
+
+    .customer-info-display .info-row {
+        color: #e5e7eb;
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 4px 0;
+    }
+
+/* =========================
+   3) SNACKS (LIST/CARDS)
+   ========================= */
+.snack-header {
+    background: #1f2937;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.snack-card {
+    background: #111827;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform .15s ease, border-color .15s ease;
+    height: 100%;
+}
+
+    .snack-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(102,126,234,.55);
+    }
+
+.snack-image img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display: block;
+}
+
+.snack-info {
+    padding: 10px 10px 12px;
+}
+
+.snack-name {
+    color: #e5e7eb;
+    font-weight: 800;
+    margin: 0 0 6px 0;
+    font-size: 13px;
+    min-height: 34px;
+}
+
+.snack-price {
+    color: #fbbf24;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+}
+
+.snack-control {
+    margin-top: 8px;
+}
+
+.btn-choose-snack {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 800;
+    width: 100%;
+    transition: background-color .2s;
+}
+
+    .btn-choose-snack:hover {
+        background: #2563eb;
+    }
+
+.quantity-control {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+}
+
+.quantity-btn-snack {
+    background: #facc15;
+    color: #1f2937;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.quantity-input-snack {
+    width: 44px;
+    height: 32px;
+    text-align: center;
+    border: 1px solid #4b5563;
+    background: #374151;
+    color: #fff;
+    border-radius: 8px;
+    -moz-appearance: textfield;
+}
+
+    .quantity-input-snack::-webkit-outer-spin-button,
+    .quantity-input-snack::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+/* ==========================================================
+   4) PAYMENT SUMMARY: LEFT | PROMO | ACTION
+   - PROMO cố định chiều cao (không phình ra)
+   - Cột trái luôn cao BẰNG khung PROMO
+   - Snack list chỉ hiển thị ~1-2 dòng, nhiều thì lướt (scroll)
+   ========================================================== */
+
+.booking-summary {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #1f2a44;
+    background: #0b1220;
+    box-shadow: 0 16px 28px rgba(0,0,0,.35);
+    color: #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    /* CHỈNH 1 CHỖ NÀY để tăng/giảm chiều cao tổng khối PROMO + cột trái */
+    --promo-fixed-h: 260px;
+}
+
+/* mặc định: 2 cột (trái | phải) nếu view chưa tách action */
+.booking-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 14px;
+    align-items: start;
+}
+
+    /* 3 cột: LEFT | PROMO | ACTION (khi view dùng class booking-summary-grid-3) */
+    .booking-summary-grid.booking-summary-grid-3 {
+        grid-template-columns: 1fr 460px 260px;
+        gap: 14px;
+        /* để cột trái + promo có thể khóa chiều cao bằng nhau */
+        align-items: stretch;
+    }
+
+/* =========================
+   LEFT: khóa chiều cao = PROMO
+   ========================= */
+.summary-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    /* khóa cột trái bằng đúng chiều cao promo */
+    height: var(--promo-fixed-h);
+    min-height: var(--promo-fixed-h);
+    max-height: var(--promo-fixed-h);
+    overflow: hidden; /* không cho "lố" ra ngoài */
+}
+
+/* blocks chung */
+.booking-summary .selected-info,
+.booking-summary .total-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #111a2c;
+    border: 1px solid #1f2a44;
+    flex-shrink: 0; /* không bị co méo */
+}
+
+    .booking-summary .selected-info strong,
+    .booking-summary .total-price strong {
+        color: #cbd5e1;
+        font-weight: 800;
+        font-size: 13px;
+    }
+
+.booking-summary #selectedSeats {
+    color: #e5e7eb;
+    font-weight: 800;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 65%;
+}
+
+.booking-summary #subTotalPrice {
+    color: #fbbf24;
+    font-weight: 900;
+    font-size: 16px;
+}
+
+/* snack summary (LEFT) - chỉ phần list scroll, không làm phình cột */
+.snack-summary {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #111a2c;
+    border: 1px solid #1f2a44;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* phần snack là khối linh hoạt trong cột trái */
+    flex: 1;
+    min-height: 0; /* quan trọng để scroll hoạt động trong flex */
+    overflow: hidden; /* không cho bung chiều cao */
+}
+
+.snack-summary-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+#snackTotalInline {
+    font-weight: 900;
+    color: #22c55e;
+}
+
+.snack-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* CHỈ HIỂN THỊ ~1-2 ITEM, NHIỀU THÌ LƯỚT */
+    max-height: 120px;
+    overflow-y: auto;
+    padding-right: 6px;
+    /* để list không đẩy chiều cao khung */
+    min-height: 0;
+}
+
+    .snack-summary-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .snack-summary-list::-webkit-scrollbar-thumb {
+        background: rgba(148,163,255,.35);
+        border-radius: 999px;
+    }
+
+    .snack-summary-list::-webkit-scrollbar-track {
+        background: rgba(255,255,255,.06);
+        border-radius: 999px;
+    }
+
+.snack-empty {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.snack-line {
+    display: grid;
+    grid-template-columns: 1fr 34px 110px;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #0e1728;
+    border: 1px solid #1f2a44;
+    min-height: 44px;
+}
+
+.snack-line-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    color: #e5e7eb;
+}
+
+.snack-line-meta {
+    color: #9ca3af;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+}
+
+.snack-line-price {
+    color: #e5e7eb;
+    font-weight: 800;
+    font-size: 13px;
+    text-align: right;
+}
+
+/* =========================
+   PROMO: cố định chiều cao, không phình
+   ========================= */
+.summary-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.promo-box {
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #1f2a44;
+    background: #111a2c;
+    color: #e5e7f5;
+    /* KHÓA CHIỀU CAO PROMO */
+    height: var(--promo-fixed-h);
+    min-height: var(--promo-fixed-h);
+    max-height: var(--promo-fixed-h);
+    overflow: hidden; /* không cho tăng chiều cao */
+    display: flex;
+    flex-direction: column;
+}
+
+.promo-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.promo-left strong {
+    color: #e5e7eb;
+}
+
+.promo-hint {
+    color: #9ca3af;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.promo-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.promo-input {
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(148,163,255,.22);
+    background: #0b1220;
+    color: #e5e7eb;
+    outline: none;
+    flex: 1;
+    min-width: 200px;
+}
+
+    .promo-input:focus {
+        border-color: rgba(102,126,234,.9);
+        box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+    }
+
+.promo-btn {
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(148,163,255,.22);
+    background: rgba(59,130,246,.18);
+    color: #cfe3ff;
+    font-weight: 900;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+    .promo-btn:hover {
+        filter: brightness(1.1);
+    }
+
+.promo-btn-danger {
+    background: rgba(239,68,68,.16);
+    color: #fecaca;
+    border-color: rgba(239,68,68,.35);
+}
+
+/* meta nằm trong promo, không được làm phình -> cho cuộn nội bộ nếu cần */
+.promo-meta {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 6px;
+}
+
+    .promo-meta::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .promo-meta::-webkit-scrollbar-thumb {
+        background: rgba(148,163,255,.25);
+        border-radius: 999px;
+    }
+
+    .promo-meta::-webkit-scrollbar-track {
+        background: rgba(255,255,255,.06);
+        border-radius: 999px;
+    }
+
+.promo-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+.promo-msg {
+    margin-top: 8px;
+    font-size: 12px;
+    min-height: 16px;
+    color: #9ca3af;
+}
+
+.promo-msg-ok {
+    color: #10b981;
+}
+
+.promo-msg-err {
+    color: #ef4444;
+}
+
+.promo-msg-warn {
+    color: #fbbf24;
+}
+
+/* =========================
+   ACTION COL
+   ========================= */
+.booking-action-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.payable-card {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #111a2c;
+    border: 1px solid #1f2a44;
+    width: 100%;
+}
+
+.payable-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+
+    .payable-row strong {
+        color: #cbd5e1;
+        font-weight: 800;
+        font-size: 13px;
+    }
+
+    .payable-row #totalPrice {
+        color: #22c55e;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+.btn-book {
+    width: 100%;
+    min-height: 56px;
+    border: 1px solid rgba(148,163,255,.22);
+    border-radius: 14px;
+    background: linear-gradient(120deg, rgba(34,197,94,.95), rgba(22,163,74,.95));
+    color: #07110b;
+    font-weight: 900;
+    letter-spacing: .2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 12px 24px rgba(34,197,94,.18);
+    cursor: pointer;
+    transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+}
+
+    .btn-book:hover {
+        filter: brightness(1.05);
+        transform: translateY(-1px);
+        box-shadow: 0 16px 30px rgba(34,197,94,.24);
+    }
+
+    .btn-book:disabled {
+        cursor: not-allowed;
+        filter: grayscale(.35);
+        opacity: .6;
+        transform: none;
+        box-shadow: none;
+        background: rgba(59,130,246,.12);
+        color: #9ca3af;
+    }
+
+/* responsive for summary */
+@media (max-width: 992px) {
+    .booking-summary-grid,
+    .booking-summary-grid.booking-summary-grid-3 {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .summary-left {
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .promo-box {
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .booking-summary #selectedSeats {
+        max-width: 60%;
+    }
+}
+
+
+/* ==============================
+   5) TOAST + MODAL + LOADING
+   ============================== */
+.toast-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: #fff;
+    color: #333;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2), 0 2px 8px rgba(0,0,0,.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 320px;
+    max-width: 400px;
+    transform: translateX(450px);
+    transition: transform .4s cubic-bezier(.68,-.55,.265,1.55), opacity .4s ease;
+    opacity: 0;
+    z-index: 9999;
+    font-size: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    border-left: 5px solid;
+    cursor: pointer;
+}
+
+    .toast-notification.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+.toast-icon {
+    font-size: 28px;
+    font-weight: 700;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.toast-success {
+    background: linear-gradient(135deg,#10b981 0%,#059669 100%);
+    color: #fff;
+    border-left-color: #047857;
+}
+
+    .toast-success .toast-icon {
+        background: rgba(255,255,255,.2);
+        color: #fff;
+    }
+
+.toast-error {
+    background: linear-gradient(135deg,#ef4444 0%,#dc2626 100%);
+    color: #fff;
+    border-left-color: #b91c1c;
+}
+
+    .toast-error .toast-icon {
+        background: rgba(255,255,255,.2);
+        color: #fff;
+    }
+
+.toast-warning {
+    background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%);
+    color: #fff;
+    border-left-color: #b45309;
+}
+
+    .toast-warning .toast-icon {
+        background: rgba(255,255,255,.2);
+        color: #fff;
+    }
+
+.toast-info {
+    background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+    color: #fff;
+    border-left-color: #1d4ed8;
+}
+
+    .toast-info .toast-icon {
+        background: rgba(255,255,255,.2);
+        color: #fff;
+    }
+
+.toast-message {
+    flex: 1;
+    font-weight: 500;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.toast-notification:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 12px 28px rgba(0,0,0,.25), 0 4px 12px rgba(0,0,0,.15);
+}
+
+.booking-toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 10000;
+    padding: 16px 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 520px;
+    word-wrap: break-word;
+    font-weight: 600;
+    transform: translateX(600px);
+    transition: transform .3s ease, opacity .3s ease;
+    opacity: 0;
+}
+
+    .booking-toast.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+.booking-toast-success {
+    background: linear-gradient(135deg,#10b981 0%,#059669 100%);
+    color: #fff;
+}
+
+.booking-toast-error {
+    background: linear-gradient(135deg,#ef4444 0%,#dc2626 100%);
+    color: #fff;
+}
+
+.booking-toast-warning {
+    background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%);
+    color: #fff;
+}
+
+.booking-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(5px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1040 !important;
+    animation: fadeIn .3s ease;
+}
+
+    .booking-modal-overlay.show {
+        display: flex;
+    }
+
+.booking-modal {
+    background: linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
+    border-radius: 15px;
+    padding: 0;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    animation: slideUp .3s ease;
+    overflow: hidden;
+}
+
+.booking-modal-header {
+    background: linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%);
+    padding: 20px;
+    text-align: center;
+}
+
+    .booking-modal-header h3 {
+        margin: 0;
+        color: #1a1a2e;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    .booking-modal-header .icon {
+        font-size: 40px;
+        margin-bottom: 10px;
+    }
+
+.booking-modal-body {
+    padding: 30px;
+    color: #fff;
+}
+
+.booking-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+
+    .booking-info-item:last-child {
+        border-bottom: none;
+    }
+
+.booking-info-label {
+    color: #cbd5e0;
+    font-size: 16px;
+}
+
+.booking-info-value {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.booking-total {
+    background: rgba(255,215,0,.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+    .booking-total .booking-info-item {
+        border: none;
+        padding: 10px 0;
+    }
+
+    .booking-total .booking-info-label {
+        color: #ffd700;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .booking-total .booking-info-value {
+        color: #22c55e;
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+.booking-modal-footer {
+    padding: 20px 30px;
+    display: flex;
+    gap: 15px;
+    background: rgba(255,255,255,.05);
+}
+
+.booking-modal-btn {
+    flex: 1;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all .3s ease;
+}
+
+.booking-modal-btn-cancel {
+    background: #4b5563;
+    color: #fff;
+}
+
+    .booking-modal-btn-cancel:hover {
+        background: #374151;
+        transform: translateY(-2px);
+    }
+
+.booking-modal-btn-confirm {
+    background: linear-gradient(135deg,#22c55e 0%,#16a34a 100%);
+    color: #fff;
+}
+
+    .booking-modal-btn-confirm:hover {
+        background: linear-gradient(135deg,#16a34a 0%,#15803d 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(34,197,94,.4);
+    }
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.booking-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+    .booking-loading-overlay.show {
+        display: flex;
+    }
+
+.booking-loading-content {
+    text-align: center;
+}
+
+.booking-loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255,215,0,.3);
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.booking-loading-text {
+    color: #fff;
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.snack-quantity-item {
+    margin: 5px 0;
+}
+
+.quantity-btn {
+    background: linear-gradient(135deg,#ffd700 0%,#ffed4e 100%);
+    border: none;
+    color: #1a1a2e;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .3s ease;
+    font-size: 14px;
+}
+
+    .quantity-btn:hover {
+        background: linear-gradient(135deg,#ffed4e 0%,#ffd700 100%);
+        transform: scale(1.1);
+        box-shadow: 0 4px 10px rgba(255,215,0,.3);
+    }
+
+    .quantity-btn:active {
+        transform: scale(.95);
+    }
+
+.quantity-input {
+    width: 50px;
+    text-align: center;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    font-weight: 900;
+}
+
+    .quantity-input:focus {
+        outline: none;
+        border-color: #ffd700;
+    }
+
+.broken-icon {
+    color: #000;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+/* =========================
+   6) RESPONSIVE (GLOBAL)
+   ========================= */
+@media (max-width: 768px) {
+    .toast-notification {
+        right: 10px;
+        left: 10px;
+        top: 70px;
+        min-width: auto;
+        max-width: none;
+        transform: translateY(-200px);
+    }
+
+        .toast-notification.show {
+            transform: translateY(0);
+        }
+}
+
+@media (max-width: 576px) {
+    .booking-modal {
+        width: 95%;
+    }
+
+    .booking-modal-body {
+        padding: 20px;
+    }
+
+    .booking-modal-footer {
+        flex-direction: column;
+    }
+
+    .booking-modal-btn {
+        width: 100%;
+    }
+}
+/* ==========================================================
+   ADMIN SNACKS SUMMARY: 3 cột, cao bằng nhau theo PROMO
+   - LEFT không phình, list snack scroll
+   - PROMO fixed height
+   - ACTION cột phải cố định
+   ========================================================== */
+
+.booking-summary--admin-snacks {
+    margin-top: 16px;
+}
+
+.booking-summary-grid-3--fixed {
+    align-items: stretch;
+}
+
+/* chiều cao khung promo làm chuẩn */
+.promo-box--fixed {
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* cột promo không bị phình */
+.summary-right--promo-fixed {
+    display: flex;
+    flex-direction: column;
+}
+
+    .summary-right--promo-fixed .promo-box--fixed {
+        flex: 0 0 auto;
+    }
+
+/* cột trái cao bằng promo */
+.summary-left--fixed {
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* text chọn đồ ăn không làm bung */
+.summary-ellipsis {
+    display: inline-block;
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    font-weight: 800;
+    color: #e5e7eb;
+}
+
+/* snack summary chiếm phần giữa và scroll */
+.snack-summary--fixed {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+}
+
+    .snack-summary--fixed .snack-summary-title {
+        flex-shrink: 0;
+        margin-bottom: 10px;
+    }
+
+    .snack-summary--fixed .snack-summary-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+        .snack-summary--fixed .snack-summary-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .snack-summary--fixed .snack-summary-list::-webkit-scrollbar-thumb {
+            background: rgba(148,163,255,.35);
+            border-radius: 999px;
+        }
+
+        .snack-summary--fixed .snack-summary-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,.06);
+            border-radius: 999px;
+        }
+
+/* action col cao bằng promo, button nằm dưới */
+.booking-action-col--fixed {
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+    .booking-action-col--fixed .btn-bookbtn-book {
+        margin-top: auto;
+    }
+
+/* MOBILE: về 1 cột, bỏ height cố định */
+@media (max-width: 992px) {
+    .promo-box--fixed,
+    .summary-left--fixed,
+    .booking-action-col--fixed {
+        height: auto;
+    }
+
+    .summary-ellipsis {
+        max-width: 60%;
+    }
+}
+.payable-card--with-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-book--inside {
+    width: 100%;
+    min-height: 56px;
+    border-radius: 14px;
+    margin-top: 0;
+}

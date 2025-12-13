@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CinemaS.Controllers
 {
@@ -28,13 +29,131 @@ namespace CinemaS.Controllers
             _emailSender = emailSender;
         }
 
-        /* ===================== 1) Tạo URL VNPay ===================== */
-        [HttpPost("Create")]
+        /* ===================== Promotion ===================== */
+
+        [HttpPost("ApplyPromotion")]
+        [Authorize]
         [IgnoreAntiforgeryToken]
-        public IActionResult Create([FromBody] PayRequest req)
+        public async Task<IActionResult> ApplyPromotion([FromBody] ApplyPromotionRequest req)
         {
-            if (req == null || string.IsNullOrWhiteSpace(req.OrderId) || req.Amount <= 0)
+            if (req == null || string.IsNullOrWhiteSpace(req.InvoiceId) || string.IsNullOrWhiteSpace(req.Code))
+                return Json(new { success = false, message = "Thiếu mã hóa đơn hoặc mã khuyến mãi." });
+
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == req.InvoiceId);
+            if (invoice == null)
+                return Json(new { success = false, message = "Không tìm thấy hóa đơn." });
+
+            if (invoice.Status == (byte)1)
+                return Json(new { success = false, message = "Hóa đơn đã thanh toán." });
+
+            if (!User.IsInRole("Admin"))
+            {
+                var currentUser = await GetCurrentUserEntityAsync();
+                if (currentUser == null || invoice.CustomerId != currentUser.UserId)
+                    return Json(new { success = false, message = "Không có quyền áp dụng mã cho hóa đơn này." });
+            }
+
+            var nowVn = NowVn();
+            var normalized = NormalizePromoCode(req.Code);
+
+            var promo = await _context.Promotion
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code != null && p.Code.ToLower() == normalized);
+
+            if (promo == null)
+                return Json(new { success = false, message = "Mã khuyến mãi không tồn tại." });
+
+            var validation = ValidatePromotion(promo, nowVn);
+            if (!validation.Success)
+                return Json(new { success = false, message = validation.ErrorMessage });
+
+            invoice.PromotionId = promo.PromotionId;
+            invoice.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var calc = await CalcPayableAsync(invoice);
+            if (!calc.Success)
+                return Json(new { success = false, message = calc.ErrorMessage });
+
+            return Json(new
+            {
+                success = true,
+                message = "Áp dụng mã khuyến mãi thành công.",
+                promotionId = promo.PromotionId,
+                code = promo.Code,
+                discountPercent = calc.DiscountPercent,
+                originalAmount = calc.OriginalAmount,
+                discountAmount = calc.DiscountAmount,
+                payableAmount = calc.PayableAmountVnd
+            });
+        }
+
+        [HttpPost("RemovePromotion")]
+        [Authorize]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> RemovePromotion([FromBody] RemovePromotionRequest req)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.InvoiceId))
+                return Json(new { success = false, message = "Thiếu mã hóa đơn." });
+
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == req.InvoiceId);
+            if (invoice == null)
+                return Json(new { success = false, message = "Không tìm thấy hóa đơn." });
+
+            if (invoice.Status == (byte)1)
+                return Json(new { success = false, message = "Hóa đơn đã thanh toán." });
+
+            if (!User.IsInRole("Admin"))
+            {
+                var currentUser = await GetCurrentUserEntityAsync();
+                if (currentUser == null || invoice.CustomerId != currentUser.UserId)
+                    return Json(new { success = false, message = "Không có quyền thao tác hóa đơn này." });
+            }
+
+            invoice.PromotionId = null;
+            invoice.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var calc = await CalcPayableAsync(invoice);
+
+            return Json(new
+            {
+                success = true,
+                message = "Đã xóa mã khuyến mãi.",
+                originalAmount = calc.OriginalAmount,
+                discountAmount = calc.DiscountAmount,
+                payableAmount = calc.PayableAmountVnd
+            });
+        }
+
+        /* ===================== 1) Tạo URL VNPay ===================== */
+
+        [HttpPost("Create")]
+        [Authorize]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> Create([FromBody] PayRequest req)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.OrderId))
                 return Json(new { success = false, message = "Dữ liệu tạo thanh toán không hợp lệ." });
+
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == req.OrderId);
+            if (invoice == null)
+                return Json(new { success = false, message = "Không tìm thấy hóa đơn." });
+
+            if (!User.IsInRole("Admin"))
+            {
+                var currentUser = await GetCurrentUserEntityAsync();
+                if (currentUser == null || invoice.CustomerId != currentUser.UserId)
+                    return Json(new { success = false, message = "Không có quyền thanh toán hóa đơn này." });
+            }
+
+            var calc = await CalcPayableAsync(invoice);
+            if (!calc.Success)
+                return Json(new { success = false, message = calc.ErrorMessage });
+
+            var amountToPay = calc.PayableAmountVnd;
+            if (amountToPay <= 0)
+                return Json(new { success = false, message = "Số tiền thanh toán không hợp lệ." });
 
             var returnUrl = Url.Action(nameof(ReturnVnPay), "Payment", values: null, protocol: Request.Scheme)!;
 
@@ -54,10 +173,11 @@ namespace CinemaS.Controllers
             vnp.AddRequestData("vnp_Version", VnPayLibrary.VERSION);
             vnp.AddRequestData("vnp_Command", "pay");
             vnp.AddRequestData("vnp_TmnCode", tmnCode);
-            vnp.AddRequestData("vnp_Amount", ((long)req.Amount * 100).ToString());
+
+            vnp.AddRequestData("vnp_Amount", (amountToPay * 100).ToString());
             vnp.AddRequestData("vnp_CurrCode", currCode);
-            vnp.AddRequestData("vnp_TxnRef", req.OrderId);
-            vnp.AddRequestData("vnp_OrderInfo", string.IsNullOrWhiteSpace(req.OrderInfo) ? $"Thanh toan {req.OrderId}" : req.OrderInfo);
+            vnp.AddRequestData("vnp_TxnRef", invoice.InvoiceId);
+            vnp.AddRequestData("vnp_OrderInfo", string.IsNullOrWhiteSpace(req.OrderInfo) ? $"Thanh toan {invoice.InvoiceId}" : req.OrderInfo);
             vnp.AddRequestData("vnp_OrderType", orderType);
             vnp.AddRequestData("vnp_Locale", locale);
             vnp.AddRequestData("vnp_ReturnUrl", returnUrl);
@@ -69,7 +189,8 @@ namespace CinemaS.Controllers
             return Json(new { success = true, paymentUrl = url });
         }
 
-        /* ============ 2) VNPay redirect về ============ */
+        /* ===================== 2) VNPay redirect về ===================== */
+
         [HttpGet("ReturnVnPay")]
         [AllowAnonymous]
         public async Task<IActionResult> ReturnVnPay()
@@ -88,7 +209,7 @@ namespace CinemaS.Controllers
             string providerTxnId = vnp.GetResponseData("vnp_TransactionNo") ?? "";
             string bankCode = vnp.GetResponseData("vnp_BankCode") ?? "";
             string payDate = vnp.GetResponseData("vnp_PayDate") ?? "";
-            long vnpAmount = long.TryParse(vnp.GetResponseData("vnp_Amount"), out var amt) ? amt : 0;
+            long vnpAmountRaw = long.TryParse(vnp.GetResponseData("vnp_Amount"), out var amt) ? amt : 0;
 
             bool signatureOk = vnp.ValidateSignature(secureHash, secret);
 
@@ -108,18 +229,21 @@ namespace CinemaS.Controllers
                 Message = signatureOk ? "Thanh toán không thành công." : "Chữ ký VNPay không hợp lệ."
             };
 
-            var paymentMethod = await _context.PaymentMethods.AsNoTracking().FirstOrDefaultAsync(x => x.Code == "VNPAY");
+            var paymentMethod = await _context.PaymentMethods
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Code == "VNPAY");
+
             await SavePaymentTransactionAsync(
-                invoiceId,
-                paymentMethod?.PaymentMethodId ?? "PM001",
-                vnpAmount / 100,
-                respCode,
-                txnStatus,
-                providerTxnId,
-                invoiceId,
-                bankCode,
-                payDate,
-                signatureOk,
+                invoiceId: invoiceId,
+                paymentMethodId: paymentMethod?.PaymentMethodId ?? "PM001",
+                amount: vnpAmountRaw / 100,
+                responseCode: respCode,
+                transactionStatus: txnStatus,
+                providerTxnId: providerTxnId,
+                providerOrderNo: invoiceId,
+                bankCode: bankCode,
+                payDate: payDate,
+                signatureValid: signatureOk,
                 status: (signatureOk && respCode == "00" && txnStatus == "00") ? (byte)1 : (byte)2,
                 failureReason: (signatureOk && respCode == "00" && txnStatus == "00") ? null : $"Response: {respCode}, Status: {txnStatus}"
             );
@@ -130,23 +254,81 @@ namespace CinemaS.Controllers
 
                 invoice.Status = (byte)1;
                 invoice.UpdatedAt = DateTime.UtcNow;
-
                 if (paymentMethod != null)
                     invoice.PaymentMethodId = paymentMethod.PaymentMethodId;
-                else
-                    invoice.PaymentMethod = "VNPAY";
 
-                bool alreadyHasTickets = await _context.Tickets.AsNoTracking().AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
-                if (!alreadyHasTickets)
+                bool alreadyHasTickets = await _context.Tickets.AsNoTracking()
+                    .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
+
+                decimal ticketSum = 0m;
+                decimal snackSum = 0m;
+
+                /* ==== ƯU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
+                var snacksRawOnly = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
+                if (!string.IsNullOrWhiteSpace(snacksRawOnly))
                 {
-                    // Kiểm tra session pending cho đơn vé + đồ ăn
+                    var snacksPayload = JsonSerializer.Deserialize<PendingSnacksSelection>(snacksRawOnly) ?? new PendingSnacksSelection();
+                    if (snacksPayload.Snacks?.Any() == true)
+                    {
+                        var sids = snacksPayload.Snacks.Select(x => x.SnackId).Distinct().ToList();
+                        var snackMap = await _context.Snacks.AsNoTracking()
+                            .Where(s => sids.Contains(s.SnackId))
+                            .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
+
+                        string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
+                            .OrderByDescending(d => d.DetailBookingSnackId)
+                            .Select(d => d.DetailBookingSnackId)
+                            .FirstOrDefaultAsync() ?? "DBS000";
+
+                        int nextDb = 0;
+                        _ = int.TryParse(lastDbId.Length > 3 ? lastDbId.Substring(3) : "0", out nextDb);
+
+                        async Task<string> NextDbSnackIdSafeAsync()
+                        {
+                            while (true)
+                            {
+                                nextDb++;
+                                string cand = $"DBS{nextDb:D3}";
+                                bool exists = await _context.DetailBookingSnacks.AsNoTracking()
+                                    .AnyAsync(d => d.DetailBookingSnackId == cand);
+                                if (!exists) return cand;
+                            }
+                        }
+
+                        foreach (var line in snacksPayload.Snacks)
+                        {
+                            if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
+                            int qty = Math.Max(1, line.Quantity);
+                            decimal lineTotal = s.Unit * qty;
+
+                            var newDbId = await NextDbSnackIdSafeAsync();
+
+                            _context.DetailBookingSnacks.Add(new DetailBookingSnacks
+                            {
+                                DetailBookingSnackId = newDbId,
+                                InvoiceId = invoice.InvoiceId,
+                                SnackId = line.SnackId,
+                                TotalSnack = qty,
+                                TotalPrice = lineTotal
+                            });
+
+                            snackSum += lineTotal;
+                        }
+
+                        invoice.TotalTicket = 0;
+                    }
+                }
+                /* ==== NGƯỢC LẠI: ĐƠN VÉ (CÓ THỂ KÈM ĐỒ ĂN) ==== */
+                else if (!alreadyHasTickets)
+                {
                     var raw = HttpContext.Session.GetString($"pending:{invoice.InvoiceId}");
                     if (!string.IsNullOrWhiteSpace(raw))
                     {
                         var payload = JsonSerializer.Deserialize<PendingSelection>(raw) ?? new PendingSelection();
 
                         var st = await _context.ShowTimes.AsNoTracking()
-                                   .FirstOrDefaultAsync(x => x.ShowTimeId == payload.ShowTimeId);
+                            .FirstOrDefaultAsync(x => x.ShowTimeId == payload.ShowTimeId);
+
                         if (st != null)
                         {
                             var requestSeatIds = payload.SeatIds?
@@ -161,19 +343,21 @@ namespace CinemaS.Controllers
                                     .Where(t => t.ShowTimeId == st.ShowTimeId && requestSeatIds.Contains(t.SeatId))
                                     .Select(t => t.SeatId)
                                     .ToListAsync();
-                                var occupiedSet = new HashSet<string>(occupied);
 
+                                var occupiedSet = new HashSet<string>(occupied);
                                 var finalSeats = requestSeatIds.Where(id => !occupiedSet.Contains(id)).ToList();
 
                                 var seats = await _context.Seats.AsNoTracking()
-                                                    .Where(s => finalSeats.Contains(s.SeatId))
-                                                    .ToListAsync();
+                                    .Where(s => finalSeats.Contains(s.SeatId))
+                                    .ToListAsync();
+
                                 var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
 
                                 string lastId = await _context.Tickets.AsNoTracking()
-                                                    .OrderByDescending(t => t.TicketId)
-                                                    .Select(t => t.TicketId)
-                                                    .FirstOrDefaultAsync() ?? "T000000";
+                                    .OrderByDescending(t => t.TicketId)
+                                    .Select(t => t.TicketId)
+                                    .FirstOrDefaultAsync() ?? "T000000";
+
                                 int nextNum = 0;
                                 _ = int.TryParse(lastId.Length > 1 ? lastId.Substring(1) : "0", out nextNum);
 
@@ -184,12 +368,10 @@ namespace CinemaS.Controllers
                                         nextNum++;
                                         string candidate = $"T{nextNum:D6}";
                                         bool exists = await _context.Tickets.AsNoTracking()
-                                                            .AnyAsync(t => t.TicketId == candidate);
+                                            .AnyAsync(t => t.TicketId == candidate);
                                         if (!exists) return candidate;
                                     }
                                 }
-
-                                decimal ticketSum = 0m;
 
                                 foreach (var sid in finalSeats)
                                 {
@@ -198,9 +380,7 @@ namespace CinemaS.Controllers
 
                                     string ticketTypeId = "TT001";
                                     if (stype != null && !string.IsNullOrEmpty(stype.SeatTypeId) && stype.SeatTypeId.Length >= 5)
-                                    {
                                         ticketTypeId = "TT" + stype.SeatTypeId.Substring(2);
-                                    }
 
                                     decimal price = stype?.Price ?? 0m;
                                     ticketSum += price;
@@ -221,18 +401,18 @@ namespace CinemaS.Controllers
                                     });
                                 }
 
-                                decimal snackSum = 0m;
                                 if (payload.Snacks?.Any() == true)
                                 {
                                     var sids = payload.Snacks.Select(x => x.SnackId).Distinct().ToList();
                                     var snackMap = await _context.Snacks.AsNoTracking()
                                         .Where(s => sids.Contains(s.SnackId))
-                                        .ToDictionaryAsync(s => s.SnackId, s => new { s.Name, Unit = (s.Price ?? 0m) });
+                                        .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
 
                                     string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
-                                                        .OrderByDescending(d => d.DetailBookingSnackId)
-                                                        .Select(d => d.DetailBookingSnackId)
-                                                        .FirstOrDefaultAsync() ?? "DBS000";
+                                        .OrderByDescending(d => d.DetailBookingSnackId)
+                                        .Select(d => d.DetailBookingSnackId)
+                                        .FirstOrDefaultAsync() ?? "DBS000";
+
                                     int nextDb = 0;
                                     _ = int.TryParse(lastDbId.Length > 3 ? lastDbId.Substring(3) : "0", out nextDb);
 
@@ -243,7 +423,7 @@ namespace CinemaS.Controllers
                                             nextDb++;
                                             string cand = $"DBS{nextDb:D3}";
                                             bool exists = await _context.DetailBookingSnacks.AsNoTracking()
-                                                             .AnyAsync(d => d.DetailBookingSnackId == cand);
+                                                .AnyAsync(d => d.DetailBookingSnackId == cand);
                                             if (!exists) return cand;
                                         }
                                     }
@@ -267,12 +447,6 @@ namespace CinemaS.Controllers
 
                                         snackSum += lineTotal;
                                     }
-
-                                    invoice.TotalPrice = ticketSum + snackSum;
-                                }
-                                else
-                                {
-                                    invoice.TotalPrice = ticketSum;
                                 }
 
                                 invoice.TotalTicket = finalSeats.Count;
@@ -280,69 +454,28 @@ namespace CinemaS.Controllers
                         }
                     }
                 }
-                else
-                {
-                    // Kiểm tra session pending cho đơn đồ ăn riêng
-                    var snacksRaw = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
-                    if (!string.IsNullOrWhiteSpace(snacksRaw))
-                    {
-                        var snacksPayload = JsonSerializer.Deserialize<PendingSnacksSelection>(snacksRaw) ?? new PendingSnacksSelection();
-
-                        if (snacksPayload.Snacks?.Any() == true)
-                        {
-                            var sids = snacksPayload.Snacks.Select(x => x.SnackId).Distinct().ToList();
-                            var snackMap = await _context.Snacks.AsNoTracking()
-                                .Where(s => sids.Contains(s.SnackId))
-                                .ToDictionaryAsync(s => s.SnackId, s => new { s.Name, Unit = (s.Price ?? 0m) });
-
-                            string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
-                                                    .OrderByDescending(d => d.DetailBookingSnackId)
-                                                    .Select(d => d.DetailBookingSnackId)
-                                                    .FirstOrDefaultAsync() ?? "DBS000";
-                            int nextDb = 0;
-                            _ = int.TryParse(lastDbId.Length > 3 ? lastDbId.Substring(3) : "0", out nextDb);
-
-                            async Task<string> NextDbSnackIdSafeAsync()
-                            {
-                                while (true)
-                                {
-                                    nextDb++;
-                                    string cand = $"DBS{nextDb:D3}";
-                                    bool exists = await _context.DetailBookingSnacks.AsNoTracking()
-                                                     .AnyAsync(d => d.DetailBookingSnackId == cand);
-                                    if (!exists) return cand;
-                                }
-                            }
-
-                            decimal snackSum = 0m;
-
-                            foreach (var line in snacksPayload.Snacks)
-                            {
-                                if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
-                                int qty = Math.Max(1, line.Quantity);
-                                decimal lineTotal = s.Unit * qty;
-
-                                var newDbId = await NextDbSnackIdSafeAsync();
-
-                                _context.DetailBookingSnacks.Add(new DetailBookingSnacks
-                                {
-                                    DetailBookingSnackId = newDbId,
-                                    InvoiceId = invoice.InvoiceId,
-                                    SnackId = line.SnackId,
-                                    TotalSnack = qty,
-                                    TotalPrice = lineTotal
-                                });
-
-                                snackSum += lineTotal;
-                            }
-
-                            invoice.TotalPrice = snackSum;
-                        }
-                    }
-                }
 
                 try
                 {
+                    // Set base total then apply promotion consistently
+                    var baseTotal = ticketSum + snackSum;
+                    if (baseTotal <= 0m && invoice.TotalPrice.HasValue && invoice.TotalPrice.Value > 0m)
+                        baseTotal = invoice.TotalPrice.Value;
+
+                    invoice.TotalPrice = baseTotal;
+
+                    var calcAfter = await CalcPayableAsync(invoice);
+                    if (!calcAfter.Success)
+                    {
+                        await tx.RollbackAsync();
+                        vm.IsSuccess = false;
+                        vm.Message = calcAfter.ErrorMessage ?? "Lỗi tính tiền.";
+                        return View("Result", vm);
+                    }
+
+                    invoice.TotalPrice = baseTotal; // tổng gốc
+
+
                     await _context.SaveChangesAsync();
                     await tx.CommitAsync();
 
@@ -354,9 +487,7 @@ namespace CinemaS.Controllers
                     HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
 
                     if (vm.Detail != null)
-                    {
                         await SendTicketEmailAsync(invoice, vm.Detail);
-                    }
                 }
                 catch (DbUpdateException)
                 {
@@ -376,6 +507,19 @@ namespace CinemaS.Controllers
                             _context.Tickets.Remove(t);
                     }
 
+                    // Recompute total after removing duplicates
+                    await _context.SaveChangesAsync();
+
+                    var recomputedBase = await GetInvoiceBaseTotalAsync(invoice.InvoiceId, invoice.TotalPrice);
+                    invoice.TotalPrice = recomputedBase;
+
+                    var calcAfter = await CalcPayableAsync(invoice);
+                    if (calcAfter.Success)
+                        invoice.TotalPrice = recomputedBase; // tổng gốc sau khi loại ghế trùng
+
+
+                    invoice.UpdatedAt = DateTime.UtcNow;
+
                     await _context.SaveChangesAsync();
                     await tx2.CommitAsync();
 
@@ -387,9 +531,7 @@ namespace CinemaS.Controllers
                     HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
 
                     if (vm.Detail != null)
-                    {
                         await SendTicketEmailAsync(invoice, vm.Detail);
-                    }
                 }
             }
             else
@@ -398,19 +540,55 @@ namespace CinemaS.Controllers
                     vm.Detail = await BuildTicketDetailAsync(invoice.InvoiceId);
             }
 
+            if (invoice != null)
+            {
+                bool hasTickets = await _context.Tickets.AsNoTracking()
+                    .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
+                bool hasSnacks = await _context.DetailBookingSnacks.AsNoTracking()
+                    .AnyAsync(d => d.InvoiceId == invoice.InvoiceId);
+
+                if (!hasTickets && hasSnacks)
+                    return RedirectToAction(nameof(SnackResult), new { invoiceId = invoice.InvoiceId });
+            }
+            if (vm.Detail != null)
+            {
+                var di = await GetDiscountInfoAsync(invoiceId, invoice?.TotalPrice);
+                vm.Detail.OriginalAmount = di.original;
+                vm.Detail.DiscountAmount = di.discount;
+                vm.Detail.PayableAmount = di.payable;
+                vm.Detail.DiscountPercent = di.percent;
+                vm.Detail.PromotionName = di.promoName;
+            }
+
             return View("Result", vm);
         }
 
         /* ===================== 3) Xem lại kết quả theo InvoiceId ===================== */
+
         [HttpGet("Result/{invoiceId}")]
         [Authorize]
         public async Task<IActionResult> ResultById(string invoiceId)
         {
-            var invoice = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
-            if (invoice == null) return NotFound();
+            if (string.IsNullOrWhiteSpace(invoiceId))
+                return NotFound();
+
+            var invoice = await _context.Invoices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
+            if (invoice == null)
+                return NotFound();
+
+            bool hasTickets = await _context.Tickets.AsNoTracking()
+                .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
+            bool hasSnacks = await _context.DetailBookingSnacks.AsNoTracking()
+                .AnyAsync(d => d.InvoiceId == invoice.InvoiceId);
+
+            if (!hasTickets && hasSnacks)
+                return RedirectToAction(nameof(SnackResult), new { invoiceId = invoice.InvoiceId });
 
             var paymentTxn = await _context.PaymentTransactions.AsNoTracking()
-                .Where(pt => pt.InvoiceId == invoiceId)
+                .Where(pt => pt.InvoiceId == invoice.InvoiceId)
                 .OrderByDescending(pt => pt.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -432,13 +610,38 @@ namespace CinemaS.Controllers
                 vm.VnpResponseCode = description.Contains("Response:")
                     ? ExtractValueFromDescription(description, "Response:")
                     : (paymentTxn.Status == 1 ? "00" : "");
+
                 vm.VnpTransactionStatus = description.Contains("Status:")
                     ? ExtractValueFromDescription(description, "Status:")
                     : (paymentTxn.Status == 1 ? "00" : "");
 
                 vm.Amount = (int)paymentTxn.Amount.GetValueOrDefault(0);
                 vm.TransactionNo = paymentTxn.ProviderTxnId;
-                vm.PayDateRaw = paymentTxn.PaidAt?.ToString("yyyyMMddHHmmss");
+
+                // ✅ FIX: PaidAt (UTC) -> giờ VN rồi format yyyyMMddHHmmss
+                if (paymentTxn.PaidAt.HasValue)
+                {
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    var paidAtVn = TimeZoneInfo.ConvertTimeFromUtc(
+                        DateTime.SpecifyKind(paymentTxn.PaidAt.Value, DateTimeKind.Utc),
+                        tz
+                    );
+                    vm.PayDateRaw = paidAtVn.ToString("yyyyMMddHHmmss");
+                }
+                else
+                {
+                    vm.PayDateRaw = null;
+                }
+            }
+
+            if (vm.Detail != null)
+            {
+                var di = await GetDiscountInfoAsync(invoice.InvoiceId, invoice.TotalPrice);
+                vm.Detail.OriginalAmount = di.original;
+                vm.Detail.DiscountAmount = di.discount;
+                vm.Detail.PayableAmount = di.payable;
+                vm.Detail.DiscountPercent = di.percent;
+                vm.Detail.PromotionName = di.promoName;
             }
 
             return View("Result", vm);
@@ -447,7 +650,6 @@ namespace CinemaS.Controllers
         private string ExtractBankCodeFromDescription(string description)
         {
             if (string.IsNullOrEmpty(description)) return "";
-
             var parts = description.Split(',');
             foreach (var part in parts)
             {
@@ -456,9 +658,7 @@ namespace CinemaS.Controllers
                 {
                     var colonIndex = trimmed.IndexOf(':');
                     if (colonIndex >= 0 && colonIndex + 1 < trimmed.Length)
-                    {
-                        return trimmed.Substring(colonIndex + 1).Trim();
-                    }
+                        return trimmed[(colonIndex + 1)..].Trim();
                 }
             }
             return "";
@@ -473,22 +673,107 @@ namespace CinemaS.Controllers
                 {
                     var colonIndex = part.IndexOf(':');
                     if (colonIndex >= 0 && colonIndex + 1 < part.Length)
-                    {
-                        return part.Substring(colonIndex + 1).Trim();
-                    }
+                        return part[(colonIndex + 1)..].Trim();
                 }
             }
             return "";
         }
 
-        /* ===================== 4) Lịch sử hoá đơn của user ===================== */
+        /* ===================== Delete history (user) ===================== */
+
+        [HttpPost("DeleteHistory")]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteHistory(string invoiceId)
+        {
+            if (string.IsNullOrWhiteSpace(invoiceId))
+            {
+                TempData["Error"] = "Mã hóa đơn không hợp lệ.";
+                return RedirectToAction(nameof(History));
+            }
+
+            var email = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                TempData["Error"] = "Không xác định được tài khoản.";
+                return RedirectToAction(nameof(History));
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                TempData["Error"] = "Không tìm thấy người dùng.";
+                return RedirectToAction(nameof(History));
+            }
+
+            var invoice = await _context.Invoices
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId && i.CustomerId == user.UserId);
+
+            if (invoice == null)
+            {
+                TempData["Error"] = "Không tìm thấy hóa đơn.";
+                return RedirectToAction(nameof(History));
+            }
+
+            if (invoice.Status == 1)
+            {
+                TempData["Error"] = "Không thể xóa hóa đơn đã thanh toán thành công.";
+                return RedirectToAction(nameof(History));
+            }
+
+            bool hasValidMovie =
+                await (from t in _context.Tickets
+                       join st in _context.ShowTimes on t.ShowTimeId equals st.ShowTimeId
+                       join m in _context.Movies on st.MoviesId equals m.MoviesId
+                       where t.InvoiceId == invoice.InvoiceId
+                       select m.MoviesId).AnyAsync();
+
+            if (hasValidMovie)
+            {
+                TempData["Error"] = "Chỉ có thể xóa những hóa đơn không có thông tin phim (N/A).";
+                return RedirectToAction(nameof(History));
+            }
+
+            using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var tickets = await _context.Tickets.Where(t => t.InvoiceId == invoice.InvoiceId).ToListAsync();
+                if (tickets.Any()) _context.Tickets.RemoveRange(tickets);
+
+                var snackDetails = await _context.DetailBookingSnacks.Where(d => d.InvoiceId == invoice.InvoiceId).ToListAsync();
+                if (snackDetails.Any()) _context.DetailBookingSnacks.RemoveRange(snackDetails);
+
+                var paymentTxns = await _context.PaymentTransactions.Where(p => p.InvoiceId == invoice.InvoiceId).ToListAsync();
+                if (paymentTxns.Any()) _context.PaymentTransactions.RemoveRange(paymentTxns);
+
+                _context.Invoices.Remove(invoice);
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                TempData["Message"] = "Đã xóa hóa đơn khỏi lịch sử.";
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                TempData["Error"] = "Xóa hóa đơn không thành công.";
+            }
+
+            return RedirectToAction(nameof(History));
+        }
+
+        /* ===================== 4) Lịch sử hoá đơn ===================== */
+
         [HttpGet("History")]
         [Authorize]
         public async Task<IActionResult> History()
         {
             var email = User.Identity?.Name;
-            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return View("History", new List<InvoiceHistoryVM>());
+            var user = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+                return View("History", new List<InvoiceHistoryVM>());
 
             var invoices = await _context.Invoices.AsNoTracking()
                 .Where(i => i.CustomerId == user.UserId)
@@ -496,6 +781,7 @@ namespace CinemaS.Controllers
                 .ToListAsync();
 
             var vm = new List<InvoiceHistoryVM>();
+
             foreach (var inv in invoices)
             {
                 var anyTicket = await _context.Tickets.AsNoTracking()
@@ -503,30 +789,49 @@ namespace CinemaS.Controllers
                     .OrderBy(t => t.TicketId)
                     .FirstOrDefaultAsync();
 
+                var hasSnacks = await _context.DetailBookingSnacks.AsNoTracking()
+                    .AnyAsync(d => d.InvoiceId == inv.InvoiceId);
+
+                // giữ logic cũ: bỏ qua hoá đơn snack-only ở trang History vé
+                if (anyTicket == null && hasSnacks && (inv.TotalTicket ?? 0) == 0)
+                    continue;
+
                 string? movie = null, room = null;
                 DateTime? showDate = null, start = null;
 
                 if (anyTicket != null)
                 {
-                    var st = await _context.ShowTimes.AsNoTracking().FirstOrDefaultAsync(x => x.ShowTimeId == anyTicket.ShowTimeId);
+                    var st = await _context.ShowTimes.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.ShowTimeId == anyTicket.ShowTimeId);
+
                     if (st != null)
                     {
                         showDate = st.ShowDate;
                         start = st.StartTime;
 
-                        var mv = await _context.Movies.AsNoTracking().FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
-                        var ct = await _context.CinemaTheaters.AsNoTracking().FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
+                        var mv = await _context.Movies.AsNoTracking()
+                            .FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
+                        var ct = await _context.CinemaTheaters.AsNoTracking()
+                            .FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
+
                         movie = mv?.Title;
                         room = ct?.Name;
                     }
                 }
+
+                // ✅ LẤY SỐ TIỀN PHẢI TRẢ (SAU GIẢM) để hiển thị History đúng như Result
+                var di = await GetDiscountInfoAsync(inv.InvoiceId, inv.TotalPrice);
+                var payable = di.payable;
 
                 vm.Add(new InvoiceHistoryVM
                 {
                     InvoiceId = inv.InvoiceId,
                     CreatedAt = inv.CreatedAt,
                     Status = inv.Status.GetValueOrDefault(0),
-                    TotalPrice = inv.TotalPrice.GetValueOrDefault(0m),
+
+                    // ✅ hiển thị tổng tiền sau giảm
+                    TotalPrice = payable,
+
                     MovieTitle = movie,
                     Room = room,
                     ShowDate = showDate,
@@ -537,7 +842,9 @@ namespace CinemaS.Controllers
             return View("History", vm);
         }
 
+
         /* ===================== 5) Thanh toán tiền mặt (Admin) ===================== */
+
         [HttpPost("PayByCash")]
         [Authorize(Roles = "Admin")]
         [IgnoreAntiforgeryToken]
@@ -546,9 +853,7 @@ namespace CinemaS.Controllers
             if (req == null || string.IsNullOrWhiteSpace(req.InvoiceId))
                 return Json(new { success = false, message = "Thiếu mã hóa đơn." });
 
-            var invoice = await _context.Invoices
-                .FirstOrDefaultAsync(i => i.InvoiceId == req.InvoiceId);
-
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == req.InvoiceId);
             if (invoice == null)
                 return Json(new { success = false, message = "Không tìm thấy hóa đơn." });
 
@@ -558,8 +863,7 @@ namespace CinemaS.Controllers
                 return Json(new { success = true, alreadyPaid = true, redirectUrl = existedUrl });
             }
 
-            var cashMethod = await _context.PaymentMethods
-                .AsNoTracking()
+            var cashMethod = await _context.PaymentMethods.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Code == "CASH");
 
             if (cashMethod == null)
@@ -578,19 +882,74 @@ namespace CinemaS.Controllers
                 invoice.UpdatedAt = DateTime.UtcNow;
                 invoice.PaymentMethodId = cashMethod.PaymentMethodId;
 
-                bool alreadyHasTickets = await _context.Tickets
-                    .AsNoTracking()
+                bool alreadyHasTickets = await _context.Tickets.AsNoTracking()
                     .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
 
-                if (!alreadyHasTickets)
+                decimal ticketSum = 0m;
+                decimal snackSum = 0m;
+
+                var snacksRawOnly = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
+                if (!string.IsNullOrWhiteSpace(snacksRawOnly))
+                {
+                    var snacksPayload = JsonSerializer.Deserialize<PendingSnacksSelection>(snacksRawOnly) ?? new PendingSnacksSelection();
+                    if (snacksPayload.Snacks?.Any() == true)
+                    {
+                        var sids = snacksPayload.Snacks.Select(x => x.SnackId).Distinct().ToList();
+                        var snackMap = await _context.Snacks.AsNoTracking()
+                            .Where(s => sids.Contains(s.SnackId))
+                            .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
+
+                        string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
+                            .OrderByDescending(d => d.DetailBookingSnackId)
+                            .Select(d => d.DetailBookingSnackId)
+                            .FirstOrDefaultAsync() ?? "DBS000";
+
+                        int nextDb = 0;
+                        _ = int.TryParse(lastDbId.Length > 3 ? lastDbId.Substring(3) : "0", out nextDb);
+
+                        async Task<string> NextDbSnackIdSafeAsync()
+                        {
+                            while (true)
+                            {
+                                nextDb++;
+                                string cand = $"DBS{nextDb:D3}";
+                                bool exists = await _context.DetailBookingSnacks.AsNoTracking()
+                                    .AnyAsync(d => d.DetailBookingSnackId == cand);
+                                if (!exists) return cand;
+                            }
+                        }
+
+                        foreach (var line in snacksPayload.Snacks)
+                        {
+                            if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
+                            int qty = Math.Max(1, line.Quantity);
+                            decimal lineTotal = s.Unit * qty;
+
+                            var newDbId = await NextDbSnackIdSafeAsync();
+
+                            _context.DetailBookingSnacks.Add(new DetailBookingSnacks
+                            {
+                                DetailBookingSnackId = newDbId,
+                                InvoiceId = invoice.InvoiceId,
+                                SnackId = line.SnackId,
+                                TotalSnack = qty,
+                                TotalPrice = lineTotal
+                            });
+
+                            snackSum += lineTotal;
+                        }
+
+                        invoice.TotalTicket = 0;
+                    }
+                }
+                else if (!alreadyHasTickets)
                 {
                     var raw = HttpContext.Session.GetString($"pending:{invoice.InvoiceId}");
                     if (!string.IsNullOrWhiteSpace(raw))
                     {
                         var payload = JsonSerializer.Deserialize<PendingSelection>(raw) ?? new PendingSelection();
 
-                        var st = await _context.ShowTimes
-                            .AsNoTracking()
+                        var st = await _context.ShowTimes.AsNoTracking()
                             .FirstOrDefaultAsync(x => x.ShowTimeId == payload.ShowTimeId);
 
                         if (st != null)
@@ -603,8 +962,7 @@ namespace CinemaS.Controllers
 
                             if (requestSeatIds.Count > 0)
                             {
-                                var occupied = await _context.Tickets
-                                    .AsNoTracking()
+                                var occupied = await _context.Tickets.AsNoTracking()
                                     .Where(t => t.ShowTimeId == st.ShowTimeId && requestSeatIds.Contains(t.SeatId))
                                     .Select(t => t.SeatId)
                                     .ToListAsync();
@@ -612,17 +970,13 @@ namespace CinemaS.Controllers
                                 var occupiedSet = new HashSet<string>(occupied);
                                 var finalSeats = requestSeatIds.Where(id => !occupiedSet.Contains(id)).ToList();
 
-                                var seats = await _context.Seats
-                                    .AsNoTracking()
+                                var seats = await _context.Seats.AsNoTracking()
                                     .Where(s => finalSeats.Contains(s.SeatId))
                                     .ToListAsync();
 
-                                var seatTypes = await _context.SeatTypes
-                                    .AsNoTracking()
-                                    .ToListAsync();
+                                var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
 
-                                string lastId = await _context.Tickets
-                                    .AsNoTracking()
+                                string lastId = await _context.Tickets.AsNoTracking()
                                     .OrderByDescending(t => t.TicketId)
                                     .Select(t => t.TicketId)
                                     .FirstOrDefaultAsync() ?? "T000000";
@@ -636,14 +990,11 @@ namespace CinemaS.Controllers
                                     {
                                         nextNum++;
                                         string candidate = $"T{nextNum:D6}";
-                                        bool exists = await _context.Tickets
-                                            .AsNoTracking()
+                                        bool exists = await _context.Tickets.AsNoTracking()
                                             .AnyAsync(t => t.TicketId == candidate);
                                         if (!exists) return candidate;
                                     }
                                 }
-
-                                decimal ticketSum = 0m;
 
                                 foreach (var sid in finalSeats)
                                 {
@@ -652,9 +1003,7 @@ namespace CinemaS.Controllers
 
                                     string ticketTypeId = "TT001";
                                     if (stype != null && !string.IsNullOrEmpty(stype.SeatTypeId) && stype.SeatTypeId.Length >= 5)
-                                    {
                                         ticketTypeId = "TT" + stype.SeatTypeId.Substring(2);
-                                    }
 
                                     decimal price = stype?.Price ?? 0m;
                                     ticketSum += price;
@@ -675,18 +1024,18 @@ namespace CinemaS.Controllers
                                     });
                                 }
 
-                                decimal snackSum = 0m;
                                 if (payload.Snacks?.Any() == true)
                                 {
                                     var sids = payload.Snacks.Select(x => x.SnackId).Distinct().ToList();
                                     var snackMap = await _context.Snacks.AsNoTracking()
                                         .Where(s => sids.Contains(s.SnackId))
-                                        .ToDictionaryAsync(s => s.SnackId, s => new { s.Name, Unit = (s.Price ?? 0m) });
+                                        .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
 
                                     string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
-                                                        .OrderByDescending(d => d.DetailBookingSnackId)
-                                                        .Select(d => d.DetailBookingSnackId)
-                                                        .FirstOrDefaultAsync() ?? "DBS000";
+                                        .OrderByDescending(d => d.DetailBookingSnackId)
+                                        .Select(d => d.DetailBookingSnackId)
+                                        .FirstOrDefaultAsync() ?? "DBS000";
+
                                     int nextDb = 0;
                                     _ = int.TryParse(lastDbId.Length > 3 ? lastDbId.Substring(3) : "0", out nextDb);
 
@@ -697,7 +1046,7 @@ namespace CinemaS.Controllers
                                             nextDb++;
                                             string cand = $"DBS{nextDb:D3}";
                                             bool exists = await _context.DetailBookingSnacks.AsNoTracking()
-                                                             .AnyAsync(d => d.DetailBookingSnackId == cand);
+                                                .AnyAsync(d => d.DetailBookingSnackId == cand);
                                             if (!exists) return cand;
                                         }
                                     }
@@ -721,12 +1070,6 @@ namespace CinemaS.Controllers
 
                                         snackSum += lineTotal;
                                     }
-
-                                    invoice.TotalPrice = ticketSum + snackSum;
-                                }
-                                else
-                                {
-                                    invoice.TotalPrice = ticketSum;
                                 }
 
                                 invoice.TotalTicket = finalSeats.Count;
@@ -734,68 +1077,24 @@ namespace CinemaS.Controllers
                         }
                     }
                 }
-                else
+
+                var baseTotal = ticketSum + snackSum;
+                if (baseTotal <= 0m && invoice.TotalPrice.HasValue && invoice.TotalPrice.Value > 0m)
+                    baseTotal = invoice.TotalPrice.Value;
+
+                invoice.TotalPrice = baseTotal;
+
+                var calcPay = await CalcPayableAsync(invoice);
+                if (!calcPay.Success)
                 {
-                    // Kiểm tra session pending cho đơn đồ ăn riêng
-                    var snacksRaw = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
-                    if (!string.IsNullOrWhiteSpace(snacksRaw))
-                    {
-                        var snacksPayload = JsonSerializer.Deserialize<PendingSnacksSelection>(snacksRaw) ?? new PendingSnacksSelection();
-
-                        if (snacksPayload.Snacks?.Any() == true)
-                        {
-                            var sids = snacksPayload.Snacks.Select(x => x.SnackId).Distinct().ToList();
-                            var snackMap = await _context.Snacks.AsNoTracking()
-                                .Where(s => sids.Contains(s.SnackId))
-                                .ToDictionaryAsync(s => s.SnackId, s => new { s.Name, Unit = (s.Price ?? 0m) });
-
-                            string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
-                                                    .OrderByDescending(d => d.DetailBookingSnackId)
-                                                    .Select(d => d.DetailBookingSnackId)
-                                                    .FirstOrDefaultAsync() ?? "DBS000";
-                            int nextDb = 0;
-                            _ = int.TryParse(lastDbId.Length > 3 ? lastDbId.Substring(3) : "0", out nextDb);
-
-                            async Task<string> NextDbSnackIdSafeAsync()
-                            {
-                                while (true)
-                                {
-                                    nextDb++;
-                                    string cand = $"DBS{nextDb:D3}";
-                                    bool exists = await _context.DetailBookingSnacks.AsNoTracking()
-                                                     .AnyAsync(d => d.DetailBookingSnackId == cand);
-                                    if (!exists) return cand;
-                                }
-                            }
-
-                            decimal snackSum = 0m;
-
-                            foreach (var line in snacksPayload.Snacks)
-                            {
-                                if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
-                                int qty = Math.Max(1, line.Quantity);
-                                decimal lineTotal = s.Unit * qty;
-
-                                var newDbId = await NextDbSnackIdSafeAsync();
-
-                                _context.DetailBookingSnacks.Add(new DetailBookingSnacks
-                                {
-                                    DetailBookingSnackId = newDbId,
-                                    InvoiceId = invoice.InvoiceId,
-                                    SnackId = line.SnackId,
-                                    TotalSnack = qty,
-                                    TotalPrice = lineTotal
-                                });
-
-                                snackSum += lineTotal;
-                            }
-
-                            invoice.TotalPrice = snackSum;
-                        }
-                    }
+                    await tx.RollbackAsync();
+                    return Json(new { success = false, message = calcPay.ErrorMessage });
                 }
 
-                long amountLong = (long)(invoice.TotalPrice ?? 0m);
+                invoice.TotalPrice = baseTotal; // tổng gốc
+
+
+                long amountLong = calcPay.PayableAmountVnd;
 
                 var lastTxn = await _context.PaymentTransactions.AsNoTracking()
                     .OrderByDescending(pt => pt.PaymentTransactionId)
@@ -834,22 +1133,276 @@ namespace CinemaS.Controllers
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
 
-                var url = Url.Action(nameof(ResultById), "Payment", new { invoiceId = invoice.InvoiceId })!;
+                HttpContext.Session.Remove($"pending:{invoice.InvoiceId}");
+                HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
+
+                bool hasTickets = await _context.Tickets.AsNoTracking()
+                    .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
+                bool hasSnacks = await _context.DetailBookingSnacks.AsNoTracking()
+                    .AnyAsync(d => d.InvoiceId == invoice.InvoiceId);
+
+                var url = (!hasTickets && hasSnacks)
+                    ? Url.Action(nameof(SnackResult), "Payment", new { invoiceId = invoice.InvoiceId })!
+                    : Url.Action(nameof(ResultById), "Payment", new { invoiceId = invoice.InvoiceId })!;
+
                 return Json(new { success = true, redirectUrl = url });
             }
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
                 var inner = ex.InnerException?.Message;
-                return Json(new
-                {
-                    success = false,
-                    message = "Thanh toán tiền mặt lỗi: " + (inner ?? ex.Message)
-                });
+                return Json(new { success = false, message = "Thanh toán tiền mặt lỗi: " + (inner ?? ex.Message) });
             }
         }
 
+        /* ===================== 6) Snack result / history ===================== */
+
+        [HttpGet("SnackResult")]
+        [Authorize]
+        public async Task<IActionResult> SnackResult(string invoiceId)
+        {
+            if (string.IsNullOrWhiteSpace(invoiceId))
+                return RedirectToAction("SnackHistory");
+
+            var invoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
+            if (invoice == null)
+                return RedirectToAction("SnackHistory");
+
+            var details = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(d => d.InvoiceId == invoiceId)
+                .Join(_context.Snacks.AsNoTracking(),
+                    d => d.SnackId,
+                    s => s.SnackId,
+                    (d, s) => new
+                    {
+                        s.Name,
+                        Quantity = d.TotalSnack ?? 0,
+                        LineTotal = (s.Price ?? 0m) * (d.TotalSnack ?? 0)
+                    })
+                .ToListAsync();
+
+
+            decimal baseTotal = details.Sum(x => x.LineTotal);
+
+            // ✅ TÍNH LẠI SAU GIẢM
+            var di = await GetDiscountInfoAsync(invoice.InvoiceId, baseTotal);
+            var payable = di.payable;
+
+            var vm = new SnackPaymentResultVM
+            {
+                OrderId = invoice.InvoiceId,
+                IsSuccess = invoice.Status == 1,
+                Detail = new SnackInvoiceDetailVM
+                {
+                    CreatedAt = invoice.CreatedAt,
+                    InvoiceEmail = invoice.Email,
+                    InvoicePhone = invoice.PhoneNumber,
+
+                    SnackItems = details.Select(x => new SnackItemVM
+                    {
+                        Name = x.Name,
+                        Quantity = x.Quantity,
+                        LineTotal = x.LineTotal
+                    }).ToList(),
+
+                    // ✅ GIÁ ĐÚNG
+                    SnackTotal = payable
+                }
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet("SnackHistory")]
+        [Authorize]
+        public async Task<IActionResult> SnackHistory()
+        {
+            var email = User.Identity?.Name;
+            var user = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+                return View(new List<SnackInvoiceHistoryVM>());
+
+            var invoices = await _context.Invoices.AsNoTracking()
+                .Where(i => i.CustomerId == user.UserId && (i.TotalTicket ?? 0) == 0)
+                .OrderByDescending(i => i.CreatedAt)
+                .ToListAsync();
+
+            var vm = new List<SnackInvoiceHistoryVM>();
+
+            foreach (var inv in invoices)
+            {
+                // chỉ lấy hóa đơn có snack
+                var hasSnack = await _context.DetailBookingSnacks.AsNoTracking()
+                    .AnyAsync(d => d.InvoiceId == inv.InvoiceId);
+
+                if (!hasSnack)
+                    continue;
+
+                // ✅ TÍNH SỐ TIỀN PHẢI TRẢ (SAU GIẢM)
+                var di = await GetDiscountInfoAsync(inv.InvoiceId, inv.TotalPrice);
+                var payable = di.payable;
+
+                vm.Add(new SnackInvoiceHistoryVM
+                {
+                    InvoiceId = inv.InvoiceId,
+                    CreatedAt = inv.CreatedAt,
+                    Status = inv.Status.GetValueOrDefault(0),
+
+                    // ✅ GIÁ ĐÚNG
+                    TotalPrice = payable
+                });
+            }
+
+            return View(vm);
+        }
+
+
         /* ===================== Helpers ===================== */
+        private async Task<(decimal original, decimal discount, decimal payable, double? percent, string? promoName)> GetDiscountInfoAsync(string invoiceId, decimal? fallbackTotal)
+        {
+            // Tổng gốc = tổng vé + tổng snack (không bị “mất” dù invoice.TotalPrice đã bị trừ giảm)
+            decimal original = await GetInvoiceBaseTotalAsync(invoiceId, fallbackTotal);
+
+            decimal discount = 0m;
+            decimal payable = original;
+            double? percent = null;
+            string? promoName = null;
+
+            var invoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
+            if (invoice == null || string.IsNullOrWhiteSpace(invoice.PromotionId))
+                return (original, discount, payable, percent, promoName);
+
+            var promo = await _context.Promotion.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.PromotionId == invoice.PromotionId);
+
+            if (promo == null) return (original, discount, payable, percent, promoName);
+
+            // chỉ tính nếu promo còn hợp lệ
+            var nowVn = NowVn();
+            var valid = ValidatePromotion(promo, nowVn);
+            if (!valid.Success) return (original, discount, payable, percent, promoName);
+
+            var (_, p) = NormalizeDiscountPercent(promo.Discount!.Value);
+            percent = p;
+            promoName = promo.Name;
+
+            discount = Math.Round(original * (decimal)p / 100m, 0, MidpointRounding.AwayFromZero);
+            payable = original - discount;
+            if (payable < 0) payable = 0;
+
+            return (original, discount, payable, percent, promoName);
+        }
+
+        private sealed record PromotionValidationResult(bool Success, string? ErrorMessage);
+
+        private sealed record PayableCalcResult(
+            bool Success,
+            string? ErrorMessage,
+            decimal OriginalAmount,
+            decimal DiscountAmount,
+            double? DiscountPercent,
+            long PayableAmountVnd
+        );
+
+        private DateTime NowVn()
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        }
+
+        private static string NormalizePromoCode(string code)
+            => (code ?? "").Trim().ToLower();
+
+        private static (bool ok, double percent) NormalizeDiscountPercent(double raw)
+        {
+            double percent = (raw > 0 && raw < 1) ? raw * 100.0 : raw;
+            if (percent <= 0 || percent > 100) return (false, 0);
+            return (true, percent);
+        }
+
+        private PromotionValidationResult ValidatePromotion(Promotion promo, DateTime nowVn)
+        {
+            if (promo.Status != true)
+                return new(false, "Mã khuyến mãi đang tắt.");
+
+            if (promo.StartDay.HasValue && promo.StartDay.Value > nowVn)
+                return new(false, "Mã khuyến mãi chưa bắt đầu.");
+
+            if (promo.EndDay.HasValue && promo.EndDay.Value < nowVn)
+                return new(false, "Mã khuyến mãi đã hết hạn.");
+
+            if (!promo.Discount.HasValue)
+                return new(false, "Mã khuyến mãi thiếu giá trị giảm.");
+
+            var (ok, _) = NormalizeDiscountPercent(promo.Discount.Value);
+            if (!ok)
+                return new(false, "Giá trị giảm không hợp lệ (phải trong (0..100]).");
+
+            return new(true, null);
+        }
+
+        private static long ToVndLong(decimal money)
+            => (long)Math.Round(money, 0, MidpointRounding.AwayFromZero);
+
+        private async Task<PayableCalcResult> CalcPayableAsync(Invoices invoice)
+        {
+            decimal original = await GetInvoiceBaseTotalAsync(invoice.InvoiceId, invoice.TotalPrice);
+
+
+            if (string.IsNullOrWhiteSpace(invoice.PromotionId))
+                return new(true, null, original, 0m, null, ToVndLong(original));
+
+            var promo = await _context.Promotion.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.PromotionId == invoice.PromotionId);
+
+            if (promo == null)
+                return new(false, "Không tìm thấy khuyến mãi của hóa đơn.", original, 0m, null, ToVndLong(original));
+
+            var nowVn = NowVn();
+            var v = ValidatePromotion(promo, nowVn);
+            if (!v.Success)
+                return new(false, v.ErrorMessage, original, 0m, null, ToVndLong(original));
+
+            var (_, percent) = NormalizeDiscountPercent(promo.Discount!.Value);
+
+            decimal discountAmount = Math.Round(original * (decimal)percent / 100m, 0, MidpointRounding.AwayFromZero);
+            decimal payable = original - discountAmount;
+            if (payable < 0) payable = 0;
+
+            return new(true, null, original, discountAmount, percent, ToVndLong(payable));
+        }
+
+        private async Task<decimal> GetInvoiceBaseTotalAsync(string invoiceId, decimal? fallbackTotalPrice)
+        {
+            decimal ticketSum = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .SumAsync(t => (decimal)(t.Price ?? 0));
+
+            decimal snackSum = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(s => s.InvoiceId == invoiceId)
+                .SumAsync(s => (decimal)(s.TotalPrice ?? 0));
+
+            var total = ticketSum + snackSum;
+            if (total <= 0m && fallbackTotalPrice.HasValue && fallbackTotalPrice.Value > 0m)
+                total = fallbackTotalPrice.Value;
+
+            return total;
+        }
+
+        private async Task<CinemaS.Models.Users?> GetCurrentUserEntityAsync()
+        {
+            var email = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(email)) return null;
+
+            return await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
 
         private static int ParseVnpAmount(string? vnpAmount)
             => (long.TryParse(vnpAmount, out var raw) ? (int)(raw / 100) : 0);
@@ -859,26 +1412,30 @@ namespace CinemaS.Controllers
             var inv = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
             if (inv == null) return null;
 
-            var tickets = await _context.Tickets.AsNoTracking().Where(t => t.InvoiceId == invoiceId).ToListAsync();
-            
+            var tickets = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .ToListAsync();
+
             TicketDetailVM detail;
 
             if (tickets.Any())
             {
-                // Có vé - xử lý như cũ
                 var first = tickets.First();
-                var st = await _context.ShowTimes.AsNoTracking().FirstOrDefaultAsync(x => x.ShowTimeId == first.ShowTimeId);
+                var st = await _context.ShowTimes.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.ShowTimeId == first.ShowTimeId);
                 if (st == null) return null;
 
-                var movie = await _context.Movies.AsNoTracking().FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
-                var room = await _context.CinemaTheaters.AsNoTracking().FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
+                var movie = await _context.Movies.AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
+                var room = await _context.CinemaTheaters.AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
 
                 var seatIds = tickets.Select(t => t.SeatId).ToList();
                 var seatLabels = await _context.Seats.AsNoTracking()
-                                    .Where(s => seatIds.Contains(s.SeatId))
-                                    .Select(s => s.Label ?? s.SeatId)
-                                    .OrderBy(x => x)
-                                    .ToListAsync();
+                    .Where(s => seatIds.Contains(s.SeatId))
+                    .Select(s => s.Label ?? s.SeatId)
+                    .OrderBy(x => x)
+                    .ToListAsync();
 
                 decimal ticketTotal = tickets.Sum(t => Convert.ToDecimal(t.Price.GetValueOrDefault(0)));
 
@@ -903,7 +1460,6 @@ namespace CinemaS.Controllers
             }
             else
             {
-                // Không có vé - chỉ có đồ ăn
                 detail = new TicketDetailVM
                 {
                     InvoiceId = inv.InvoiceId,
@@ -924,12 +1480,16 @@ namespace CinemaS.Controllers
                 };
             }
 
-            // Xử lý đồ ăn (chung cho cả 2 trường hợp)
-            var snackLines = await _context.DetailBookingSnacks.AsNoTracking().Where(d => d.InvoiceId == invoiceId).ToListAsync();
+            var snackLines = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(d => d.InvoiceId == invoiceId)
+                .ToListAsync();
+
             var sids = snackLines.Select(x => x.SnackId).ToList();
             var snacks = await _context.Snacks.AsNoTracking()
                 .Where(s => sids.Contains(s.SnackId))
-                .ToDictionaryAsync(s => s.SnackId, s => new { s.Name, Price = (s.Price ?? 0m) });
+                .ToDictionaryAsync(
+                    s => s.SnackId,
+                    s => new { s.Name, Price = (s.Price ?? 0m), s.Image });
 
             foreach (var l in snackLines)
             {
@@ -943,7 +1503,8 @@ namespace CinemaS.Controllers
                     Name = s?.Name ?? "Snack",
                     Quantity = qty,
                     UnitPrice = unit,
-                    LineTotal = line
+                    LineTotal = line,
+                    Image = s?.Image
                 });
             }
 
@@ -957,31 +1518,32 @@ namespace CinemaS.Controllers
         {
             if (!string.IsNullOrEmpty(inv.PaymentMethodId))
             {
-                var method = await _context.PaymentMethods
-                    .AsNoTracking()
+                var method = await _context.PaymentMethods.AsNoTracking()
                     .FirstOrDefaultAsync(m => m.PaymentMethodId == inv.PaymentMethodId);
 
-                return method?.Name ?? method?.Code ?? "Thanh toán";
+                if (method != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(method.Name)) return method.Name;
+                    if (!string.IsNullOrWhiteSpace(method.Code)) return method.Code;
+                }
             }
-            else
-            {
-                return inv.PaymentMethod ?? "N/A";
-            }
+
+            return "Thanh toán";
         }
 
         private async Task SavePaymentTransactionAsync(
-            string invoiceId,
-            string paymentMethodId,
-            long amount,
-            string responseCode,
-            string transactionStatus,
-            string providerTxnId,
-            string providerOrderNo,
-            string bankCode,
-            string payDate,
-            bool signatureValid,
-            byte status = 1,
-            string? failureReason = null)
+    string invoiceId,
+    string paymentMethodId,
+    long amount,
+    string responseCode,
+    string transactionStatus,
+    string providerTxnId,
+    string providerOrderNo,
+    string bankCode,
+    string payDate,
+    bool signatureValid,
+    byte status = 1,
+    string? failureReason = null)
         {
             var lastTxn = await _context.PaymentTransactions.AsNoTracking()
                 .OrderByDescending(pt => pt.PaymentTransactionId)
@@ -992,12 +1554,26 @@ namespace CinemaS.Controllers
             {
                 var numPart = lastTxn.PaymentTransactionId.Substring(2);
                 if (int.TryParse(numPart, out int num))
-                {
                     nextNum = num + 1;
-                }
             }
 
             string txnId = $"PT{nextNum:D8}";
+
+            // ✅ NEW: PaidAt lưu UTC nhưng lấy theo payDate (giờ VN) nếu có
+            DateTime? paidAtUtc = null;
+            if (status == 1 && !string.IsNullOrWhiteSpace(payDate))
+            {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                if (DateTime.TryParseExact(
+                        payDate.Trim(),
+                        "yyyyMMddHHmmss",
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None,
+                        out var vnPayLocal))
+                {
+                    paidAtUtc = TimeZoneInfo.ConvertTimeToUtc(vnPayLocal, tz);
+                }
+            }
 
             var transaction = new PaymentTransactions
             {
@@ -1013,7 +1589,10 @@ namespace CinemaS.Controllers
                 FailureReason = failureReason,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                PaidAt = status == 1 ? DateTime.UtcNow : null,
+
+                // ✅ FIX: dùng paidAtUtc nếu parse được, fallback UtcNow
+                PaidAt = status == 1 ? (paidAtUtc ?? DateTime.UtcNow) : null,
+
                 RefundedAt = null
             };
 
@@ -1021,22 +1600,19 @@ namespace CinemaS.Controllers
             await _context.SaveChangesAsync();
         }
 
+
         /* ===================== Email helpers ===================== */
 
         private async Task SendTicketEmailAsync(Invoices invoice, TicketDetailVM detail)
         {
             if (detail == null) return;
 
-            // Ưu tiên email trong chi tiết hóa đơn; nếu trống thì lấy từ bảng Invoices,
-            // cuối cùng fallback sang AspNetUsers.Email nếu có CustomerId
             string? toEmail = detail.InvoiceEmail;
 
             if (string.IsNullOrWhiteSpace(toEmail))
             {
                 if (!string.IsNullOrWhiteSpace(invoice.Email))
-                {
                     toEmail = invoice.Email;
-                }
                 else if (!string.IsNullOrWhiteSpace(invoice.CustomerId))
                 {
                     var user = await _context.Users.AsNoTracking()
@@ -1062,7 +1638,6 @@ namespace CinemaS.Controllers
             string startTime = d.StartTime?.ToString("HH:mm") ?? string.Empty;
             string endTime = d.EndTime?.ToString("HH:mm") ?? string.Empty;
 
-            // Invoices.CreatedAt đang lưu UTC → +7 cho VN
             string createdAt = d.CreatedAt.HasValue
                 ? d.CreatedAt.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm")
                 : string.Empty;
@@ -1074,7 +1649,6 @@ namespace CinemaS.Controllers
             bool hasEmail = !string.IsNullOrWhiteSpace(d.InvoiceEmail);
             bool hasPhone = !string.IsNullOrWhiteSpace(d.InvoicePhone);
             bool hasPaymentMethod = !string.IsNullOrWhiteSpace(d.PaymentMethod);
-
             bool hasSnacks = d.SnackItems != null && d.SnackItems.Count > 0;
 
             var html = $@"
@@ -1096,26 +1670,11 @@ namespace CinemaS.Controllers
         <li><strong>Ghế:</strong> {seats}</li>
         <li><strong>Ngày đặt:</strong> {createdAt}</li>";
 
-            if (hasEmail)
-            {
-                html += $@"
-        <li><strong>Email:</strong> {d.InvoiceEmail}</li>";
-            }
+            if (hasEmail) html += $@"<li><strong>Email:</strong> {d.InvoiceEmail}</li>";
+            if (hasPhone) html += $@"<li><strong>Số điện thoại:</strong> {d.InvoicePhone}</li>";
+            if (hasPaymentMethod) html += $@"<li><strong>Phương thức thanh toán:</strong> {d.PaymentMethod}</li>";
 
-            if (hasPhone)
-            {
-                html += $@"
-        <li><strong>Số điện thoại:</strong> {d.InvoicePhone}</li>";
-            }
-
-            if (hasPaymentMethod)
-            {
-                html += $@"
-        <li><strong>Phương thức thanh toán:</strong> {d.PaymentMethod}</li>";
-            }
-
-            html += @"
-    </ul>";
+            html += @"</ul>";
 
             if (hasSnacks)
             {
@@ -1123,12 +1682,8 @@ namespace CinemaS.Controllers
     <p><strong>Bắp nước:</strong></p>
     <ul>";
                 foreach (var s in d.SnackItems)
-                {
-                    html += $@"
-        <li>{s.Name} × {s.Quantity}</li>";
-                }
-                html += @"
-    </ul>";
+                    html += $@"<li>{s.Name} × {s.Quantity}</li>";
+                html += @"</ul>";
             }
 
             html += @"
@@ -1140,7 +1695,7 @@ namespace CinemaS.Controllers
         }
     }
 
-    /* ===================== DTOs cho Payment ===================== */
+    /* ===================== DTOs ===================== */
 
     public class CashPayRequest
     {
@@ -1170,5 +1725,16 @@ namespace CinemaS.Controllers
     {
         public string SnackId { get; set; } = default!;
         public int Quantity { get; set; }
+    }
+
+    public class ApplyPromotionRequest
+    {
+        public string InvoiceId { get; set; } = default!;
+        public string Code { get; set; } = default!;
+    }
+
+    public class RemovePromotionRequest
+    {
+        public string InvoiceId { get; set; } = default!;
     }
 }

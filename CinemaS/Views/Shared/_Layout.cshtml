@@ -1,11 +1,14 @@
-﻿@{
+﻿
+@using Microsoft.EntityFrameworkCore
+@using CinemaS.Models
+@inject CinemaS.Models.CinemaContext Db
+
+
+@{
     var title = ViewData["Title"] ?? "CinemaS";
 }
 <!DOCTYPE html>
 <html lang="vi">
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,11 +16,14 @@
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/booking-site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/table.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CinemaS.styles.css" asp-append-version="true" />
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
           crossorigin="anonymous" />
+    <!-- Select2 CSS (chỉ CSS) -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
         :root {
@@ -36,7 +42,6 @@
             margin: 0;
         }
 
-        /* Nền body thuần 1 màu, không gradient để tránh đường “cắt” */
         body {
             min-height: 100vh;
             display: flex;
@@ -46,10 +51,9 @@
             overflow-x: hidden;
         }
 
-        /* Lớp glow phủ rộng hơn viewport để không lộ mép gradient */
         #bg-glow {
             position: fixed;
-            inset: -300px -300px; /* phủ tràn hơn màn hình */
+            inset: -300px -300px;
             z-index: 0;
             pointer-events: none;
             background-image: radial-gradient(1600px 1000px at 20% -10%, rgba(59, 92, 204, 0.45) 0%, rgba(59, 92, 204, 0) 70%), radial-gradient(1400px 900px at 85% 0%, rgba(124, 58, 237, 0.38) 0%, rgba(124, 58, 237, 0) 70%), radial-gradient(1400px 900px at 70% 110%, rgba(162, 28, 175, 0.26) 0%, rgba(162, 28, 175, 0) 70%);
@@ -242,7 +246,8 @@
                 border-color: var(--indigo);
                 box-shadow: 0 0 0 .15rem rgba(59,92,204,.35);
             }
-        /* ==== Select2 dark, match CinemaS layout ==== */
+
+        /* Select2 theme */
         .select2-container--default .select2-selection--multiple,
         .select2-container--default .select2-selection--single {
             background-color: #020617 !important;
@@ -364,12 +369,30 @@
                         </a>
                         <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "Payment" ? "active" : "")"
                            asp-controller="Payment" asp-action="History">
-                            Vé đã đặt
+                            Hóa đơn
                         </a>
-                        <a class="nav-pill @(ViewContext.RouteData.Values["controller"]?.ToString() == "BookingSnack" ? "active" : "")"
-                           asp-controller="Booking" asp-action="Snacks">
-                            Đặt đồ ăn
-                        </a>
+                        @if (User?.IsInRole("Admin") == true)
+                        {
+                            <a class="nav-pill @(
+                               ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" &&
+                               ViewContext.RouteData.Values["action"]?.ToString() == "AdminSnacks"
+                               ? "active" : ""
+                                                          )"
+                               asp-controller="Admin" asp-action="AdminSnacks">
+                                Đặt đồ ăn cho khách
+                            </a>
+                        }
+                        else
+                        {
+                            <a class="nav-pill @(
+                               ViewContext.RouteData.Values["controller"]?.ToString() == "Booking" &&
+                               ViewContext.RouteData.Values["action"]?.ToString() == "Snacks"
+                               ? "active" : ""
+                                                          )"
+                               asp-controller="Booking" asp-action="Snacks">
+                                Đặt đồ ăn
+                            </a>
+                        }
                     </nav>
                 </div>
 
@@ -405,15 +428,44 @@
                         <li><i class="fa-regular fa-envelope me-2"></i> tiendatcr712@gmail.com</li>
                     </ul>
                 </div>
+                @* THAY TOÀN BỘ cột "Liên kết nhanh" bằng cột "Cụm rạp" *@
                 <div class="col-md-4">
-                    <h6 class="footer-title">Liên kết nhanh</h6>
-                    <ul class="list-unstyled small">
-                        <li><a class="footer-link" asp-controller="Home" asp-action="Index">Trang chủ</a></li>
-                        <li><a class="footer-link" asp-controller="Movies" asp-action="Index">Phim</a></li>
-                        <li><a class="footer-link" href="#">Thành viên</a></li>
-                        <li><a class="footer-link" href="#">Khuyến mãi</a></li>
-                    </ul>
+                    <h6 class="footer-title">Cụm rạp</h6>
+
+                    @{
+                        // DbSet có thể là Db.MovieTheaters (đúng theo model MovieTheaters).
+                        // Nếu CinemaContext đặt tên khác, đổi lại cho đúng DbSet trong CinemaContext.
+                        var theaters = await Db.MovieTheaters
+                        .AsNoTracking()
+                        .Where(t => (t.Status ?? 1) == 1)
+                        .OrderBy(t => t.Name)
+                        .Select(t => new { t.MovieTheaterId, t.Name })
+                        .Take(8)
+                        .ToListAsync();
+                    }
+
+                    @if (theaters == null || theaters.Count == 0)
+                    {
+                        <div class="small" style="color: var(--muted);">Không có dữ liệu cụm rạp.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-unstyled small">
+                            @foreach (var t in theaters)
+                            {
+                                <li class="mb-1">
+                                    <a class="footer-link"
+                                       asp-controller="MovieTheaters"
+                                       asp-action="Details"
+                                       asp-route-id="@t.MovieTheaterId">
+                                        @t.Name
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
                 </div>
+
                 <div class="col-md-4">
                     <h6 class="footer-title">Kết nối với chúng tôi</h6>
                     <div class="d-flex gap-3 fs-4 mb-3">
@@ -433,8 +485,13 @@
 
     <button id="backToTop"><i class="fa-solid fa-arrow-up"></i></button>
 
-    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery trước -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <!-- rồi Bootstrap bundle (có Modal) -->
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- Select2 JS sau khi có jQuery -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script src="~/js/password-toggle.js" asp-append-version="true"></script>
     <script>
         const btnTop = document.getElementById('backToTop');
