@@ -68,6 +68,7 @@ namespace CinemaS.Models.ViewModels
         public DateTime? CreatedAt { get; set; }
         public int Status { get; set; }
         public decimal TotalPrice { get; set; }
+        public decimal BaseTotalPrice { get; set; }
         public string? MovieTitle { get; set; }
         public string? Room { get; set; }
         public DateTime? ShowDate { get; set; }

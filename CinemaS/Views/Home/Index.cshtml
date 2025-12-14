@@ -4,18 +4,28 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
-
 @if (TempData["Message"] != null)
 {
-    <div class="container mt-3">
-        <div class="alert alert-success text-center mb-3"
-             data-auto-dismiss="true"
-             style="border-radius:999px;
-                            background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.6);
-                            color:#bbf7d0;">
-            <i class="fa-solid fa-circle-check me-2"></i>
-            @TempData["Message"]
+    <div id="glToast"
+         class="gl-toast gl-toast--success"
+         role="status"
+         aria-live="polite"
+         data-message="@TempData["Message"]">
+
+        <div class="gl-toast__icon" aria-hidden="true">
+            <i class="fa-solid fa-check"></i>
         </div>
+
+        <div class="gl-toast__content">
+            <div class="gl-toast__title">Thành công</div>
+            <div class="gl-toast__text">@TempData["Message"]</div>
+        </div>
+
+        <button type="button" class="gl-toast__close" aria-label="Đóng">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="gl-toast__progress" aria-hidden="true"></div>
     </div>
 }
 
@@ -30,6 +40,154 @@
         --magenta: #a21caf;
         --text: #e9ecf6;
         --line: rgba(255,255,255,.12);
+        --toast-success: #22c55e;
+        --toast-success-2: #16a34a;
+    }
+    /* =========================
+       TOAST (login success)
+       ========================= */
+    .gl-toast {
+        position: fixed;
+        right: 16px;
+        top: 92px;
+        z-index: 9999;
+        width: min(520px, calc(100vw - 32px));
+        display: grid;
+        grid-template-columns: 44px 1fr 34px;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 14px 12px;
+        border-radius: 18px;
+        border: 1px solid rgba(34,197,94,.45);
+        background: radial-gradient(circle at 0 0, rgba(34,197,94,.28), transparent 60%), radial-gradient(circle at 100% 0, rgba(59,92,204,.22), transparent 60%), rgba(2,6,23,.92);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 22px 60px rgba(15,23,42,.92), 0 0 0 1px rgba(15,23,42,.75), 0 0 26px rgba(34,197,94,.18);
+        color: var(--text);
+        transform: translateX(110%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .gl-toast--success {
+        border-color: rgba(34,197,94,.55);
+    }
+
+    .gl-toast__icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.28), transparent 55%), linear-gradient(120deg, rgba(34,197,94,.95), rgba(22,163,74,.85));
+        box-shadow: 0 12px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.25);
+        color: #052e16;
+        font-size: 16px;
+        font-weight: 900;
+    }
+
+    .gl-toast__content {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .gl-toast__title {
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: rgba(187,247,208,.95);
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .gl-toast__text {
+        font-size: 14px;
+        font-weight: 750;
+        color: #e9ecf6;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .gl-toast__close {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.18);
+        background: rgba(15,23,42,.55);
+        color: rgba(233,236,246,.9);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        transition: transform .18s ease, filter .18s ease, background .18s ease;
+    }
+
+        .gl-toast__close:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            background: rgba(15,23,42,.75);
+        }
+
+    .gl-toast__progress {
+        grid-column: 1 / -1;
+        height: 5px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(15,23,42,.55);
+        border: 1px solid rgba(255,255,255,.10);
+        position: relative;
+        margin-top: 10px;
+    }
+
+        .gl-toast__progress::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, rgba(34,197,94,.95), rgba(59,92,204,.85), rgba(124,58,237,.75));
+        }
+
+    .gl-toast.is-show {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+        transition: transform .55s cubic-bezier(.2,.9,.25,1), opacity .55s ease;
+    }
+
+    .gl-toast.is-hide {
+        transform: translateX(110%);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform .45s ease, opacity .45s ease;
+    }
+
+    .gl-toast.run-progress .gl-toast__progress::before {
+        transform: translateX(0);
+        transition: transform linear var(--toast-life, 5200ms);
+    }
+
+    @@media (max-width: 575.98px) {
+        .gl-toast {
+            top: 86px;
+            border-radius: 16px;
+            grid-template-columns: 42px 1fr 34px;
+        }
+
+        .gl-toast__icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+        }
+
+        .gl-toast__text {
+            font-size: 13px;
+        }
     }
 
     /* ===== INTRO SPLASH ===== */
@@ -968,6 +1126,32 @@
             splash.classList.add("splash-hide");
         }, 1650);
     })();
+        (function () {
+        const toast = document.getElementById("glToast");
+        if (!toast) return;
+
+        const lifeMs = 5200;
+        toast.style.setProperty("--toast-life", `${lifeMs}ms`);
+
+        requestAnimationFrame(() => {
+            toast.classList.add("is-show");
+            toast.classList.add("run-progress");
+        });
+
+        const closeBtn = toast.querySelector(".gl-toast__close");
+        const hide = () => {
+            toast.classList.remove("is-show");
+            toast.classList.add("is-hide");
+
+            setTimeout(() => {
+                if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 520);
+        };
+
+        if (closeBtn) closeBtn.addEventListener("click", hide);
+
+        setTimeout(hide, lifeMs);
+    })();
 
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -999,11 +1183,6 @@
             navigation: { nextEl: '#swiper-trailer .swiper-button-next', prevEl: '#swiper-trailer .swiper-button-prev' }
         });
 
-        const alerts = document.querySelectorAll('.alert[data-auto-dismiss="true"]');
-        if (alerts.length > 0) {
-            setTimeout(function () {
-                alerts.forEach(function (el) { el.classList.add('d-none'); });
-            }, 5000);
-        }
+        
     });
 </script>

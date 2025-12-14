@@ -942,6 +942,7 @@
                                     @{
                                         var stt = 0;
                                     }
+                                   
                                     @foreach (var i in Model.History)
                                     {
                                         stt++;
@@ -955,14 +956,16 @@
                                         var orderDate = i.ShowDate?.ToString("dd/MM/yyyy")
                                         ?? i.CreatedAt?.ToString("dd/MM/yyyy");
 
-                                        var total = i.TotalPrice;
-                                        var points = (int)(total / 1000m);
+                                        var paidTotal = i.TotalPrice;                 // đã thanh toán
+                                        var baseTotal = i.BaseTotalPrice;             // giá gốc
+                                        var points = (int)(baseTotal / 1000m);        // điểm theo giá gốc
+
                                         <tr>
-                                            <td>@stt</td> @* hiển thị số thứ tự *@
+                                            <td>@stt</td>
                                             <td>@activity</td>
                                             <td>@branch</td>
                                             <td>@(orderDate ?? "N/A")</td>
-                                            <td>@total.ToString("#,0") đ</td>
+                                            <td>@paidTotal.ToString("#,0") đ</td>
                                             <td>@points Điểm</td>
                                             <td>
                                                 <a href="javascript:void(0);"
@@ -973,6 +976,7 @@
                                             </td>
                                         </tr>
                                     }
+
                                 </tbody>
                             </table>
                         </div>

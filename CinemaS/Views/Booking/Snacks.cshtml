@@ -3,29 +3,34 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="~/css/seat-selection.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/booking-modal.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/toast-notification.css" asp-append-version="true" />
 
-<div class="seat-selection-container">
-    <!-- Tiêu đề -->
-    <div class="movie-info" style="justify-content: center; text-align: center;">
-        <div style="width: 100%;">
-            <h2><i class="fas fa-utensils"></i> Đặt đồ ăn & nước uống</h2>
-            <p style="color: #9ca3af;">Chọn đồ ăn yêu thích của bạn</p>
-        </div>
+<div class="container mt-4 mb-5">
+    <!-- HEADER -->
+    <div class="admin-booking-header" style="text-align:center;">
+        <h2>
+            <i class="fas fa-utensils"></i>
+            Đặt đồ ăn & nước uống
+        </h2>
+        <p class="subtitle">
+            <i class="fas fa-info-circle"></i>
+            Chọn món và áp dụng mã khuyến mãi trước khi thanh toán.
+        </p>
     </div>
 
-    <!-- Chọn đồ ăn -->
-    <div class="snack-selection" style="margin-top: 20px;">
+    <!-- SNACK LIST -->
+    <div class="snack-selection mt-3">
         <div class="snack-header">
             <h5 class="fw-bold mb-0">
-                <i class="fas fa-utensils"></i> Danh sách đồ ăn <span id="snackCount" class="snack-badge-count"></span>
+                <i class="fas fa-utensils"></i>
+                Danh sách đồ ăn
+                <span id="snackCount" class="snack-badge-count"></span>
             </h5>
         </div>
 
-        <div class="snack-content" id="snackContent" style="display: block;">
+        <div class="snack-content" id="snackContent" style="display:block;">
             <div class="row g-3 mt-2">
                 @if (ViewBag.Snacks != null)
                 {
@@ -43,18 +48,36 @@
                                         <img src="/images/snacks/SnackCinema.jpg" alt="@snack.Name">
                                     }
                                 </div>
+
                                 <div class="snack-info">
                                     <h6 class="snack-name">@snack.Name</h6>
                                     <p class="snack-price">@snack.Price?.ToString("N0") đ</p>
+
                                     <div class="snack-control"
                                          data-snack-id="@snack.SnackId"
                                          data-price="@snack.Price"
                                          data-name="@snack.Name">
-                                        <button type="button" class="btn-choose-snack" onclick="handleChooseSnack(this)">Chọn</button>
-                                        <div class="quantity-control" style="display: none;">
-                                            <button type="button" class="quantity-btn-snack" onclick="updateSnackCardQuantity(this, -1)">-</button>
+
+                                        <button type="button"
+                                                class="btn-choose-snack"
+                                                onclick="handleChooseSnack(this)">
+                                            Chọn
+                                        </button>
+
+                                        <div class="quantity-control" style="display:none;">
+                                            <button type="button"
+                                                    class="quantity-btn-snack"
+                                                    onclick="updateSnackCardQuantity(this,-1)">
+                                                -
+                                            </button>
+
                                             <input type="number" class="quantity-input-snack" value="1" readonly>
-                                            <button type="button" class="quantity-btn-snack" onclick="updateSnackCardQuantity(this, 1)">+</button>
+
+                                            <button type="button"
+                                                    class="quantity-btn-snack"
+                                                    onclick="updateSnackCardQuantity(this,1)">
+                                                +
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -65,8 +88,8 @@
                 else
                 {
                     <div class="col-12">
-                        <p style="text-align: center; color: #9ca3af; padding: 40px 0;">
-                            <i class="fas fa-shopping-basket" style="font-size: 48px; margin-bottom: 10px; display: block;"></i>
+                        <p style="text-align:center;color:#9ca3af;padding:40px 0;">
+                            <i class="fas fa-shopping-basket" style="font-size:48px;margin-bottom:10px;display:block;"></i>
                             Hiện chưa có đồ ăn nào
                         </p>
                     </div>
@@ -75,44 +98,108 @@
         </div>
     </div>
 
-    <!-- Thông tin đặt đồ ăn -->
+    <!-- SUMMARY (GIỐNG ADMIN: có PROMO) -->
     <div class="booking-summary">
-        <div class="summary-content">
-            <div class="selected-info">
-                <strong>Đồ ăn đã chọn:</strong> <span id="selectedSnacks">Chưa chọn</span>
+        <div class="booking-summary-grid booking-summary-grid-3">
+            <!-- LEFT -->
+            <div class="summary-left">
+                <div class="snack-summary">
+                    <div class="snack-summary-title">
+                        <strong>Bắp nước đã chọn:</strong>
+                        <span id="snackTotalInline">0 đ</span>
+                    </div>
+
+                    <div class="snack-summary-list" id="snackSummaryList">
+                        <div class="snack-empty">Chưa chọn</div>
+                    </div>
+                </div>
+
+                <div class="total-price">
+                    <strong>Tạm tính:</strong>
+                    <span id="subTotalPrice">0 đ</span>
+                </div>
             </div>
-            <div class="total-price">
-                <strong>Tổng tiền:</strong> <span id="totalPrice">0 đ</span>
+
+            <!-- PROMO -->
+            <div class="summary-right">
+                <div class="promo-box promo-box-compact">
+                    <div class="promo-row">
+                        <div class="promo-left">
+                            <strong>Mã giảm giá</strong>
+                            <div class="promo-hint">Áp dụng trước khi tạo hoá đơn</div>
+                        </div>
+
+                        <div class="promo-right">
+                            <input id="promoCodeInput" type="text" class="promo-input" placeholder="Nhập mã (VD: SALE10)" />
+                            <button type="button" class="promo-btn" onclick="applyPromoBeforeInvoice()">Áp</button>
+                            <button type="button" class="promo-btn promo-btn-danger" onclick="clearPromoBeforeInvoice()">Gỡ mã</button>
+                        </div>
+                    </div>
+
+                    <div class="promo-meta">
+                        <div class="promo-line">
+                            <span>Chương trình:</span>
+                            <span id="promoNameText">-</span>
+                        </div>
+
+                        <div class="promo-line">
+                            <span>Giảm (%):</span>
+                            <span id="promoPercentText">-</span>
+                        </div>
+
+                        <div class="promo-line">
+                            <span>Giảm:</span>
+                            <span id="promoDiscountText">0 đ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTION -->
+            <div class="booking-action-col">
+                <div class="payable-card">
+                    <div class="payable-row">
+                        <strong>Phải trả:</strong>
+                        <span id="totalPrice">0 đ</span>
+                    </div>
+                </div>
+
+                <button id="btnOrder" class="btn-book" onclick="openOrderModal()" disabled>
+                    <i class="fas fa-shopping-cart"></i> Đặt hàng
+                </button>
             </div>
         </div>
-
-        <button id="btnOrder" class="btn-book" onclick="openOrderModal()" disabled>
-            <i class="fas fa-shopping-cart"></i> Đặt hàng
-        </button>
     </div>
 </div>
 
-<!-- ===== ORDER MODAL ===== -->
+<!-- ORDER MODAL -->
 <div class="booking-modal-overlay" id="orderModalOverlay">
     <div class="booking-modal">
         <div class="booking-modal-header">
             <h3>Xác nhận đặt đồ ăn</h3>
         </div>
+
         <div class="booking-modal-body">
             <div class="booking-info-item">
                 <span class="booking-info-label">Tổng số món:</span>
                 <span class="booking-info-value" id="modalSnackCount">0</span>
             </div>
 
-            <div id="modalSnacksList" style="margin-top: 20px;"></div>
+            <div id="modalSnacksList" style="margin-top:20px;"></div>
 
-            <div class="booking-total" style="margin-top: 20px;">
+            <div class="booking-total" style="margin-top:20px;">
                 <div class="booking-info-item">
                     <span class="booking-info-label">TỔNG CỘNG:</span>
                     <span class="booking-info-value" id="modalGrandTotal">0 đ</span>
                 </div>
+
+                <div class="booking-info-item" style="margin-top:10px;">
+                    <span class="booking-info-label">PHẢI TRẢ:</span>
+                    <span class="booking-info-value" id="modalPayableTotal">0 đ</span>
+                </div>
             </div>
         </div>
+
         <div class="booking-modal-footer">
             <button class="booking-modal-btn booking-modal-btn-cancel" onclick="closeOrderModal()">
                 <i class="fas fa-times"></i> Hủy
@@ -124,7 +211,6 @@
     </div>
 </div>
 
-<!-- ===== LOADING OVERLAY ===== -->
 <div class="booking-loading-overlay" id="bookingLoadingOverlay">
     <div class="booking-loading-content">
         <div class="booking-loading-spinner"></div>
@@ -132,7 +218,6 @@
     </div>
 </div>
 
-<!-- ===== TOAST NOTIFICATION ===== -->
 <div class="booking-toast" id="bookingToast"></div>
 
 @section Scripts {
@@ -203,18 +288,38 @@
             margin-bottom: 10px;
         }
     </style>
+
     <script>
+        // =========================
+        // STATE
+        // =========================
         let selectedSnacks = [];
+
         let currentInvoiceId = null;
         let currentInvoiceAmount = 0;
 
+        let currentBaseTotal = 0;     // tạm tính
+        let currentPayableTotal = 0;  // phải trả
+
+        let promoDraftCode = '';
+        let promoApplied = false;
+        let promoName = '';
+        let promoPercent = null;
+        let promoDiscountAmount = 0;
+
+        // =========================
+        // UI HELPERS
+        // =========================
         function showBookingLoading(show) {
             const overlay = document.getElementById('bookingLoadingOverlay');
-            if (show) overlay.classList.add('show'); else overlay.classList.remove('show');
+            if (!overlay) return;
+            if (show) overlay.classList.add('show');
+            else overlay.classList.remove('show');
         }
 
         function showBookingToast(message, type) {
             const toast = document.getElementById('bookingToast');
+            if (!toast) return;
             toast.innerHTML = message;
             toast.className = 'booking-toast booking-toast-' + type + ' show';
             setTimeout(() => { toast.classList.remove('show'); }, 5000);
@@ -224,29 +329,36 @@
             return (n || 0).toLocaleString('vi-VN') + ' đ';
         }
 
-        function updateSummary() {
-            const selectedSnacksSpan = document.getElementById('selectedSnacks');
-            const totalPriceSpan = document.getElementById('totalPrice');
-            const btnOrder = document.getElementById('btnOrder');
+        function setPromoUI(nameText, percentText, discountText, payableText) {
+            const nameEl = document.getElementById('promoNameText');
+            const percentEl = document.getElementById('promoPercentText');
+            const discountEl = document.getElementById('promoDiscountText');
+            const payableEl = document.getElementById('totalPrice');
 
-            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+            if (nameEl) nameEl.textContent = nameText;
+            if (percentEl) percentEl.textContent = percentText;
+            if (discountEl) discountEl.textContent = discountText;
+            if (payableEl) payableEl.textContent = payableText;
+        }
 
-            if (selectedSnacks.length > 0) {
-                const snackLabels = selectedSnacks.map(s => `${s.name} x${s.quantity}`).join(', ');
-                selectedSnacksSpan.textContent = snackLabels;
-            } else {
-                selectedSnacksSpan.textContent = 'Chưa chọn';
-            }
+        function resetPromoState() {
+            promoDraftCode = '';
+            promoApplied = false;
+            promoName = '';
+            promoPercent = null;
+            promoDiscountAmount = 0;
 
-            totalPriceSpan.textContent = formatVND(snackTotal);
-            btnOrder.disabled = selectedSnacks.length === 0;
+            setPromoUI('-', '-', formatVND(0), formatVND(currentBaseTotal));
 
-            updateSnackCounter();
+            const input = document.getElementById('promoCodeInput');
+            if (input) input.value = '';
         }
 
         function updateSnackCounter() {
             const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
             const countElement = document.getElementById('snackCount');
+            if (!countElement) return;
+
             if (totalQuantity > 0) {
                 countElement.textContent = `(${totalQuantity} món đã chọn)`;
                 countElement.style.backgroundColor = '#364747';
@@ -260,8 +372,52 @@
             }
         }
 
+        function updateSummary() {
+            const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
+
+            currentBaseTotal = snackTotal;
+            currentPayableTotal = snackTotal;
+
+            const subTotal = document.getElementById('subTotalPrice');
+            if (subTotal) subTotal.textContent = formatVND(snackTotal);
+
+            const snackInline = document.getElementById('snackTotalInline');
+            if (snackInline) snackInline.textContent = formatVND(snackTotal);
+
+            const list = document.getElementById('snackSummaryList');
+            if (list) {
+                if (selectedSnacks.length === 0) {
+                    list.innerHTML = `<div class="snack-empty">Chưa chọn</div>`;
+                } else {
+                    list.innerHTML = selectedSnacks.map(s => `
+                        <div class="snack-line">
+                            <div class="snack-line-name">${s.name}</div>
+                            <div class="snack-line-meta">x${s.quantity || 1}</div>
+                            <div class="snack-line-price">${formatVND((s.price || 0) * (s.quantity || 1))}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            const totalPrice = document.getElementById('totalPrice');
+            if (totalPrice) totalPrice.textContent = formatVND(currentPayableTotal);
+
+            const btnOrder = document.getElementById('btnOrder');
+            if (btnOrder) btnOrder.disabled = selectedSnacks.length === 0;
+
+            updateSnackCounter();
+
+            if (promoApplied && promoDraftCode) revalidatePromoAfterAmountChanged();
+            else setPromoUI('-', '-', formatVND(0), formatVND(currentBaseTotal));
+        }
+
+        // =========================
+        // SNACK PICK
+        // =========================
         window.handleChooseSnack = function (button) {
             const control = button.closest('.snack-control');
+            if (!control) return;
+
             const snackId = control.dataset.snackId;
             const price = parseFloat(control.dataset.price) || 0;
             const name = control.dataset.name;
@@ -269,17 +425,22 @@
             selectedSnacks.push({ id: snackId, name, price, quantity: 1 });
 
             button.style.display = 'none';
-            control.querySelector('.quantity-control').style.display = 'flex';
-            control.querySelector('.quantity-input-snack').value = 1;
+            const qc = control.querySelector('.quantity-control');
+            if (qc) qc.style.display = 'flex';
+
+            const input = control.querySelector('.quantity-input-snack');
+            if (input) input.value = 1;
 
             updateSummary();
         }
 
         window.updateSnackCardQuantity = function (button, change) {
             const control = button.closest('.snack-control');
+            if (!control) return;
+
             const snackId = control.dataset.snackId;
             const input = control.querySelector('.quantity-input-snack');
-            const currentQuantity = parseInt(input.value);
+            const currentQuantity = parseInt(input?.value || '1', 10);
             const newQuantity = currentQuantity + change;
 
             const snack = selectedSnacks.find(s => s.id === snackId);
@@ -287,18 +448,118 @@
             if (newQuantity <= 0) {
                 selectedSnacks = selectedSnacks.filter(s => s.id !== snackId);
 
-                control.querySelector('.quantity-control').style.display = 'none';
-                control.querySelector('.btn-choose-snack').style.display = 'block';
+                const qc = control.querySelector('.quantity-control');
+                if (qc) qc.style.display = 'none';
+
+                const chooseBtn = control.querySelector('.btn-choose-snack');
+                if (chooseBtn) chooseBtn.style.display = 'block';
             } else {
-                if (snack) {
-                    snack.quantity = newQuantity;
-                }
-                input.value = newQuantity;
+                if (snack) snack.quantity = newQuantity;
+                if (input) input.value = newQuantity;
             }
 
             updateSummary();
         }
 
+        // =========================
+        // PROMO (USER) - BEFORE INVOICE
+        // =========================
+        async function applyPromoBeforeInvoice() {
+            if (currentBaseTotal <= 0) {
+                showBookingToast('⚠️ Vui lòng chọn đồ ăn trước.', 'error');
+                return;
+            }
+
+            const code = (document.getElementById('promoCodeInput')?.value || '').trim();
+            if (!code) {
+                showBookingToast('⚠️ Vui lòng nhập mã giảm giá.', 'error');
+                return;
+            }
+
+            showBookingLoading(true);
+            try {
+                // USER dùng cùng validate endpoint như admin (đang có)
+                const vRes = await fetch('/Admin/ValidatePromotion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, amount: currentBaseTotal })
+                });
+
+                const vData = await vRes.json();
+                if (!vData?.success) {
+                    showBookingToast('❌ ' + (vData?.message || 'Mã không hợp lệ'), 'error');
+                    return;
+                }
+
+                promoDraftCode = code;
+                promoApplied = true;
+
+                promoName = vData.promotionName || '-';
+                promoPercent = (typeof vData.discountPercent === 'number') ? vData.discountPercent : null;
+                promoDiscountAmount = vData.discountAmount || 0;
+
+                currentPayableTotal = vData.totalAfterDiscount ?? currentBaseTotal;
+
+                const percentText = (promoPercent === null) ? '-' : (promoPercent.toLocaleString('vi-VN') + '%');
+                setPromoUI(
+                    promoName,
+                    percentText,
+                    formatVND(promoDiscountAmount),
+                    formatVND(currentPayableTotal)
+                );
+
+                showBookingToast('✅ ' + (vData.message || 'Đã áp mã'), 'success');
+            } catch (e) {
+                showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
+            } finally {
+                showBookingLoading(false);
+            }
+        }
+
+        async function revalidatePromoAfterAmountChanged() {
+            const code = promoDraftCode;
+            if (!code || currentBaseTotal <= 0) return;
+
+            try {
+                const vRes = await fetch('/Admin/ValidatePromotion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, amount: currentBaseTotal })
+                });
+
+                const vData = await vRes.json();
+                if (!vData?.success) {
+                    resetPromoState();
+                    return;
+                }
+
+                promoName = vData.promotionName || '-';
+                promoPercent = (typeof vData.discountPercent === 'number') ? vData.discountPercent : null;
+                promoDiscountAmount = vData.discountAmount || 0;
+
+                currentPayableTotal = vData.totalAfterDiscount ?? currentBaseTotal;
+
+                const percentText = (promoPercent === null) ? '-' : (promoPercent.toLocaleString('vi-VN') + '%');
+                setPromoUI(
+                    promoName,
+                    percentText,
+                    formatVND(promoDiscountAmount),
+                    formatVND(currentPayableTotal)
+                );
+            } catch (_) { }
+        }
+
+        function clearPromoBeforeInvoice() {
+            resetPromoState();
+            showBookingToast('✅ Đã gỡ mã.', 'success');
+        }
+
+        window.applyPromoBeforeInvoice = applyPromoBeforeInvoice;
+        window.clearPromoBeforeInvoice = clearPromoBeforeInvoice;
+
+        // =========================
+        // ORDER MODAL
+        // =========================
         window.openOrderModal = function () {
             if (selectedSnacks.length === 0) {
                 showBookingToast('⚠️ Vui lòng chọn ít nhất 1 món!', 'error');
@@ -308,41 +569,50 @@
             const snackTotal = selectedSnacks.reduce((sum, s) => sum + (s.price * (s.quantity || 1)), 0);
             const totalQuantity = selectedSnacks.reduce((sum, s) => sum + (s.quantity || 1), 0);
 
-            document.getElementById('modalSnackCount').textContent = totalQuantity + ' món';
+            const modalSnackCount = document.getElementById('modalSnackCount');
+            if (modalSnackCount) modalSnackCount.textContent = totalQuantity + ' món';
 
             const snacksList = document.getElementById('modalSnacksList');
-            snacksList.innerHTML = '';
+            if (snacksList) snacksList.innerHTML = '';
 
             selectedSnacks.forEach((snack, index) => {
                 const snackDiv = document.createElement('div');
                 snackDiv.className = 'snack-quantity-item';
                 snackDiv.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <span style="color:#fff;flex:1;">${snack.name || 'Snack'}</span>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <button type="button" class="quantity-btn" onclick="updateSnackQuantityInModal(${index}, -1)"><i class="fas fa-minus"></i></button>
-            <input type="number" class="quantity-input" value="${snack.quantity}" min="1" max="10" readonly
-                   style="width:50px;text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px;border-radius:5px;">
-            <button type="button" class="quantity-btn" onclick="updateSnackQuantityInModal(${index}, 1)"><i class="fas fa-plus"></i></button>
-            <span style="color:#22c55e;font-weight:bold;min-width:100px;text-align:right;">${formatVND(snack.price * (snack.quantity || 1))}</span>
-          </div>
-        </div>`;
-                snacksList.appendChild(snackDiv);
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+                      <span style="color:#fff;flex:1;">${snack.name || 'Snack'}</span>
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <button type="button" class="quantity-btn" onclick="updateSnackQuantityInModal(${index},-1)"><i class="fas fa-minus"></i></button>
+                        <input type="number" class="quantity-input" value="${snack.quantity}" min="1" max="10" readonly
+                               style="width:50px;text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:5px;border-radius:5px;">
+                        <button type="button" class="quantity-btn" onclick="updateSnackQuantityInModal(${index},1)"><i class="fas fa-plus"></i></button>
+                        <span style="color:#22c55e;font-weight:bold;min-width:100px;text-align:right;">${formatVND(snack.price * (snack.quantity || 1))}</span>
+                      </div>
+                    </div>`;
+                if (snacksList) snacksList.appendChild(snackDiv);
             });
 
-            document.getElementById('modalGrandTotal').textContent = formatVND(snackTotal);
+            const grand = document.getElementById('modalGrandTotal');
+            if (grand) grand.textContent = formatVND(snackTotal);
 
-            document.getElementById('orderModalOverlay').classList.add('show');
+            const payable = document.getElementById('modalPayableTotal');
+            if (payable) payable.textContent = formatVND(currentPayableTotal || snackTotal);
+
+            const overlay = document.getElementById('orderModalOverlay');
+            if (overlay) overlay.classList.add('show');
         };
 
         window.updateSnackQuantityInModal = function (index, change) {
             if (index < 0 || index >= selectedSnacks.length) return;
+
             const snack = selectedSnacks[index];
             const newQuantity = (snack.quantity || 1) + change;
+
             if (newQuantity < 1 || newQuantity > 10) {
                 showBookingToast('⚠️ Số lượng từ 1-10!', 'error');
                 return;
             }
+
             snack.quantity = newQuantity;
 
             const controls = document.querySelectorAll('.snack-control');
@@ -358,9 +628,13 @@
         };
 
         window.closeOrderModal = function () {
-            document.getElementById('orderModalOverlay').classList.remove('show');
+            const overlay = document.getElementById('orderModalOverlay');
+            if (overlay) overlay.classList.remove('show');
         };
 
+        // =========================
+        // CREATE INVOICE + APPLY PROMO (IF ANY) + PAY VNPAY
+        // =========================
         window.confirmOrder = async function () {
             closeOrderModal();
             showBookingLoading(true);
@@ -371,26 +645,52 @@
                     quantity: snack.quantity || 1
                 }));
 
-                // Tạo hóa đơn Pending
+                // 1) Create invoice (pending)
                 const bookRes = await fetch('/Booking/BookSnacks', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        snacks: snacksData
-                    })
+                    body: JSON.stringify({ snacks: snacksData })
                 });
 
                 const bookData = await bookRes.json();
-
                 if (!bookData?.success) {
                     showBookingToast('❌ ' + (bookData?.message || 'Đặt hàng thất bại'), 'error');
                     return;
                 }
 
                 currentInvoiceId = bookData.invoiceId;
-                currentInvoiceAmount = bookData.totalPrice || 0;
+                currentBaseTotal = bookData.totalPrice || 0;
 
-                // Khách tự đặt -> luôn thanh toán VNPay
+                // 2) If promo applied: apply to invoice
+                currentPayableTotal = currentPayableTotal || currentBaseTotal;
+                currentInvoiceAmount = currentPayableTotal;
+
+                if (promoApplied && promoDraftCode) {
+                    const aRes = await fetch('/Admin/ApplyPromotionToInvoice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ invoiceId: currentInvoiceId, code: promoDraftCode })
+                    });
+
+                    const aData = await aRes.json();
+                    if (aData?.success) {
+                        currentPayableTotal = aData.totalAfterDiscount ?? currentBaseTotal;
+                        currentInvoiceAmount = currentPayableTotal;
+
+                        const percentText = (typeof aData.discountPercent === 'number')
+                            ? (aData.discountPercent.toLocaleString('vi-VN') + '%')
+                            : '-';
+
+                        setPromoUI(
+                            aData.promotionName || promoName || '-',
+                            percentText,
+                            formatVND(aData.discountAmount || 0),
+                            formatVND(currentPayableTotal)
+                        );
+                    }
+                }
+
+                // 3) VNPay
                 const payRes = await fetch('/Payment/Create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -402,7 +702,6 @@
                 });
 
                 const payData = await payRes.json();
-
                 if (payData?.success && payData?.paymentUrl) {
                     window.location.href = payData.paymentUrl;
                     return;
@@ -418,6 +717,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             updateSummary();
+            resetPromoState();
         });
     </script>
 }
