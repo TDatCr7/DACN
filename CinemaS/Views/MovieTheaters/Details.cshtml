@@ -9,44 +9,26 @@
     var provinceName = ViewBag?.ProvinceName as string ?? "Không xác định";
     var isActive = (Model?.Status ?? 1) == 1;
 
-    // Fallback search theo địa chỉ (mở tab)
-    var q = $"{Model?.Name} {Model?.Address} {provinceName}".Trim();
-    var fallbackView = "https://www.google.com/maps/search/?api=1&query=" + Uri.EscapeDataString(q);
-
-    // Parse IFrameCode (có thể lưu: iframe full, embed src, place link, maps.app link)
+    // YÊU CẦU: mở Google Maps theo LINK lưu trong DB (Model.IFrameCode), KHÔNG tạo theo tên/địa chỉ.
+    // Nếu DB lưu iframe -> lấy src. Nếu DB lưu link -> dùng trực tiếp.
     var raw = (Model?.IFrameCode ?? "").Trim();
-
-    string? embedSrc = null; // chỉ nhúng khi là /maps/embed?pb=
-    string? openLink = null; // link mở tab google maps
+    string? googleLink = null;
 
     if (!string.IsNullOrWhiteSpace(raw))
     {
         if (raw.Contains("<iframe", StringComparison.OrdinalIgnoreCase))
         {
             var m = Regex.Match(raw, "src\\s*=\\s*\"(?<src>[^\"]+)\"", RegexOptions.IgnoreCase);
-            if (m.Success)
-            {
-                var src = m.Groups["src"].Value.Trim();
-                openLink = src;
-
-                if (src.Contains("google.com/maps/embed", StringComparison.OrdinalIgnoreCase))
-                {
-                    embedSrc = src;
-                }
-            }
+            if (m.Success) googleLink = m.Groups["src"].Value.Trim();
         }
         else
         {
-            openLink = raw;
-
-            if (raw.Contains("google.com/maps/embed", StringComparison.OrdinalIgnoreCase))
-            {
-                embedSrc = raw;
-            }
+            googleLink = raw;
         }
     }
 
-    openLink ??= fallbackView;
+    // Không đủ dữ liệu để xác minh nếu rỗng -> không có link để mở
+    var hasGoogleLink = !string.IsNullOrWhiteSpace(googleLink);
 }
 
 <style>
@@ -117,20 +99,11 @@
                 color: #f59e0b;
             }
 
-    .mt-grid {
-        margin-top: 12px;
-        display: grid;
-        grid-template-columns: 1.1fr .9fr;
-        gap: 12px;
-        align-items: stretch;
-    }
-
     .mt-card {
         border-radius: 18px;
         border: 1px solid rgba(148,163,255,.18);
         background: rgba(15,23,42,.55);
         padding: 14px 16px;
-        min-height: 360px;
     }
 
     .mt-card-title {
@@ -213,41 +186,11 @@
             background: linear-gradient(120deg, rgba(239,68,68,.28), rgba(124,58,237,.22));
         }
 
-    .mt-map {
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(148,163,255,.18);
-        background: rgba(2,6,23,.65);
-        min-height: 360px;
-        display: flex;
-        align-items: stretch;
-    }
-
-        .mt-map iframe {
-            width: 100%;
-            height: 100%;
-            min-height: 360px;
-            border: 0;
-            display: block;
-            background: #0b1026;
-        }
-
-    .mt-empty-map {
-        padding: 18px;
+    .mt-warn {
+        margin-top: 10px;
         color: #9aa5c6;
         font-weight: 800;
         font-size: 13px;
-        width: 100%;
-    }
-
-    @@media (max-width: 991.98px) {
-        .mt-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .mt-card, .mt-map iframe {
-            min-height: 320px;
-        }
     }
 </style>
 
@@ -267,74 +210,58 @@
             </div>
         </div>
 
-        <div class="mt-grid">
-            <div class="mt-card">
-                <div class="mt-card-title">Thông tin</div>
+        <div class="mt-card">
+            <div class="mt-card-title">Thông tin</div>
 
-                <div class="mt-row">
-                    <div class="mt-ico"><i class="fa-solid fa-location-dot"></i></div>
-                    <div class="mt-label">Địa chỉ</div>
-                    <div class="mt-value">@((Model?.Address ?? "N/A"))</div>
-                </div>
+            <div class="mt-row">
+                <div class="mt-ico"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="mt-label">Địa chỉ</div>
+                <div class="mt-value">@((Model?.Address ?? "N/A"))</div>
+            </div>
 
-                <div class="mt-row">
-                    <div class="mt-ico"><i class="fa-solid fa-phone"></i></div>
-                    <div class="mt-label">Hotline</div>
-                    <div class="mt-value">@((Model?.Hotline ?? "N/A"))</div>
-                </div>
+            <div class="mt-row">
+                <div class="mt-ico"><i class="fa-solid fa-phone"></i></div>
+                <div class="mt-label">Hotline</div>
+                <div class="mt-value">@((Model?.Hotline ?? "N/A"))</div>
+            </div>
 
-                <div class="mt-row">
-                    <div class="mt-ico"><i class="fa-solid fa-map"></i></div>
-                    <div class="mt-label">Tỉnh/TP</div>
-                    <div class="mt-value">@provinceName</div>
-                </div>
+            <div class="mt-row">
+                <div class="mt-ico"><i class="fa-solid fa-map"></i></div>
+                <div class="mt-label">Tỉnh/TP</div>
+                <div class="mt-value">@provinceName</div>
+            </div>
 
-                <div class="mt-actions">
-                    <a class="btn-mt primary" asp-controller="Home" asp-action="Index">
-                        <i class="fa-solid fa-house"></i>
-                        <span>Trang chủ</span>
-                    </a>
+            <div class="mt-actions">
+                <a class="btn-mt primary" asp-controller="Home" asp-action="Index">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Trang chủ</span>
+                </a>
 
+                @* CHỈ ADMIN mới thấy nút danh sách *@
+                @if (User?.IsInRole("Admin") == true)
+                {
                     <a class="btn-mt" asp-controller="MovieTheaters" asp-action="Index">
                         <i class="fa-solid fa-list"></i>
                         <span>Danh sách cụm rạp</span>
                     </a>
+                }
 
-                    <a class="btn-mt danger" href="@openLink" target="_blank" rel="noopener">
+                @* Nút mở Google Maps theo LINK trong DB *@
+                @if (hasGoogleLink)
+                {
+                    <a class="btn-mt danger" href="@googleLink" target="_blank" rel="noopener">
                         <i class="fa-brands fa-google"></i>
                         <span>Mở Google Maps</span>
                     </a>
+                }
+            </div>
+
+            @if (!hasGoogleLink)
+            {
+                <div class="mt-warn">
+                    Không đủ dữ liệu để xác minh: Model.IFrameCode không có link Google Maps hợp lệ.
                 </div>
-
-                @if (string.IsNullOrWhiteSpace(embedSrc) && !string.IsNullOrWhiteSpace(raw))
-                {
-                    <div class="mt-sub" style="margin-top:10px;">
-                        <i class="fa-solid fa-circle-info me-1"></i>
-                        Link hiện tại không phải dạng <b>google.com/maps/embed?pb=...</b> nên không nhúng được.
-                    </div>
-                }
-            </div>
-
-            <div class="mt-map">
-                @if (!string.IsNullOrWhiteSpace(embedSrc))
-                {
-                    <iframe src="@embedSrc"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            title="Google Maps"></iframe>
-                }
-                else
-                {
-                    <div class="mt-empty-map">
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
-                        Không có iframe embed hợp lệ để hiển thị bản đồ.<br /><br />
-                        Cần lưu IFrameCode dạng:
-                        <div style="margin-top:8px; font-weight:700; color:#cbd5e1;">
-                            &lt;iframe src="https://www.google.com/maps/embed?pb=..." ...&gt;&lt;/iframe&gt;
-                        </div>
-                    </div>
-                }
-            </div>
+            }
         </div>
     </div>
 </div>
