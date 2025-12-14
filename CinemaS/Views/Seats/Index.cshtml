@@ -321,6 +321,20 @@
         border-color: #22c55e;
     }
 
+    /* Aisle small notice */
+    .aisle-note {
+        background: linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15));
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+        .aisle-note i {
+            color: #fcd34d;
+            font-size: 1.1rem;
+        }
+
+    /* Remaining responsive rules unchanged */
     @@media (max-width: 900px) {
         .toolbar-container {
             grid-template-columns: 1fr;
@@ -349,6 +363,9 @@
             <a href="@Url.Action("Index", "CinemaTheaters")" class="btn btn-success">
                 <i class="fas fa-check"></i> Hoàn tất
             </a>
+            <button class="btn btn-secondary" onclick="window.location.reload()">
+                <i class="fas fa-refresh"></i> Làm mới
+            </button>
         </div>
     </div>
 
@@ -372,6 +389,11 @@
                 <div class="toolbar-section-title">
                     <i class="fas fa-mouse-pointer"></i>
                     Chế độ chỉnh sửa
+                    <!-- Small visible note about refresh for aisle creation -->
+                    <div class="aisle-note" title="Lưu ý: Bạn cần làm mới trang để thay đổi hiển thị khi tạo lối đi">
+                        <i class="fas fa-info-circle"></i>
+                        <span> <strong>Làm mới</strong> để tạo lối đi (nếu lỗi)</span>
+                    </div>
                 </div>
                 <div class="mode-buttons-group">
                     <button class="mode-button active" data-mode="seat">
@@ -394,6 +416,10 @@
                 <div class="toolbar-section-title">
                     <i class="fas fa-tools"></i>
                     Hành động
+                    <div class="aisle-note" title="Lưu ý: Bạn cần tạo lối đi trước khi thay đổi loại ghế">
+                        <i class="fas fa-info-circle"></i>
+                        <span> <strong>Tạo lối đi</strong> trước khi thay đổi loại ghế</span>
+                    </div>
                 </div>
                 <div class="action-buttons-grid">
                     <button class="action-button active" data-action="normal">
@@ -440,11 +466,20 @@
                     @for (int col = 1; col <= Model.NumOfColumns; col++)
                     {
                         var isLastCol = col == Model.NumOfColumns;
-                        <div class="column-number @(isLastCol ? "last-column" : "")" data-col-index="@col">
+                        var isFirstCol = col == 1;
+                        <div class="column-number @(isLastCol ? "last-column" : "") @(isFirstCol ? "first-column" : "")" 
+                             data-col-index="@col"
+                             data-theater-id="@Model.CinemaTheaterId">
                             <span class="col-label-text">@col</span>
                             <button class="delete-btn" title="Xóa cột @col">
                                 <i class="fas fa-times"></i>
                             </button>
+                            @if (!isFirstCol && !isLastCol)
+                            {
+                                <button class="aisle-toggle-btn" title="Chuyển cột @col thành lối đi / Khôi phục" style="display: none;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            }
                         </div>
                     }
                     <div class="add-column-btn" onclick="addColumnAtEnd()">
@@ -457,7 +492,11 @@
                 {
                     var row = Model.Rows[r];
                     var isLastRow = r == Model.Rows.Count - 1;
-                    <div class="seat-row @(isLastRow ? "last-row" : "")" data-row-number="@row.RowNumber" data-row-label="@row.RowLabel">
+                    var isFirstRow = r == 0;
+                    <div class="seat-row @(isLastRow ? "last-row" : "") @(isFirstRow ? "first-row" : "")" 
+                         data-row-number="@row.RowNumber" 
+                         data-row-label="@row.RowLabel"
+                         data-theater-id="@Model.CinemaTheaterId">
                         <div class="row-label" data-row-index="@row.RowNumber" data-row-label="@row.RowLabel">
                             <span class="row-label-text">@row.RowLabel</span>
                             <button class="delete-btn" title="Xóa hàng @row.RowLabel">
@@ -471,20 +510,31 @@
                                 var seatClass = "seat";
                                 if (!seat.IsActive) seatClass += " inactive";
                                 if (seat.IsDeleted) seatClass += " removed-seat";
-                                
+                                if (seat.IsAisle) seatClass += " aisle-seat-visual";
+
                                 var badge = "";
                                 if (seat.SeatTypeName == "VIP") badge = "V";
                                 else if (seat.SeatTypeName == "COUPLE" || seat.IsLeftOfPair || seat.IsRightOfPair) badge = "CP";
 
-                                var dataAttrs = $"data-seat-id='{seat.SeatId}' data-seat-type-id='{seat.SeatTypeId}' data-seat-type-name='{seat.SeatTypeName}' data-row-number='{seat.RowNumber}' data-column-index='{seat.ColumnIndex}' data-is-active='{seat.IsActive.ToString().ToLower()}' data-is-deleted='{seat.IsDeleted.ToString().ToLower()}' data-seat-label='{seat.Label}' data-pair-id='{seat.PairId}'";
+                                var dataAttrs = $"data-seat-id='{seat.SeatId}' data-seat-type-id='{seat.SeatTypeId}' data-seat-type-name='{seat.SeatTypeName}' data-row-number='{seat.RowNumber}' data-column-index='{seat.ColumnIndex}' data-is-active='{seat.IsActive.ToString().ToLower()}' data-is-deleted='{seat.IsDeleted.ToString().ToLower()}' data-is-aisle='{seat.IsAisle.ToString().ToLower()}' data-seat-label='{seat.Label}' data-pair-id='{seat.PairId}'";
 
-                                <div class="@seatClass seat-type-@(seat.SeatTypeName?.ToLower() ?? "normal")" @Html.Raw(dataAttrs) onclick="onSeatClick(this)">
-                                    @if (seat.IsDeleted)
-                                    {
+                                @if (seat.IsAisle)
+                                {
+                                    // Show aisle visually but mark as non-interactive
+                                    <div class="@seatClass seat-type-@(seat.SeatTypeName?.ToLower() ?? "normal") aisle-seat-visual" @Html.Raw(dataAttrs) title="Lối đi">
+                                        <span class="aisle-marker">⋮</span>
+                                    </div>
+                                    // hide from interactive editor: add data-hidden-for-display so front-end can remove from booking/use
+                                }
+                                else if (seat.IsDeleted)
+                                {
+                                    <div class="@seatClass seat-type-@(seat.SeatTypeName?.ToLower() ?? "normal")" @Html.Raw(dataAttrs) onclick="onSeatClick(this)">
                                         <span class="removed-icon">✗</span>
-                                    }
-                                    else
-                                    {
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="@seatClass seat-type-@(seat.SeatTypeName?.ToLower() ?? "normal")" @Html.Raw(dataAttrs) onclick="onSeatClick(this)">
                                         @if (!string.IsNullOrEmpty(badge))
                                         {
                                             <span class="seat-badge">@badge</span>
@@ -494,8 +544,8 @@
                                             <span class="broken-icon">✗</span>
                                         }
                                         <div class="seat-label-small">@seat.Label</div>
-                                    }
-                                </div>
+                                    </div>
+                                }
                             }
                         </div>
 
@@ -540,6 +590,10 @@
                 <div class="legend-item">
                     <div class="seat removed-seat"><span class="removed-icon">✗</span></div>
                     <span>Ghế đã bỏ</span>
+                </div>
+                <div class="legend-item">
+                    <div class="seat aisle-seat-visual"><span class="aisle-marker">⋮</span></div>
+                    <span>Lối đi</span>
                 </div>
             </div>
         </div>

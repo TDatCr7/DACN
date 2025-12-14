@@ -111,6 +111,14 @@
                                         processedColumns.Add(seat.ColumnIndex ?? 0);
                                         processedColumns.Add(pairSeat.ColumnIndex ?? 0);
 
+                                        // If either seat is aisle, render visible aisle visuals for both
+                                        if (seat.IsAisle || pairSeat.IsAisle)
+                                        {
+                                            <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                            <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                            continue;
+                                        }
+
                                         var isBookedOrInactive = seat.Status == "Booked" || pairSeat.Status == "Booked" || !seat.IsActive || !pairSeat.IsActive;
                                         var cssClass = isBookedOrInactive ? "booked" : "";
 
@@ -148,6 +156,14 @@
                                     {
                                         processedColumns.Add(col);
                                         var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
+
+                                        // If seat is aisle, render visible aisle visual
+                                        if (seat.IsAisle)
+                                        {
+                                            <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                            continue;
+                                        }
+
                                         seatClass += seat.IsVIP ? " vip" : " normal";
 
                                         <div class="seat @seatClass"
@@ -181,6 +197,14 @@
                                 else
                                 {
                                     processedColumns.Add(col);
+
+                                    // If seat is aisle, render visible aisle visual
+                                    if (seat.IsAisle)
+                                    {
+                                        <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                        continue;
+                                    }
+
                                     var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
                                     seatClass += seat.IsVIP ? " vip" : " normal";
 
@@ -495,11 +519,42 @@
 
         let currentInvoiceId = null;
         let currentInvoiceAmount = 0;
+
+        let currentBaseTotal = 0;
+        let currentPayableTotal = 0;
+
+        let promoDraftCode = '';
+        let promoApplied = false;
+        let promoName = '';
+        let promoPercent = null;
+        let promoDiscountAmount = 0;
+
+        // ✅ FIX: Khai báo biến appliedPromo để lưu thông tin promotion
+        let appliedPromo = null;
+
+        // ✅ FIX: Khai báo biến currentCustomerInfo để lưu thông tin khách hàng
         let currentCustomerInfo = null;
 
-        // Promo state:
-        // appliedPromo = { code, promotionId, promotionName, discountPercent, discountAmount, totalAfterDiscount, subTotalSnapshot }
-        let appliedPromo = null;
+        const PROMO_VALIDATE_URL = '/Admin/ValidatePromotion';
+
+        async function readJsonSafe(res) {
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            const text = await res.text();
+
+            if (!text || !text.trim()) {
+                return { success: false, message: `Empty response (HTTP ${res.status})` };
+            }
+
+            if (!ct.includes('application/json')) {
+                return { success: false, message: `Non-JSON response (HTTP ${res.status})`, raw: text.slice(0, 300) };
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch {
+                return { success: false, message: `Invalid JSON (HTTP ${res.status})`, raw: text.slice(0, 300) };
+            }
+        }
 
         function showBookingLoading(show) {
             const overlay = document.getElementById('bookingLoadingOverlay');
@@ -519,7 +574,7 @@
             return (n || 0).toLocaleString('vi-VN') + ' đ';
         }
 
-        // GHẾ ĐÔI: mỗi ghế trong cặp được tính gấp đôi price gốc
+        // ✅ FIX: Ghế đôi = giá × 2
         function getSeatTotal() {
             return selectedSeats.reduce((sum, s) => {
                 const base = s.price || 0;
@@ -761,6 +816,7 @@
                     const userIcons = element.querySelector('.user-icons');
                     if (userIcons) userIcons.style.display = 'flex';
 
+                    // ✅ FIX: Ghế đôi = cộng cả 2 ghế vào danh sách
                     for (let i = 0; i < ids.length; i++) {
                         selectedSeats.push({
                             id: ids[i],

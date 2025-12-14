@@ -90,6 +90,7 @@ namespace CinemaS.Controllers
                     IsCouple = string.Equals(st?.Name, "COUPLE", StringComparison.OrdinalIgnoreCase),
                     IsVIP = string.Equals(st?.Name, "VIP", StringComparison.OrdinalIgnoreCase),
                     IsActive = s.IsActive,
+                    IsAisle = s.IsAisle,
                     PairId = s.PairId
                 };
             }).ToList();

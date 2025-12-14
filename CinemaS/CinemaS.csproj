@@ -7,12 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Controllers\Api\**" />
     <Compile Remove="Models\Enums\**" />
     <Compile Remove="SQL\**" />
+    <Content Remove="Controllers\Api\**" />
     <Content Remove="Models\Enums\**" />
     <Content Remove="SQL\**" />
+    <EmbeddedResource Remove="Controllers\Api\**" />
     <EmbeddedResource Remove="Models\Enums\**" />
     <EmbeddedResource Remove="SQL\**" />
+    <None Remove="Controllers\Api\**" />
     <None Remove="Models\Enums\**" />
     <None Remove="SQL\**" />
   </ItemGroup>
@@ -34,7 +38,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\Api\" />
     <Folder Include="wwwroot\Images\Movies\" />
     <Folder Include="wwwroot\Images\Snacks\" />
   </ItemGroup>

@@ -253,7 +253,6 @@
     }
 </style>
 
-<!-- ADD: splash overlay (đặt NGAY SAU <style> hoặc ngay đầu body content) -->
 <div id="adminSplash" aria-hidden="true">
     <div class="admin-splash-core">
         <div class="admin-scanline"></div>
@@ -273,7 +272,6 @@
         </h1>
         <div>
             <div class="tt-subnote">
-                <i class="fa-solid fa-circle-info me-2"></i>
                 <span>Thiết lập và quản lý các chức năng dành cho Admin.</span>
             </div>
         </div>
@@ -434,7 +432,7 @@
                 splash.classList.remove("admin-splash-hide");
                 setTimeout(() => {
                     splash.classList.add("admin-splash-hide");
-                }, 1500);
+                }, 800);
             }
 
             // existing auto dismiss

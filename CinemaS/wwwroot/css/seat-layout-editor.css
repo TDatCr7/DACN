@@ -726,6 +726,27 @@
     font-weight: bold;
 }
 
+/* ✅ AISLE SEAT STYLES (ADMIN ONLY) */
+.seat.aisle-seat-visual {
+    background: transparent !important;
+    border: 2px dashed rgba(255, 215, 0, 0.3) !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    opacity: 0.6;
+}
+
+.seat.aisle-seat-visual:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.seat.aisle-seat-visual .aisle-marker {
+    font-size: 24px;
+    color: rgba(255, 215, 0, 0.5);
+    font-weight: bold;
+    letter-spacing: 4px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 900px) {
     .toolbar-container {

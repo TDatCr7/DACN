@@ -14,5 +14,6 @@ namespace CinemaS.Models.ViewModels
         public bool IsVIP { get; set; }
         public bool IsActive { get; set; } = true; // Thêm thuộc tính IsActive
         public string? PairId { get; set; }
+        public bool IsAisle { get; set; } = false; // Thêm thuộc tính IsAisle để UI biết
     }
 }

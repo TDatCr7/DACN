@@ -32,6 +32,9 @@ namespace CinemaS.Models
         [Column("Is_Deleted")]
         public bool IsDeleted { get; set; } = false;
 
+        [Column("Is_Aisle")]
+        public bool IsAisle { get; set; } = false;
+
         [Column("Pair_ID")]
         [StringLength(10)]
         public string? PairId { get; set; }

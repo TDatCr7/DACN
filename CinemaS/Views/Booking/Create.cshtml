@@ -99,7 +99,7 @@
                                                 <div class="progress mt-2" style="height: 6px;">
                                                     @{
                                                         var percentage = showTime.TotalSeats > 0 ? (showTime.AvailableSeats * 100) / showTime.TotalSeats : 0;
-                                                        var barColor = percentage > 50 ? "bg-success" : (percentage > 20 ? "bg-warning" : "bg-danger");
+                                                        var barColor = showTime.AvailableSeats > 0 ? "bg-success" : "bg-danger";
                                                     }
                                                     <div class="progress-bar @barColor" style="width: @percentage%"></div>
                                                 </div>

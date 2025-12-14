@@ -45,6 +45,7 @@ namespace CinemaS.Models.ViewModels
         public int ColumnIndex { get; set; }
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
+        public bool IsAisle { get; set; } = false; // ✅ Add IsAisle property
         public string? PairId { get; set; }
         public bool IsLeftOfPair { get; set; }
         public bool IsRightOfPair { get; set; }

@@ -244,6 +244,29 @@
     border-radius: 10px;
 }
 
+/* Aisle visual style */
+.aisle-seat-visual,
+.seat.aisle-seat-visual {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.15) 0%, rgba(75, 85, 99, 0.15) 100%) !important;
+    border: 2px dashed rgba(156, 163, 175, 0.3) !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+}
+
+.aisle-seat-visual:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.aisle-seat-visual .aisle-marker {
+    font-size: 18px;
+    color: rgba(156, 163, 175, 0.6);
+    font-weight: bold;
+    letter-spacing: 2px;
+    user-select: none;
+}
+
 /* Icon người */
 .user-icon-wrapper {
     display: none;
@@ -404,6 +427,16 @@
             color: white;
             font-size: 16px;
         }
+
+    .legend-item .aisle-seat-visual {
+        width: var(--seat-size);
+        height: var(--seat-size);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: rgba(156,163,175,0.08);
+    }
 
 /* ===== Thông tin đặt vé ===== */
 .booking-summary {
