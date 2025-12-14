@@ -71,7 +71,11 @@ namespace CinemaS.Controllers
             foreach (var st in showTimes)
             {
                 var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
-                var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId);
+                
+                // ✅ FIX: Không đếm ghế IsDeleted và IsAisle
+                var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId 
+                                                                   && !s.IsDeleted 
+                                                                   && !s.IsAisle);
                 var bookedSeats = await _context.Tickets.CountAsync(t => t.ShowTimeId == st.ShowTimeId && t.Status == 2);
 
                 showTimesList.Add(new ShowTimeVM
@@ -142,6 +146,7 @@ namespace CinemaS.Controllers
                         ColumnIndex = seat.ColumnIndex ?? 1,
                         IsActive = seat.IsActive,
                         IsDeleted = seat.IsDeleted,
+                        IsAisle = seat.IsAisle, // ✅ Add IsAisle from database
                         PairId = seat.PairId
                     };
 
@@ -622,7 +627,7 @@ namespace CinemaS.Controllers
                     affectedSeats.Add(new
                     {
                         seatId = seat.SeatId,
-                        seatTypeId = seat.SeatTypeId,
+                        seatTypeId = seat.SeatId,
                         seatTypeName = seatType.Name,
                         isActive = seat.IsActive,
                         isDeleted = seat.IsDeleted,
@@ -803,6 +808,16 @@ namespace CinemaS.Controllers
                 if (theater == null)
                     return Json(new { success = false, message = "Không tìm thấy phòng chiếu" });
 
+                // ✅ RULE 5: Block AddRow if ANY seat has IsAisle = true
+                var hasAisleSeat = await _context.Seats
+                    .AnyAsync(s => s.CinemaTheaterId == request.CinemaTheaterId && s.IsAisle);
+
+                if (hasAisleSeat)
+                {
+                    Console.WriteLine($"❌ AddRow BLOCKED: Theater {request.CinemaTheaterId} contains aisle seats");
+                    return Json(new { success = false, message = "Vui lòng bỏ lối đi trước khi thêm hàng hoặc cột" });
+                }
+
                 // Get current number of rows and columns
                 var currentRows = theater.NumOfRows ?? 0;
                 var currentColumns = theater.NumOfColumns ?? 14;
@@ -892,6 +907,16 @@ namespace CinemaS.Controllers
                 var theater = await _context.CinemaTheaters.FindAsync(request.CinemaTheaterId);
                 if (theater == null)
                     return Json(new { success = false, message = "Không tìm thấy phòng chiếu" });
+
+                // ✅ RULE 5: Block AddColumn if ANY seat has IsAisle = true
+                var hasAisleSeat = await _context.Seats
+                    .AnyAsync(s => s.CinemaTheaterId == request.CinemaTheaterId && s.IsAisle);
+
+                if (hasAisleSeat)
+                {
+                    Console.WriteLine($"❌ AddColumn BLOCKED: Theater {request.CinemaTheaterId} contains aisle seats");
+                    return Json(new { success = false, message = "Vui lòng bỏ lối đi trước khi thêm hàng hoặc cột" });
+                }
 
                 var currentRows = theater.NumOfRows ?? 0;
                 var currentColumns = theater.NumOfColumns ?? 14;
@@ -1063,10 +1088,7 @@ namespace CinemaS.Controllers
                     if (!string.IsNullOrEmpty(seat.PairId))
                     {
                         // Find the other seat in the couple pair
-                        var pairedSeats = await _context.Seats
-                            .Where(s => s.PairId == seat.PairId && s.SeatId != seat.SeatId)
-                            .ToListAsync();
-
+                        var pairedSeats = await _context.Seats.Where(s => s.PairId == seat.PairId && s.SeatId != seat.SeatId).ToListAsync();
                         foreach (var pairedSeat in pairedSeats)
                         {
                             // Unpair the other seat
@@ -1214,7 +1236,7 @@ namespace CinemaS.Controllers
                         affectedSeats.Add(new
                         {
                             seatId = seat.SeatId,
-                            seatTypeId = seat.SeatTypeId,
+                            seatTypeId = seat.SeatId,
                             seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
                             isActive = seat.IsActive,
                             isDeleted = seat.IsDeleted,
@@ -1333,8 +1355,8 @@ namespace CinemaS.Controllers
                     affectedSeatsList.Add(new
                     {
                         seatId = seat.SeatId,
-                        seatTypeId = seat.SeatTypeId,
-                        seatTypeName = seatType.Name,
+                        seatTypeId = seat.SeatId,
+                        seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
                         isActive = seat.IsActive,
                         isDeleted = seat.IsDeleted,
                         pairId = seat.PairId,
@@ -1460,7 +1482,7 @@ namespace CinemaS.Controllers
                         affectedSeats.Add(new
                         {
                             seatId = seat.SeatId,
-                            seatTypeId = seat.SeatTypeId,
+                            seatTypeId = seat.SeatId,
                             seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
                             isActive = seat.IsActive,
                             isDeleted = seat.IsDeleted,
@@ -1515,7 +1537,7 @@ namespace CinemaS.Controllers
                         affectedSeats.Add(new
                         {
                             seatId = seat.SeatId,
-                            seatTypeId = seat.SeatTypeId,
+                            seatTypeId = seat.SeatId,
                             seatTypeName = st?.Name ?? "NORMAL",
                             isActive = false,
                             isDeleted = seat.IsDeleted,
@@ -1578,8 +1600,8 @@ namespace CinemaS.Controllers
                     affectedSeatsList.Add(new
                     {
                         seatId = seat.SeatId,
-                        seatTypeId = seat.SeatTypeId,
-                        seatTypeName = seatType.Name,
+                        seatTypeId = seat.SeatId,
+                        seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
                         isActive = seat.IsActive,
                         isDeleted = seat.IsDeleted,
                         pairId = seat.PairId,
@@ -1670,7 +1692,7 @@ namespace CinemaS.Controllers
                         affectedSeats.Add(new
                         {
                             seatId = seat.SeatId,
-                            seatTypeId = seat.SeatTypeId,
+                            seatTypeId = seat.SeatId,
                             seatTypeName = aisleType.Name,
                             isActive = seat.IsActive,
                             isDeleted = seat.IsDeleted,
@@ -1726,7 +1748,7 @@ namespace CinemaS.Controllers
                         affectedSeats.Add(new
                         {
                             seatId = seat.SeatId,
-                            seatTypeId = seat.SeatTypeId,
+                            seatTypeId = seat.SeatId,
                             seatTypeName = aisleType.Name,
                             isActive = seat.IsActive,
                             isDeleted = seat.IsDeleted,
@@ -2078,6 +2100,191 @@ namespace CinemaS.Controllers
         }
 
         // ===========================
+        // POST: Seats/ToggleColumnAisle - Toggle column aisle using IsAisle flag
+        // ===========================
+        [HttpPost]
+        public async Task<IActionResult> ToggleColumnAisle([FromBody] ToggleColumnAisleRequest request)
+        {
+            try
+            {
+                // Validate request
+                if (string.IsNullOrEmpty(request.CinemaTheaterId) || request.ColumnIndex <= 0)
+                {
+                    return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
+                }
+
+                Console.WriteLine($"🔄 ToggleColumnAisle: Theater={request.CinemaTheaterId}, Column={request.ColumnIndex}");
+
+                // Load ALL seats for this theater (needed for label recalculation)
+                var allSeats = await _context.Seats
+                    .Where(s => s.CinemaTheaterId == request.CinemaTheaterId)
+                    .ToListAsync();
+
+                if (!allSeats.Any())
+                {
+                    return Json(new { success = false, message = "Không tìm thấy ghế trong phòng chiếu này" });
+                }
+
+                // Get seats in the target column
+                var columnSeats = allSeats.Where(s => s.ColumnIndex == request.ColumnIndex).ToList();
+
+                if (!columnSeats.Any())
+                {
+                    return Json(new { success = false, message = $"Không tìm thấy ghế trong cột {request.ColumnIndex}" });
+                }
+
+                // Determine current aisle state (if ALL seats in column are aisle, then it's an aisle column)
+                var isCurrentlyAisle = columnSeats.All(s => s.IsAisle);
+
+                // ✅ RULE 4: Block creating aisle if column contains ANY double seat (PairId != null)
+                if (!isCurrentlyAisle)
+                {
+                    var hasDoubleSeat = columnSeats.Any(s => !string.IsNullOrEmpty(s.PairId));
+                    if (hasDoubleSeat)
+                    {
+                        Console.WriteLine($"❌ ToggleColumnAisle BLOCKED: Column {request.ColumnIndex} contains double seats");
+                        return Json(new { success = false, message = "Không thể tạo lối đi tại cột này vì có ghế đôi" });
+                    }
+                }
+
+                // Check for booked seats if we're creating an aisle (not removing)
+                if (!isCurrentlyAisle)
+                {
+                    var seatIds = columnSeats.Select(s => s.SeatId).ToList();
+                    var bookedCount = await _context.Tickets
+                        .Where(t => seatIds.Contains(t.SeatId) && t.Status == 2)
+                        .CountAsync();
+
+                    if (bookedCount > 0)
+                    {
+                        return Json(new { success = false, message = $"Không thể tạo lối đi vì có {bookedCount} ghế đã được đặt" });
+                    }
+                }
+
+                // Toggle aisle state for the column
+                bool newAisleState = !isCurrentlyAisle;
+
+                Console.WriteLine($"📊 Column {request.ColumnIndex}: CurrentAisle={isCurrentlyAisle} → NewAisle={newAisleState}");
+
+                // Update column seats
+                foreach (var seat in columnSeats)
+                {
+                    seat.IsAisle = newAisleState;
+
+                    // If setting as aisle, clear the label and unpair couple seats
+                    if (newAisleState)
+                    {
+                        seat.Label = null;
+
+                        // Unpair if part of couple
+                        if (!string.IsNullOrEmpty(seat.PairId))
+                        {
+                            var pairedSeats = allSeats.Where(s => s.PairId == seat.PairId).ToList();
+                            foreach (var ps in pairedSeats)
+                            {
+                                ps.PairId = null;
+                                _context.Update(ps);
+                            }
+                        }
+                    }
+                }
+
+                // Recalculate labels for ALL seats in the theater
+                RecalculateTheaterLabels(allSeats);
+
+                // Mark all modified entities
+                foreach (var seat in allSeats)
+                {
+                    _context.Entry(seat).State = EntityState.Modified;
+                }
+
+                // Save all changes in ONE call
+                await _context.SaveChangesAsync();
+
+                // Build response with affected seats data
+                var affectedSeats = allSeats.Select(s => new
+                {
+                    seatId = s.SeatId,
+                    seatTypeId = s.SeatTypeId,
+                    seatTypeName = _context.SeatTypes.AsNoTracking().FirstOrDefault(st => st.SeatTypeId == s.SeatTypeId)?.Name ?? "NORMAL", // ✅ FIX: Include seatTypeName for UI
+                    isActive = s.IsActive,
+                    isDeleted = s.IsDeleted,
+                    isAisle = s.IsAisle,
+                    pairId = s.PairId,
+                    label = s.Label,
+                    rowNumber = GetRowNumberFromLabel(s.RowIndex),
+                    columnIndex = s.ColumnIndex
+                }).ToList();
+
+                Console.WriteLine($"✅ ToggleColumnAisle SUCCESS: Column {request.ColumnIndex} is now {(newAisleState ? "AISLE" : "NORMAL")}");
+
+                return Json(new
+                {
+                    success = true,
+                    message = newAisleState
+                        ? $"Đã tạo lối đi tại cột {request.ColumnIndex}"
+                        : $"Đã khôi phục cột {request.ColumnIndex} thành ghế",
+                    isNowAisle = newAisleState,
+                    affectedSeats = affectedSeats
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ ToggleColumnAisle ERROR: {ex.Message}\n{ex.StackTrace}");
+                return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
+        // ===========================
+        // HELPER: Recalculate labels for entire theater
+        // Rules:
+        // - IsAisle = true → Label = NULL (don't count)
+        // - IsDeleted = true → Keep existing label (count toward seat number)
+        // - Normal seat → Assign new label = RowIndex + seatCounter
+        // ===========================
+        private void RecalculateTheaterLabels(List<Seats> allSeats)
+        {
+            // Group seats by row
+            var rowGroups = allSeats
+                .GroupBy(s => s.RowIndex)
+                .OrderBy(g => g.Key);
+
+            foreach (var rowGroup in rowGroups)
+            {
+                var rowLabel = rowGroup.Key;
+                var seatsInRow = rowGroup.OrderBy(s => s.ColumnIndex).ToList();
+
+                int seatCounter = 1; // Start counting from 1 for each row
+
+                foreach (var seat in seatsInRow)
+                {
+                    if (seat.IsAisle)
+                    {
+                        // Aisle seat: Label = NULL, don't increment counter
+                        seat.Label = null;
+                        // Do NOT increment seatCounter
+                    }
+                    else if (seat.IsDeleted)
+                    {
+                        // Deleted seat: KEEP existing label, increment counter
+                        // If label was somehow null, assign one
+                        if (string.IsNullOrEmpty(seat.Label))
+                        {
+                            seat.Label = $"{rowLabel}{seatCounter}";
+                        }
+                        seatCounter++;
+                    }
+                    else
+                    {
+                        // Normal active seat: Assign new label
+                        seat.Label = $"{rowLabel}{seatCounter}";
+                        seatCounter++;
+                    }
+                }
+            }
+        }
+
+        // ===========================
         // HELPER METHODS
         // ===========================
         private string GenerateRowLabel(int rowIndex)
@@ -2264,6 +2471,12 @@ namespace CinemaS.Controllers
     }
 
     public class RestoreColumnFromAisleRequest
+    {
+        public string CinemaTheaterId { get; set; } = default!;
+        public int ColumnIndex { get; set; }
+    }
+
+    public class ToggleColumnAisleRequest
     {
         public string CinemaTheaterId { get; set; } = default!;
         public int ColumnIndex { get; set; }

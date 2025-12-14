@@ -71,6 +71,14 @@
                                     processedColumns.Add(seat.ColumnIndex ?? 0);
                                     processedColumns.Add(pairSeat.ColumnIndex ?? 0);
 
+                                    // If either seat is aisle, render visible aisle visuals for both
+                                    if (seat.IsAisle || pairSeat.IsAisle)
+                                    {
+                                        <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                        <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                        continue;
+                                    }
+
                                     var isBookedOrInactive = seat.Status == "Booked" || pairSeat.Status == "Booked" || !seat.IsActive || !pairSeat.IsActive;
                                     var cssClass = isBookedOrInactive ? "booked" : "";
 
@@ -106,6 +114,14 @@
                                 else
                                 {
                                     processedColumns.Add(col);
+
+                                    // If seat is aisle, render visible aisle visual
+                                    if (seat.IsAisle)
+                                    {
+                                        <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                        continue;
+                                    }
+
                                     var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
                                     seatClass += seat.IsVIP ? " vip" : " normal";
 
@@ -140,6 +156,14 @@
                             else
                             {
                                 processedColumns.Add(col);
+
+                                // If seat is aisle, render visible aisle visual
+                                if (seat.IsAisle)
+                                {
+                                    <div class="seat seat-placeholder" style="visibility: hidden; pointer-events: none;" title="Lối đi"></div>
+                                    continue;
+                                }
+
                                 var seatClass = seat.Status == "Booked" || !seat.IsActive ? "booked" : "";
                                 seatClass += seat.IsVIP ? " vip" : " normal";
 

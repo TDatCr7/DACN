@@ -11,6 +11,7 @@
     cursor: pointer !important;
     position: relative;
     transition: all 0.3s ease;
+    pointer-events: auto !important;
 }
 
 .removed-seat:hover {
@@ -204,25 +205,186 @@
     z-index: 10;
 }
 
-/* Responsive adjustments */
+/* Aisle seat visual (faded dashed for editor view) */
+.aisle-seat {
+    background: linear-gradient(135deg, 
+        rgba(55, 65, 81, 0.3) 0%, 
+        rgba(31, 41, 55, 0.3) 100%) !important;
+    border: 2px dashed rgba(107, 114, 128, 0.4) !important;
+    opacity: 0.25 !important;
+    pointer-events: none;
+    position: relative;
+}
+
+.aisle-seat .aisle-marker {
+    position: absolute;
+    font-size: 28px;
+    color: rgba(156, 163, 175, 0.5);
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    letter-spacing: -4px;
+}
+
+/* Aisle toggle button (+) on headers */
+.aisle-toggle-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    transition: all 0.3s ease;
+}
+
+.aisle-toggle-btn:hover {
+    background: linear-gradient(135deg, #6d28d9, #5b21b6);
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.6);
+}
+
+.aisle-toggle-btn:active {
+    transform: translate(-50%, -50%) scale(1.0);
+}
+
+/* Show toggle button on header hover (but NOT on first/last) */
+.column-number:hover:not(.first-column):not(.last-column) .aisle-toggle-btn,
+.row-label:hover:not(.first-row .row-label):not(.last-row .row-label) .aisle-toggle-btn {
+    display: flex !important;
+}
+
+/* Hide delete button when aisle toggle is showing */
+.column-number:hover:not(.first-column):not(.last-column) .delete-btn,
+.row-label:hover:not(.first-row .row-label):not(.last-row .row-label) .delete-btn {
+    opacity: 0.3;
+}
+
+/* Header positioning for buttons */
+.column-number,
+.row-label {
+    position: relative;
+}
+
+/* Visual feedback when header is aisle */
+.column-number.is-aisle,
+.row-label.is-aisle {
+    background: linear-gradient(135deg, 
+        rgba(124, 58, 237, 0.15) 0%, 
+        rgba(109, 40, 217, 0.15) 100%);
+    border-color: rgba(124, 58, 237, 0.4);
+}
+
+/* Aisle toggle button for active aisle (different icon/color) */
+.column-number.is-aisle .aisle-toggle-btn,
+.row-label.is-aisle .aisle-toggle-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.column-number.is-aisle .aisle-toggle-btn i::before,
+.row-label.is-aisle .aisle-toggle-btn i::before {
+    content: "\f00c"; /* fa-check icon */
+}
+
+.column-number.is-aisle .aisle-toggle-btn:hover,
+.row-label.is-aisle .aisle-toggle-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    box-shadow: 0 6px 18px rgba(34, 197, 94, 0.6);
+}
+
+/* Smooth transitions */
+.seat, .column-number, .row-label {
+    transition: all 0.3s ease;
+}
+
+/* Loading state */
+.aisle-toggle-btn.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.aisle-toggle-btn.loading i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive aisle styles */
 @media (max-width: 768px) {
-    .restore-popup-menu {
-        min-width: 220px;
-        max-width: 90vw;
+    .aisle-toggle-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
     }
 
-    .tool-section {
-        margin-bottom: 10px;
-        padding: 10px;
+    .aisle-seat .aisle-marker {
+        font-size: 24px;
     }
+}
 
-    .tool-section h5 {
-        font-size: 13px;
-    }
+/* ✅ Ensure aisle marker uses monospace and centered for clear "::" display */
+.seat.aisle-seat-visual .aisle-marker,
+.aisle-seat .aisle-marker {
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 20px;
+    color: rgba(255, 215, 0, 0.85);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.1em;
+    user-select: none;
+    pointer-events: none;
+}
 
-    .btn-group .btn {
-        padding: 8px 12px;
-        font-size: 12px;
-        margin: 2px;
-    }
+/* remove conflicting letter-spacing/position rules to avoid underscore-like rendering */
+.seat.aisle-seat-visual,
+.aisle-seat {
+    background: transparent !important;
+    border: 2px dashed rgba(255, 215, 0, 0.25) !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    opacity: 0.9;
+    box-shadow: none !important;
+}
+
+.seat.aisle-seat-visual:hover, .aisle-seat:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.seat.aisle-seat-visual .aisle-marker, .aisle-seat .aisle-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 18px;
+    color: rgba(255,215,0,0.9);
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+/* Prevent hover glow on parent selectors */
+.column-number:hover .aisle-seat-visual, .row-label:hover .aisle-seat-visual {
+    box-shadow: none !important;
 }

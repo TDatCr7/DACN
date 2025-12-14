@@ -72,7 +72,8 @@ namespace CinemaS.Controllers
                     IsCouple = string.Equals(st?.Name, "COUPLE", StringComparison.OrdinalIgnoreCase),
                     IsVIP = string.Equals(st?.Name, "VIP", StringComparison.OrdinalIgnoreCase),
                     IsActive = s.IsActive,
-                    PairId = s.PairId
+                    PairId = s.PairId,
+                    IsAisle = s.IsAisle
                 };
             }).ToList();
 
@@ -162,8 +163,11 @@ namespace CinemaS.Controllers
                 var cinema = await _context.CinemaTheaters.AsNoTracking()
                     .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == st.CinemaTheaterId);
 
+                // ✅ FIX: Không đếm ghế IsDeleted và IsAisle
                 var totalSeats = await _context.Seats.AsNoTracking()
-                    .CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId && !s.IsDeleted);
+                    .CountAsync(s => s.CinemaTheaterId == st.CinemaTheaterId 
+                                  && !s.IsDeleted 
+                                  && !s.IsAisle);
 
                 var paid = await _context.Tickets.AsNoTracking()
                     .CountAsync(t => t.ShowTimeId == st.ShowTimeId && t.Status == 2);

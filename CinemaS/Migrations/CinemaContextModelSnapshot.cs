@@ -260,10 +260,6 @@ namespace CinemaS.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("PaymentMethod")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<string>("PaymentMethodId")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
@@ -303,8 +299,6 @@ namespace CinemaS.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("PaymentMethodId");
-
-                    b.HasIndex("PromotionId");
 
                     b.HasIndex("StaffId");
 
@@ -949,6 +943,10 @@ namespace CinemaS.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("Is_Active");
 
+                    b.Property<bool>("IsAisle")
+                        .HasColumnType("bit")
+                        .HasColumnName("Is_Aisle");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit")
                         .HasColumnName("Is_Deleted");
@@ -1248,6 +1246,11 @@ namespace CinemaS.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("AvatarUrl");
+
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("Created_At");
@@ -1485,8 +1488,8 @@ namespace CinemaS.Migrations
 
             modelBuilder.Entity("CinemaS.Models.Invoices", b =>
                 {
-                    b.HasOne("CinemaS.Models.Users", null)
-                        .WithMany()
+                    b.HasOne("CinemaS.Models.Users", "Customer")
+                        .WithMany("Invoices")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1496,15 +1499,12 @@ namespace CinemaS.Migrations
                         .HasForeignKey("PaymentMethodId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("CinemaS.Models.Promotion", null)
-                        .WithMany()
-                        .HasForeignKey("PromotionId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("CinemaS.Models.Users", null)
                         .WithMany()
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("CinemaS.Models.MovieTheaters", b =>
@@ -1754,6 +1754,11 @@ namespace CinemaS.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CinemaS.Models.Users", b =>
+                {
+                    b.Navigation("Invoices");
                 });
 #pragma warning restore 612, 618
         }

@@ -33,7 +33,10 @@ namespace CinemaS.Controllers
                             NumOfRows = ct.NumOfRows,
                             NumOfColumns = ct.NumOfColumns,
                             Status = ct.Status,
-                            TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
+                            // ✅ FIX: Không đếm ghế IsDeleted và IsAisle
+                            TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId 
+                                                                 && !s.IsDeleted 
+                                                                 && !s.IsAisle)
                         };
 
             // Nếu có chuỗi tìm kiếm => lọc
@@ -78,7 +81,10 @@ namespace CinemaS.Controllers
                             .Where(mt => mt.MovieTheaterId == ct.MovieTheaterId)
                             .Select(mt => mt.Name)
                             .FirstOrDefault(),
-                        TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
+                        // ✅ FIX: Không đếm ghế IsDeleted và IsAisle
+                        TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId 
+                                                             && !s.IsDeleted 
+                                                             && !s.IsAisle)
                     }).ToListAsync();
 
                 return Json(all);
@@ -108,7 +114,10 @@ namespace CinemaS.Controllers
                         .Where(mt => mt.MovieTheaterId == ct.MovieTheaterId)
                         .Select(mt => mt.Name)
                         .FirstOrDefault(),
-                    TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId)
+                    // ✅ FIX: Không đếm ghế IsDeleted và IsAisle
+                    TotalSeats = _context.Seats.Count(s => s.CinemaTheaterId == ct.CinemaTheaterId 
+                                                         && !s.IsDeleted 
+                                                         && !s.IsAisle)
                 })
                 .ToListAsync();
 
@@ -374,7 +383,10 @@ namespace CinemaS.Controllers
 
             try
             {
-                var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == cinemaTheaterId && s.IsActive);
+                // ✅ FIX: Không đếm ghế IsDeleted và IsAisle
+                var totalSeats = await _context.Seats.CountAsync(s => s.CinemaTheaterId == cinemaTheaterId 
+                                                                   && !s.IsDeleted 
+                                                                   && !s.IsAisle);
                 return Json(new { success = true, totalSeats });
             }
             catch (Exception ex)
