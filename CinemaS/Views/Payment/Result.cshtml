@@ -25,7 +25,7 @@
 
             @if (Model != null)
             {
-                <div class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
+                <div id="paymentStatusBadge" class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
                     <i class="fas @(Model.IsSuccess ? "fa-check-circle" : "fa-times-circle")"></i>
                     <span>@(Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "THANH TOÁN THẤT BẠI")</span>
                 </div>
@@ -36,12 +36,10 @@
                             <div class="card-header-icon">
                                 <i class="fas fa-receipt"></i>
                             </div>
-                            <h3 class="card-header-title">Thông tin hóa đơn</h3>
+                            <h3 class="card-header-title">Thông tin Vé</h3>
                         </div>
 
-                        <div class="bill-code">
-                            Mã: <span class="bill-code-value">@Model.OrderId</span>
-                        </div>
+                        
                     </div>
 
                     <div class="card-body-custom">
@@ -215,7 +213,7 @@
                                 </a>
 
                                 <a class="btn-custom btn-history" href="/Payment/History">
-                                    <i class="fas fa-history"></i> Lịch sử
+                                    <i class="fas fa-history"></i> Lịch sử hóa đơn
                                 </a>
                             </div>
                         }
@@ -225,3 +223,28 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        (function () {
+            const isSuccess = @((Model?.IsSuccess ?? false).ToString().ToLower());
+            if (!isSuccess) return;
+
+            const orderId = "@(Model?.OrderId ?? "")";
+            if (!orderId) return;
+
+            const key = "pay_success_shown:" + orderId;
+
+            try {
+                const alreadyShown = sessionStorage.getItem(key) === "1";
+                if (alreadyShown) {
+                    const badge = document.getElementById("paymentStatusBadge");
+                    if (badge) badge.style.display = "none";
+                    return;
+                }
+                sessionStorage.setItem(key, "1");
+            } catch (_) {
+                
+            }
+        })();
+    </script>
+}

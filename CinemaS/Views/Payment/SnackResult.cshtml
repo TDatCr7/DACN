@@ -5,12 +5,170 @@
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+    .snack-card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .snack-mini-card {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.18);
+        background: rgba(15,23,42,.78);
+        overflow: hidden;
+    }
+
+    .snack-mini-img {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        overflow: hidden;
+        flex: 0 0 auto;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(2,6,23,.55);
+    }
+
+        .snack-mini-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    .snack-mini-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .snack-mini-name {
+        font-weight: 800;
+        color: #e5e7eb;
+        line-height: 1.2;
+        font-size: 14px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .snack-mini-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .snack-mini-qty {
+        color: #9ca3af;
+        font-weight: 700;
+    }
+
+    .snack-mini-total {
+        color: #22c55e;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 640px) {
+        .snack-card-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .snack-mini-img {
+            width: 56px;
+            height: 56px;
+        }
+    }
+
+    /* grid giống trang đặt đồ ăn */
+    .snack-vertical-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    /* card */
+    .snack-vcard {
+        border-radius: 16px;
+        border: 1px solid rgba(148,163,255,.18);
+        background: rgba(15,23,42,.78);
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15,23,42,.35);
+    }
+
+    /* ảnh trên */
+    .snack-vcard-img {
+        width: 100%;
+        height: 140px;
+        background: rgba(2,6,23,.55);
+    }
+
+        .snack-vcard-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    /* khối info dưới (nền tím) */
+    .snack-vcard-info {
+        padding: 10px 10px 12px;
+        background: rgba(37, 61, 148, .32);
+    }
+
+    /* 3 dòng sát nhau */
+    .snack-vcard-name {
+        margin: 0;
+        font-weight: 900;
+        color: #e5e7eb;
+        font-size: 14px;
+        line-height: 1.15;
+        display: -webkit-box;
+        -webkit-line-clamp: 1; /* ✅ 1 dòng như hình */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .snack-vcard-qty {
+        margin-top: 6px;
+        color: rgba(229,231,235,.85);
+        font-weight: 800;
+        font-size: 12px;
+        line-height: 1.1;
+    }
+
+    .snack-vcard-price {
+        margin-top: 6px;
+        color: #22c55e;
+        font-weight: 900;
+        font-size: 14px;
+        line-height: 1.1;
+    }
+
+
+
+    .snack-mini-card-vertical {
+        width: 100%;
+    }
+
+</style>
 
 <div class="payment-result">
     <div class="result-container">
         <div class="result-content">
 
-            <div class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
+            <div id="snackPaymentStatusBadge" class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
                 <i class="fas @(Model.IsSuccess ? "fa-check-circle" : "fa-times-circle")"></i>
                 <span>@(Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "CHƯA THANH TOÁN")</span>
             </div>
@@ -21,11 +179,10 @@
                         <div class="card-header-icon">
                             <i class="fas fa-utensils"></i>
                         </div>
-                        <h3 class="card-header-title">Hóa đơn đồ ăn</h3>
+                        <h3 class="card-header-title">Thông tin hóa đơn đồ ăn</h3>
                     </div>
-                    <div style="color:#cbd5e1;font-weight:700;font-size:13px;">
-                        Mã: <span style="color:#fbbf24;">@Model.OrderId</span>
-                    </div>
+
+                    
                 </div>
 
                 <div class="card-body-custom">
@@ -33,56 +190,115 @@
                     {
                         <div class="empty-detail">
                             <div class="empty-icon"><i class="fas fa-receipt"></i></div>
-                            <div class="empty-text">Không có dữ liệu chi tiết.</div>
+                            <div class="empty-text">Không có dữ liệu chi tiết hóa đơn.</div>
                         </div>
                     }
                     else
                     {
                         var d = Model.Detail;
 
-                        <div class="ticket-detail-item">
-                            <i class="fas fa-calendar-alt"></i>
-                            <strong>Ngày tạo:</strong>
-                            <span>@(d.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</span>
+                        <div class="ticket-header" style="grid-template-columns: 1fr;">
+                            <div class="ticket-main">
+                                <div class="movie-title">Danh sách đồ ăn</div>
+
+                                @if (d.SnackItems != null && d.SnackItems.Any())
+                                {
+                                    <div class="snack-vertical-list">
+                                        @foreach (var s in d.SnackItems)
+                                        {
+                                            var rawImg = s.Image;
+
+                                            // Chuẩn hoá giống trang "Đặt đồ ăn":
+                                            // - null/empty => fallback
+                                            // - có http/https => giữ nguyên
+                                            // - còn lại => đưa về đường dẫn ứng dụng (~/) để không bị sai khi đang ở route /Payment/...
+                                            var img = string.IsNullOrWhiteSpace(rawImg)
+                                            ? Url.Content("~/images/snacks/SnackCinema.jpg")
+                                            : (rawImg.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                            ? rawImg
+                                            : Url.Content("~/" + rawImg.TrimStart('/')));
+
+                                            <div class="snack-vcard">
+                                                <div class="snack-vcard-img">
+                                                    <img src="@img"
+                                                         alt="@s.Name"
+                                                         onerror="this.onerror=null;this.src='@Url.Content("~/images/snacks/SnackCinema.jpg")';" />
+                                                </div>
+
+                                                <div class="snack-vcard-info">
+                                                    <div class="snack-vcard-name">@s.Name</div>
+                                                    <div class="snack-vcard-qty">x @s.Quantity</div>
+                                                    <div class="snack-vcard-price">@s.LineTotal.ToString("N0") đ</div>
+                                                </div>
+                                            </div>
+
+                                        }
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-snacks" style="margin-top:10px;">Không có dòng đồ ăn.</div>
+                                }
+                            </div>
                         </div>
 
-                        <div class="ticket-detail-item">
-                            <i class="fas fa-envelope"></i>
-                            <strong>Email:</strong>
-                            <span>@(string.IsNullOrWhiteSpace(d.InvoiceEmail) ? "N/A" : d.InvoiceEmail)</span>
+
+                        <div class="block-stack">
+                            <!-- KHUNG CŨ "DANH SÁCH ĐỒ ĂN" => ĐỔI THÀNH THANH TOÁN -->
+                            <div class="pricing-item pricing-block">
+                                <div class="pricing-title">THANH TOÁN</div>
+
+                                <div class="promo-row-line">
+                                    <span>Phương thức</span>
+                                    <span class="promo-strong">
+                                        @(string.IsNullOrWhiteSpace(d.PaymentMethod) ? "-" : d.PaymentMethod)
+                                    </span>
+                                </div>
+
+                                <div class="promo-row-line">
+                                    <span>Ngày thanh toán</span>
+                                    <span class="promo-strong">
+                                        @(d.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- KHUYẾN MÃI GIỮ NGUYÊN -->
+                            <div class="pricing-item pricing-block">
+                                <div class="pricing-title pricing-title-tight">KHUYẾN MÃI</div>
+
+                                <div class="promo-row-line">
+                                    <span>Chương trình</span>
+                                    <span class="promo-strong">
+                                        @(string.IsNullOrWhiteSpace(d.PromotionName) ? "-" : d.PromotionName)
+                                    </span>
+                                </div>
+
+                                <div class="promo-row-line">
+                                    <span>Giảm (%)</span>
+                                    <span class="promo-strong">
+                                        @(d.DiscountPercent.HasValue ? (d.DiscountPercent.Value.ToString("0.##") + "%") : "-")
+                                    </span>
+                                </div>
+
+                                <div class="promo-row-line">
+                                    <span>Giá gốc</span>
+                                    <span class="promo-original">@d.OriginalAmount.ToString("N0") đ</span>
+                                </div>
+
+                                <div class="promo-row-line">
+                                    <span>Giảm</span>
+                                    <span class="promo-discount">-@d.DiscountAmount.ToString("N0") đ</span>
+                                </div>
+
+                                <div class="promo-payable">
+                                    <span class="promo-payable-title">PHẢI TRẢ</span>
+                                    <span class="promo-payable-value">@d.PayableAmount.ToString("N0") đ</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="ticket-detail-item">
-                            <i class="fas fa-phone"></i>
-                            <strong>SĐT:</strong>
-                            <span>@(string.IsNullOrWhiteSpace(d.InvoicePhone) ? "N/A" : d.InvoicePhone)</span>
-                        </div>
-
-                        <div style="margin-top:18px;" class="pricing-item">
-                            <div class="pricing-title">DANH SÁCH ĐỒ ĂN</div>
-
-                            @if (d.SnackItems != null && d.SnackItems.Any())
-                            {
-                                <ul class="snack-list">
-                                    @foreach (var s in d.SnackItems)
-                                    {
-                                        <li>
-                                            <span class="snack-name">@s.Name × @s.Quantity</span>
-                                            <span class="snack-price">@s.LineTotal.ToString("N0") đ</span>
-                                        </li>
-                                    }
-                                </ul>
-                            }
-                            else
-                            {
-                                <div class="empty-snacks">Không có dòng đồ ăn.</div>
-                            }
-                        </div>
-
-                        <div style="margin-top:14px;" class="pricing-item">
-                            <div class="pricing-title">TỔNG</div>
-                            <div class="pricing-value">@d.SnackTotal.ToString("N0") đ</div>
-                        </div>
 
                         <div class="action-buttons">
                             <a class="btn-custom btn-home" href="/">
@@ -100,3 +316,28 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        (function () {
+            const isSuccess = @((Model?.IsSuccess ?? false).ToString().ToLower());
+            if (!isSuccess) return;
+
+            const orderId = "@(Model?.OrderId ?? "")";
+            if (!orderId) return;
+
+            const key = "snack_pay_success_shown:" + orderId;
+
+            try {
+                const alreadyShown = sessionStorage.getItem(key) === "1";
+                if (alreadyShown) {
+                    const badge = document.getElementById("snackPaymentStatusBadge");
+                    if (badge) badge.style.display = "none";
+                    return;
+                }
+                sessionStorage.setItem(key, "1");
+            } catch (_) {
+                // nếu sessionStorage bị chặn thì bỏ qua
+            }
+        })();
+    </script>
+}

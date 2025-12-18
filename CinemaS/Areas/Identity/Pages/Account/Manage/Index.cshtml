@@ -131,6 +131,21 @@
         text-decoration: underline;
         opacity: .9;
     }
+    /* thêm vào CSS (giữ nguyên class .side-badge-dot hiện có nếu muốn) */
+    .side-badge-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+    }
+
+        .side-badge-dot.is-active {
+            background: #22c55e;
+        }
+        /* xanh */
+        .side-badge-dot.is-inactive {
+            background: #ef4444;
+        }
+    /* đỏ */
 
     .side-badge {
         margin-top: 4px;
@@ -753,11 +768,12 @@
                     </div>
                     <div>
                         <div class="side-name">@displayName</div>
-                        <div class="side-change-link">Thay đổi ảnh đại diện</div>
+                        
                         <div class="side-badge">
-                            <span class="side-badge-dot"></span>
+                            <span class="side-badge-dot @(Model.CurrentPoint > 0 ? "is-active" : "is-inactive")"></span>
                             <span>GL Friends</span>
                         </div>
+
                     </div>
                 </div>
 

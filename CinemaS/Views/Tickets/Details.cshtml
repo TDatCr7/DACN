@@ -1,43 +1,258 @@
 ﻿@model CinemaS.Models.Tickets
+@using Microsoft.EntityFrameworkCore
+@using CinemaS.Models
+@inject CinemaS.Models.CinemaContext Db
 
 @{
-    ViewData["Title"] = "Details";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chi tiết vé (Admin)";
+
+    var t = Model;
+
+    var inv = await Db.Invoices.AsNoTracking().FirstOrDefaultAsync(x => x.InvoiceId == t.InvoiceId);
+    var st = await Db.ShowTimes.AsNoTracking().FirstOrDefaultAsync(x => x.ShowTimeId == t.ShowTimeId);
+    var mv = st != null ? await Db.Movies.AsNoTracking().FirstOrDefaultAsync(x => x.MoviesId == st.MoviesId) : null;
+    var room = st != null ? await Db.CinemaTheaters.AsNoTracking().FirstOrDefaultAsync(x => x.CinemaTheaterId == st.CinemaTheaterId) : null;
+
+    MovieTheaters theater = null;
+    if (room != null && !string.IsNullOrWhiteSpace(room.MovieTheaterId))
+    {
+        theater = await Db.MovieTheaters.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MovieTheaterId == room.MovieTheaterId);
+    }
+
+    var seat = await Db.Seats.AsNoTracking().FirstOrDefaultAsync(x => x.SeatId == t.SeatId);
+    var ticketType = await Db.TicketTypes.AsNoTracking().FirstOrDefaultAsync(x => x.TicketTypeId == t.TicketTypeId);
+    var seatType = seat != null
+        ? await Db.SeatTypes.AsNoTracking().FirstOrDefaultAsync(x => x.SeatTypeId == seat.SeatTypeId)
+        : null;
+
+    var user = inv != null
+        ? await Db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == inv.CustomerId)
+        : null;
+
+    var poster = string.IsNullOrWhiteSpace(mv?.PosterImage)
+        ? Url.Content("~/images/movies/MovieFallback.jpg")
+        : (mv.PosterImage.StartsWith("http")
+            ? mv.PosterImage
+            : Url.Content("~/" + mv.PosterImage.TrimStart('/')));
+
+    string StatusText(byte? status) => status switch
+    {
+        1 => "Chưa thanh toán",
+        2 => "Đã thanh toán",
+        3 => "Đã hủy",
+        4 => "Hết hạn",
+        _ => "7"
+    };
+
 }
 
-<h1>Details</h1>
+<style>
+    .admin-ticket-detail {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 20px;
+    }
 
-<div>
-    <h4>Tickets</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Price)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Price)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedBooking)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedBooking)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Expire)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Expire)
-        </dd>
-    </dl>
+    .admin-ticket-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.18), transparent 60%), #020617;
+        border: 1px solid rgba(148,163,255,.28);
+        border-radius: 22px;
+        box-shadow: 0 20px 55px rgba(15,23,42,.9);
+        overflow: hidden;
+    }
+
+    .admin-ticket-poster {
+        position: relative;
+    }
+
+        .admin-ticket-poster img {
+            width: 100%;
+            height: 460px;
+            object-fit: cover;
+        }
+
+    .admin-ticket-badge {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 12px;
+        background: rgba(15,23,42,.85);
+        border: 1px solid rgba(148,163,255,.45);
+    }
+
+    .admin-ticket-meta {
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 13px;
+        color: #cbd5e1;
+    }
+
+        .admin-ticket-meta strong {
+            color: #e5e7eb;
+            font-weight: 800;
+        }
+
+    .admin-ticket-main {
+        padding: 20px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .admin-section {
+        border-radius: 18px;
+        border: 1px solid rgba(148,163,255,.2);
+        background: rgba(15,23,42,.55);
+        padding: 16px 18px;
+    }
+
+    .admin-section-title {
+        font-weight: 900;
+        font-size: 13px;
+        letter-spacing: .4px;
+        color: #c7d2fe;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+    }
+
+    .kv-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 14px;
+        font-size: 13px;
+        color: #cbd5e1;
+    }
+
+        .kv-grid div strong {
+            color: #e5e7eb;
+            font-weight: 800;
+            margin-right: 4px;
+        }
+
+    .admin-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 6px;
+    }
+
+    @@media (max-width: 992px) {
+        .admin-ticket-detail {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-ticket-poster img {
+            height: 320px;
+        }
+    }
+
+    .admin-ticket-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+        .admin-ticket-badge.paid {
+            border: 1px solid rgba(34,197,94,.7);
+            color: #22c55e;
+            background: rgba(34,197,94,.12);
+        }
+
+        .admin-ticket-badge.warning {
+            border: 1px solid rgba(245,158,11,.7);
+            color: #fbbf24;
+            background: rgba(245,158,11,.12);
+        }
+
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="fa-solid fa-ticket me-2"></i>Chi tiết vé</h2>
+    <a asp-action="Index" class="btn btn-secondary rounded-pill">
+        <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+    </a>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.TicketId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<div class="admin-ticket-detail">
+    <!-- LEFT -->
+    <div class="admin-ticket-card">
+        <div class="admin-ticket-poster">
+            <img src="@poster" alt="@mv?.Title" />
+            @{
+                var isPaid = t.Status == 2 || t.Status == null;
+            }
+
+            <span class="admin-ticket-badge @(isPaid ? "paid" : "warning")">
+                <i class="fa-solid @(isPaid ? "fa-circle-check" : "fa-circle-xmark")"></i>
+                @StatusText(t.Status)
+            </span>
+
+        </div>
+        <div class="admin-ticket-meta">
+            <div><strong>Mã vé:</strong> @t.TicketId</div>
+            <div><strong>Hóa đơn:</strong> @t.InvoiceId</div>
+            <div><strong>Giá vé:</strong> @(t.Price?.ToString("N0") ?? "0") đ</div>
+            <div><strong>Tạo lúc:</strong> @(t.CreatedBooking?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</div>
+            <div><strong>Hết hạn:</strong> @(t.Expire?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</div>
+        </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="admin-ticket-card">
+        <div class="admin-ticket-main">
+
+            <div class="admin-section">
+                <div class="admin-section-title">Phim & Suất chiếu</div>
+                <div class="kv-grid">
+                    <div><strong>Phim:</strong> @mv?.Title</div>
+                    <div><strong>Ngày:</strong> @st?.ShowDate?.ToString("dd/MM/yyyy")</div>
+                    <div><strong>Giờ:</strong> @st?.StartTime?.ToString("HH:mm")</div>
+                    <div><strong>Phòng:</strong> @room?.Name</div>
+                    <div><strong>Rạp:</strong> @theater?.Name</div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <div class="admin-section-title">Ghế & Vé</div>
+                <div class="kv-grid">
+                    <div><strong>Ghế:</strong> @(seat != null ? $"{seat.RowIndex}{seat.ColumnIndex}" : t.SeatId)</div>
+                    <div><strong>Loại ghế:</strong> @seatType?.Name</div>
+                    <div><strong>Loại vé:</strong> @ticketType?.Name</div>
+                    <div><strong>Trạng thái:</strong> @StatusText(t.Status)</div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <div class="admin-section-title">Khách hàng</div>
+                <div class="kv-grid">
+                    <div><strong>Tên:</strong> @(user?.FullName ?? "Khách lẻ")</div>
+                    <div><strong>Email:</strong> @(inv?.Email ?? user?.Email ?? "N/A")</div>
+                    <div><strong>Điện thoại:</strong> @(inv?.PhoneNumber ?? user?.PhoneNumber ?? "N/A")</div>
+                </div>
+            </div>
+
+            <div class="admin-actions">
+                <a asp-action="Edit" asp-route-id="@t.TicketId" class="btn btn-primary rounded-pill">
+                    <i class="fa-solid fa-pen me-1"></i> Sửa
+                </a>
+                <a asp-action="Delete" asp-route-id="@t.TicketId" class="btn btn-danger rounded-pill">
+                    <i class="fa-solid fa-trash me-1"></i> Xóa
+                </a>
+            </div>
+
+        </div>
+    </div>
 </div>

@@ -36,7 +36,7 @@ namespace CinemaS.Models
         public DbSet<SnackTypes> SnackTypes => Set<SnackTypes>();
         public DbSet<Snacks> Snacks => Set<Snacks>();
         public DbSet<DetailBookingSnacks> DetailBookingSnacks => Set<DetailBookingSnacks>();
-        public DbSet<UserRole> UserRole => Set<UserRole>();
+        public DbSet<UserRole> UserRoles => Set<UserRole>();
         public DbSet<RolePermission> RolePermission => Set<RolePermission>();
         public DbSet<PaymentTransactions> PaymentTransactions => Set<PaymentTransactions>();
 
@@ -149,13 +149,13 @@ namespace CinemaS.Models
             modelBuilder.Entity<ShowTimes>().HasOne<CinemaTheaters>().WithMany().HasForeignKey(x => x.CinemaTheaterId).OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Invoices>()
-    .HasOne(i => i.Customer)            // navigation bên Invoices
-    .WithMany(u => u.Invoices)          // navigation bên Users
-    .HasForeignKey(i => i.CustomerId)   // dùng đúng cột Customer_ID
-    .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(i => i.Customer)            
+                .WithMany(u => u.Invoices)          
+                .HasForeignKey(i => i.CustomerId)   
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Invoices>()
-                .HasOne<Users>()                    // staff (không cần navigation)
+                .HasOne<Users>()                    
                 .WithMany()
                 .HasForeignKey(i => i.StaffId)
                 .OnDelete(DeleteBehavior.NoAction);
@@ -188,7 +188,7 @@ namespace CinemaS.Models
             modelBuilder.Entity<PaymentTransactions>().HasOne<Invoices>().WithMany().HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<PaymentTransactions>().HasOne<PaymentMethods>().WithMany().HasForeignKey(x => x.PaymentMethodId).OnDelete(DeleteBehavior.Restrict);
 
-            // ===== Unique/Filtered Indexes quan trọng =====
+            
             modelBuilder.Entity<Tickets>().HasIndex(x => new { x.ShowTimeId, x.SeatId }).IsUnique();
             modelBuilder.Entity<Seats>().HasIndex(x => new { x.CinemaTheaterId, x.Label }).IsUnique().HasFilter("[Label] IS NOT NULL");
             modelBuilder.Entity<Promotion>().HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL AND [Status] = 1");

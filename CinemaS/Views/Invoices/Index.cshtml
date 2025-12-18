@@ -4,8 +4,14 @@
     ViewData["Title"] = "Quản lý Hóa Đơn";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    var stt = 0;
+    var page = (int)(ViewBag.Page ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 8);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var totalItems = (int)(ViewBag.TotalItems ?? 0);
+
+    var stt = (page - 1) * pageSize;
 }
+
 
 <style>
     .page-invoice-index {
@@ -223,13 +229,101 @@
             min-width: 980px;
         }
     }
+    /* =========================
+       PAGINATION (ADD)
+       ========================= */
+    .invoice-pager {
+        padding: 14px 18px 18px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        border-top: 1px solid rgba(148,163,255,.20);
+        background: radial-gradient(circle at 0 0, rgba(15,23,42,.92), rgba(2,6,23,1));
+    }
+
+    .invoice-page-btn {
+        min-width: 40px;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.45);
+        background: rgba(15,23,42,.88);
+        color: var(--text);
+        font-weight: 800;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 10px 24px rgba(15,23,42,.75);
+    }
+
+        .invoice-page-btn:hover {
+            filter: brightness(1.08);
+            color: #fff;
+        }
+
+        .invoice-page-btn.is-active {
+            background: linear-gradient(120deg, var(--indigo), var(--purple));
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .invoice-page-btn.is-disabled {
+            opacity: .45;
+            pointer-events: none;
+        }
+    /* loại hóa đơn (icon) */
+    .badge-type {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(148,163,255,.45);
+        background: rgba(15,23,42,.92);
+        color: #e5e7eb;
+    }
+
+        .badge-type.double i + i {
+            margin-left: 6px;
+        }
+
+    /* trạng thái: chỉ "Thanh toán" + icon */
+    .badge-pay-ok,
+    .badge-pay-warn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .badge-pay-ok {
+        background: rgba(16,185,129,.12);
+        border: 1px solid rgba(16,185,129,.75);
+        color: #22c55e;
+    }
+
+    .badge-pay-warn {
+        background: rgba(245,158,11,.12);
+        border: 1px solid rgba(245,158,11,.75);
+        color: #fbbf24;
+    }
+
 </style>
 
 <div class="container page-invoice-index">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="invoice-index-header">
             <h1><i class="fa-solid fa-file-invoice-dollar me-2"></i>Quản lý hóa đơn</h1>
-            <small>Tổng: @Model.Count() hóa đơn</small>
+            <small>Tổng: @(ViewBag.TotalItems ?? 0) hóa đơn</small>
         </div>
 
         <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
@@ -272,6 +366,19 @@
                                value="@(ViewBag.ToDate ?? string.Empty)"
                                class="form-control filter-input" />
                     </div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="filter-label">
+                            <i class="fa-solid fa-layer-group me-1"></i> Loại
+                        </label>
+                        <select name="type" class="form-control filter-input">
+                            @{
+                                var type = (string)(ViewBag.Type ?? "");
+                            }
+                            <option value="" selected="@(string.IsNullOrEmpty(type))">Tất cả</option>
+                            <option value="ticket" selected="@(type == "ticket")">Hóa đơn vé</option>
+                            <option value="snack" selected="@(type == "snack")">Hóa đơn đồ ăn</option>
+                        </select>
+                    </div>
 
                     <div class="col-lg-2 col-md-6">
                         <label class="filter-label d-block">&nbsp;</label>
@@ -299,7 +406,8 @@
                         <th style="width:150px;">Số điện thoại</th>
                         <th style="width:170px;">Ngày tạo</th>
                         <th style="width:140px;">Tổng tiền</th>
-                        <th class="col-status" style="width:140px;">Trạng thái</th>
+                        <th style="width:70px; text-align:center;">Loại</th>
+                        <th class="col-status" style="width:120px;">Trạng thái</th>]
                         <th style="width:150px;" class="text-end">Thao tác</th>
                     </tr>
                 </thead>
@@ -307,7 +415,7 @@
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-4" style="color:var(--muted);">
+                            <td colspan="9" class="text-center py-4" style="color:var(--muted);">
                                 Không có hóa đơn nào.
                             </td>
                         </tr>
@@ -324,22 +432,46 @@
                                 <td>@(item.PhoneNumber ?? "N/A")</td>
                                 <td>@(item.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
                                 <td>@item.TotalPrice.ToString("#,0") đ</td>
-                                <td class="col-status">
-                                    @if (item.Status == 1)
+                                <td style="text-align:center;">
+                                   
+                                    @if (item.HasTickets && item.HasSnacks)
                                     {
-                                        <span class="badge-paid">
-                                            <i class="fa-solid fa-circle-check"></i>
-                                            Đã thanh toán
+                                        <span class="badge-type double" title="Vé + Đồ ăn">
+                                            <i class="fa-solid fa-ticket"></i>
+                                            <i class="fa-solid fa-utensils"></i>
+                                        </span>
+                                    }
+                                    else if (item.HasTickets)
+                                    {
+                                        <span class="badge-type" title="Hóa đơn vé">
+                                            <i class="fa-solid fa-ticket"></i>
                                         </span>
                                     }
                                     else
                                     {
-                                        <span class="badge-unpaid">
-                                            <i class="fa-solid fa-clock"></i>
-                                            Chưa thanh toán
+                                        <span class="badge-type" title="Hóa đơn đồ ăn">
+                                            <i class="fa-solid fa-utensils"></i>
                                         </span>
                                     }
                                 </td>
+
+                                <td class="col-status">
+                                    @if (item.Status == 1)
+                                    {
+                                        <span class="badge-pay-ok">
+                                            <i class="fa-solid fa-check"></i>
+                                            Thanh toán
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-pay-warn">
+                                            <i class="fa-solid fa-xmark"></i>
+                                            Thanh toán
+                                        </span>
+                                    }
+                                </td>
+
 
                                 <td class="text-end">
                                     <div class="admin-actions">
@@ -370,5 +502,54 @@
                 </tbody>
             </table>
         </div>
+        @if (totalPages > 1)
+        {
+            <div class="invoice-pager">
+                @{
+                    var s = (string)(ViewBag.Search ?? "");
+                    var fd = (string)(ViewBag.FromDate ?? "");
+                    var td = (string)(ViewBag.ToDate ?? "");
+                    var t = (string)(ViewBag.Type ?? "");
+                }
+
+
+                <!-- Prev -->
+                <a class="invoice-page-btn @(page <= 1 ? "is-disabled" : "")"
+                   asp-action="Index"
+                   asp-route-page="@(page - 1)"
+                   asp-route-search="@s"
+                   asp-route-fromDate="@fd"
+                   asp-route-toDate="@td"
+                   asp-route-type="@t">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+
+                <!-- Numbers -->
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <a class="invoice-page-btn @(p == page ? "is-active" : "")"
+                       asp-action="Index"
+                       asp-route-page="@p"
+                       asp-route-search="@s"
+                       asp-route-fromDate="@fd"
+                       asp-route-toDate="@td"
+                       asp-route-type="@t">
+                        @p
+                    </a>
+                }
+
+                <!-- Next -->
+                <a class="invoice-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                   asp-action="Index"
+                   asp-route-page="@(page + 1)"
+                   asp-route-search="@s"
+                   asp-route-fromDate="@fd"
+                   asp-route-toDate="@td"
+                   asp-route-type="@t">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+        }
+
     </div>
 </div>

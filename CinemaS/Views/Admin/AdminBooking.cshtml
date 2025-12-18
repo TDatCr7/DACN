@@ -537,23 +537,69 @@
 
         const PROMO_VALIDATE_URL = '/Admin/ValidatePromotion';
 
-        async function readJsonSafe(res) {
+                async function readJsonSafe(res) {
+            const status = res.status;
+            const redirected = res.redirected;
+            const url = res.url;
+
             const ct = (res.headers.get('content-type') || '').toLowerCase();
             const text = await res.text();
 
             if (!text || !text.trim()) {
-                return { success: false, message: `Empty response (HTTP ${res.status})` };
+                return {
+                    success: false,
+                    message: `Empty response (HTTP ${status}) - ${url}`,
+                    status, redirected, url
+                };
             }
 
             if (!ct.includes('application/json')) {
-                return { success: false, message: `Non-JSON response (HTTP ${res.status})`, raw: text.slice(0, 300) };
+                return {
+                    success: false,
+                    message: `Non-JSON response (HTTP ${status}) - ${url}`,
+                    status, redirected, url,
+                    raw: text.slice(0, 500)
+                };
             }
 
             try {
                 return JSON.parse(text);
             } catch {
-                return { success: false, message: `Invalid JSON (HTTP ${res.status})`, raw: text.slice(0, 300) };
+                return {
+                    success: false,
+                    message: `Invalid JSON (HTTP ${status}) - ${url}`,
+                    status, redirected, url,
+                    raw: text.slice(0, 500)
+                };
             }
+        }
+
+
+        function toQueryString(obj) {
+            const p = new URLSearchParams();
+            for (const [k, v] of Object.entries(obj || {})) {
+                if (v === undefined || v === null) continue;
+                p.append(k, String(v));
+            }
+            return p.toString();
+        }
+
+        async function fetchJsonAuto(url, payload) {
+            // thử POST JSON trước
+            let res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload || {})
+            });
+
+            // nếu server không cho POST -> thử GET
+            if (res.status === 405) {
+                const qs = toQueryString(payload || {});
+                const urlGet = qs ? `${url}?${qs}` : url;
+                res = await fetch(urlGet, { method: 'GET' });
+            }
+
+            return { res, data: await readJsonSafe(res) };
         }
 
         function showBookingLoading(show) {
@@ -706,7 +752,7 @@
                     body: JSON.stringify({ code, amount: subTotal })
                 });
 
-                const data = await res.json();
+                const data = await readJsonSafe(res);
 
                 if (!data?.success) {
                     resetPromoUI(data?.message || 'Mã không hợp lệ.', 'promo-msg-err');
@@ -1010,7 +1056,7 @@
 
                 const customerKey = document.getElementById('customerKey').value.trim();
 
-                const bookRes = await fetch('/Booking/BookSeats', {
+                const bookRes = await fetch('/Admin/BookSeats', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1021,7 +1067,7 @@
                     })
                 });
 
-                const bookData = await bookRes.json();
+                const bookData = await readJsonSafe(bookRes);
 
                 if (!bookData?.success) {
                     showBookingToast('❌ ' + (bookData?.message || 'Đặt vé thất bại'), 'error');
@@ -1048,7 +1094,7 @@
                             })
                         });
 
-                        const pd = await pr.json();
+                        const pd = await readJsonSafe(pr);
 
                         if (pd?.success) {
                             currentInvoiceAmount = pd.totalAfterDiscount || currentInvoiceAmount;
@@ -1131,7 +1177,7 @@
             const trimmedKey = key.trim();
 
             try {
-                const response = await fetch(`/Booking/CheckCustomerAccount?key=${encodeURIComponent(trimmedKey)}`);
+                const response = await fetch(`/Admin/CheckCustomerAccount?key=${encodeURIComponent(trimmedKey)}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                 const data = await response.json();
@@ -1235,7 +1281,7 @@
             if (ov) ov.classList.remove('show');
         }
 
-        async function payWithVnPayFromMethod() {
+                async function payWithVnPayFromMethod() {
             if (!currentInvoiceId || !currentInvoiceAmount) {
                 showBookingToast('❌ Thiếu thông tin hóa đơn.', 'error');
                 return;
@@ -1245,24 +1291,25 @@
             showBookingLoading(true);
 
             try {
-                const payRes = await fetch('/Payment/Create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderId: currentInvoiceId,
-                        amount: currentInvoiceAmount,
-                        orderInfo: `Dat ve ${showTimeId}`
-                    })
-                });
+                const payload = {
+                    orderId: currentInvoiceId,
+                    amount: currentInvoiceAmount,
+                    orderInfo: `Dat ve ${showTimeId}`
+                };
 
-                const payData = await payRes.json();
+                const { res, data: payData } = await fetchJsonAuto('/Payment/Create', payload);
 
                 if (payData?.success && payData?.paymentUrl) {
                     window.location.href = payData.paymentUrl;
                     return;
                 }
 
-                showBookingToast('❌ Không tạo được URL thanh toán VNPay.', 'error');
+                // nếu server trả JSON lỗi thì show message; nếu không có JSON thì show theo HTTP
+                const msg = payData?.message
+                    || (res.status === 405 ? 'Sai method cho /Payment/Create (server không cho POST/GET theo cách hiện tại).' : null)
+                    || 'Không tạo được URL thanh toán VNPay.';
+
+                showBookingToast('❌ ' + msg, 'error');
             } catch (e) {
                 showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
             } finally {
@@ -1270,7 +1317,8 @@
             }
         }
 
-        async function payWithCash() {
+
+                async function payWithCash() {
             if (!currentInvoiceId) {
                 showBookingToast('❌ Thiếu mã hóa đơn.', 'error');
                 return;
@@ -1280,26 +1328,27 @@
             showBookingLoading(true);
 
             try {
-                const res = await fetch('/Payment/PayByCash', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ invoiceId: currentInvoiceId })
-                });
+                const payload = { invoiceId: currentInvoiceId };
 
-                const data = await res.json();
+                const { res, data } = await fetchJsonAuto('/Payment/PayByCash', payload);
 
                 if (data?.success && data?.redirectUrl) {
                     window.location.href = data.redirectUrl;
                     return;
                 }
 
-                showBookingToast('❌ ' + (data?.message || 'Thanh toán tiền mặt thất bại.'), 'error');
+                const msg = data?.message
+                    || (res.status === 405 ? 'Sai method cho /Payment/PayByCash (server không cho POST/GET theo cách hiện tại).' : null)
+                    || 'Thanh toán tiền mặt thất bại.';
+
+                showBookingToast('❌ ' + msg, 'error');
             } catch (e) {
                 showBookingToast('❌ Lỗi: ' + (e?.message || e), 'error');
             } finally {
                 showBookingLoading(false);
             }
         }
+
 
         function syncSeatOverflowClass() {
             const wrapper = document.querySelector('.seat-layout-scroll-wrapper');

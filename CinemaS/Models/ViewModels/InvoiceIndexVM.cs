@@ -11,5 +11,7 @@ namespace CinemaS.Models.ViewModels
         public decimal TotalPrice { get; set; }
         public byte Status { get; set; }
         public DateTime? CreatedAt { get; set; }
+        public bool HasTickets { get; set; }   // ✅ add
+        public bool HasSnacks { get; set; }
     }
 }

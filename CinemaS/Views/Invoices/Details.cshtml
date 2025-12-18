@@ -506,22 +506,20 @@
     </div>
 </div>
 
-@if (!isSnackOnly)
-{
-    <div id="ticket-panel">
-        <div class="ticket-panel-card">
-            <div class="ticket-panel-header">
-                <span>Vé trong hóa đơn @Model.InvoiceId</span>
-                <button id="ticket-panel-close" class="ticket-panel-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div id="ticket-panel-body" class="ticket-panel-body">
-                <div class="ticket-card text-muted">Đang tải...</div>
-            </div>
+<div id="ticket-panel">
+    <div class="ticket-panel-card">
+        <div class="ticket-panel-header">
+            <span id="ticket-panel-title"></span>
+            <button id="ticket-panel-close" class="ticket-panel-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="ticket-panel-body" class="ticket-panel-body">
+            <div class="ticket-card text-muted">Đang tải...</div>
         </div>
     </div>
-}
+</div>
+
 
 @section Scripts {
     <script>
@@ -530,10 +528,14 @@
             const panel = document.getElementById("ticket-panel");
             const body = document.getElementById("ticket-panel-body");
             const closeBtn = document.getElementById("ticket-panel-close");
+            const titleEl = document.getElementById("ticket-panel-title");
 
-            const isSnackOnly = btn && btn.dataset.snack === "true";
+            if (!btn) return;
+
+            const isSnackOnly = btn.dataset.snack === "true";
+
             const ticketUrl = "@Url.Action("TicketPopup", "Invoices", new { id = Model.InvoiceId })";
-            const snackUrl = "@Url.Action("SnackResult", "Payment", new { invoiceId = Model.InvoiceId })";
+            const snackUrl  = "@Url.Action("SnackPopup", "Invoices", new { id = Model.InvoiceId })";
 
             function open(html) {
                 if (!panel || !body) return;
@@ -548,21 +550,23 @@
 
             if (closeBtn) closeBtn.addEventListener("click", close);
 
-            if (btn) {
-                btn.addEventListener("click", function () {
-                    if (isSnackOnly) {
-                        window.location.href = snackUrl;
-                        return;
-                    }
+            btn.addEventListener("click", function () {
+                const url = isSnackOnly ? snackUrl : ticketUrl;
 
-                    open("<div class='ticket-card text-muted'>Đang tải...</div>");
+                if (titleEl) {
+                    titleEl.textContent = isSnackOnly
+                        ? ("Bắp nước trong hóa đơn @Model.InvoiceId")
+                        : ("Vé trong hóa đơn @Model.InvoiceId");
+                }
 
-                    fetch(ticketUrl)
-                        .then(r => r.text())
-                        .then(html => open(html))
-                        .catch(() => open("<div class='ticket-card text-danger'>Không tải được dữ liệu.</div>"));
-                });
-            }
+                open("<div class='ticket-card text-muted'>Đang tải...</div>");
+
+                fetch(url)
+                    .then(r => r.text())
+                    .then(html => open(html))
+                    .catch(() => open("<div class='ticket-card text-danger'>Không tải được dữ liệu.</div>"));
+            });
         })();
     </script>
 }
+

@@ -1,7 +1,3 @@
-// ============================
-// File: CinemaS/Areas/Identity/Pages/Account/Manage/Index.cshtml.cs
-// (Fix lỗi tuple PaidTotal/BaseTotal; dùng đúng InvoiceHistoryVM ở ViewModels; update modal theo yêu cầu)
-// ============================
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -128,6 +124,24 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
             return (discount, payable);
         }
+        // ===== Helper: tính giá gốc từ line items nếu OriginalTotal null/0 =====
+        private async Task<decimal> GetInvoiceBaseTotalAsync(string invoiceId, decimal? fallbackTotalPrice)
+        {
+            decimal ticketSum = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .SumAsync(t => (decimal)(t.Price ?? 0));
+
+            decimal snackSum = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(s => s.InvoiceId == invoiceId)
+                .SumAsync(s => (decimal)(s.TotalPrice ?? 0));
+
+            var total = ticketSum + snackSum;
+
+            if (total <= 0m && fallbackTotalPrice.HasValue && fallbackTotalPrice.Value > 0m)
+                total = fallbackTotalPrice.Value;
+
+            return total;
+        }
 
         // =========================
         // 8) LoadAsync: load profile + history + points
@@ -187,8 +201,11 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             // ===== Local function: tách giá gốc / giảm / thực trả cho 1 invoice =====
             async Task<(decimal BaseTotal, decimal DiscountAmount, decimal PaidTotal)> GetPriceBreakdownAsync(Invoices inv)
             {
-                // BaseTotal: ưu tiên inv.TotalPrice (giá gốc)
-                var baseTotal = inv.TotalPrice ?? 0m;
+                // BaseTotal: ưu tiên OriginalTotal (giá gốc), fallback sum line items, cuối cùng fallback TotalPrice
+                var baseTotal = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
                 if (baseTotal <= 0m) return (0m, 0m, 0m);
 
                 // (1) Có txn success => PaidTotal = amount; Discount = base - paid
@@ -224,6 +241,7 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 return (BaseTotal: baseTotal, DiscountAmount: 0m, PaidTotal: baseTotal);
             }
 
+
             // ===== priceMap: key invoiceId -> (BaseTotal, DiscountAmount, PaidTotal) =====
             var priceMap = new System.Collections.Generic.Dictionary<string, (decimal BaseTotal, decimal DiscountAmount, decimal PaidTotal)>();
             foreach (var inv in invoices)
@@ -235,11 +253,20 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
             // ===== Điểm: tính theo GIÁ GỐC (BaseTotal) của invoice đã thanh toán (Status == 1) =====
             var paidInvoices = invoices
-                .Where(i => i.Status == 1 && i.TotalPrice.HasValue)
-                .ToList();
+    .Where(i => i.Status == 1)
+    .ToList();
 
-            // NOTE: BaseTotal đang lấy từ i.TotalPrice (giá gốc)
-            var computedPoint = paidInvoices.Sum(i => (int)((i.TotalPrice ?? 0m) / 1000m));
+            // Điểm: luôn theo GIÁ GỐC (OriginalTotal); fallback sum line items nếu thiếu
+            var computedPoint = 0;
+            foreach (var inv in paidInvoices)
+            {
+                var baseTotal = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
+                computedPoint += (int)(baseTotal / 1000m);
+            }
+
 
             CurrentPoint = computedPoint;
             IsGlFriend = computedPoint > 0;
@@ -297,8 +324,12 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 else
                 {
                     // FIX lỗi tuple mất tên: PHẢI gán named tuple
-                    var baseTotalFallback = inv.TotalPrice ?? 0m;
-                    p = (BaseTotal: baseTotalFallback, DiscountAmount: 0m, PaidTotal: baseTotalFallback);
+                    var baseTotalFallback = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
+                    p = (BaseTotal: baseTotalFallback, DiscountAmount: 0m, PaidTotal: inv.TotalPrice ?? baseTotalFallback);
+
                 }
 
                 // ---- Add history item (TotalPrice = PaidTotal; BaseTotalPrice = BaseTotal) ----
@@ -454,7 +485,24 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             // A) TÍNH GIÁ: base / discount / paid
             //    Ưu tiên PaymentTransactions SUCCESS; nếu không có, fallback promo; nếu không có => base
             // =========================
-            var baseTotal = invoice.TotalPrice ?? 0m;
+            decimal baseTotal;
+
+            // Ưu tiên OriginalTotal (giá gốc)
+            if (invoice.OriginalTotal.HasValue && invoice.OriginalTotal.Value > 0m)
+            {
+                baseTotal = invoice.OriginalTotal.Value;
+            }
+            else
+            {
+                // Fallback từ line items đã load trong handler này
+                var ticketSum = tickets.Sum(t => (decimal)(t.Price ?? 0));
+                var snackSum = snackLines.Sum(s => (decimal)(s.TotalPrice ?? 0));
+                baseTotal = ticketSum + snackSum;
+
+                if (baseTotal <= 0m)
+                    baseTotal = invoice.TotalPrice ?? 0m;
+            }
+
 
             var paidTxn = await _context.PaymentTransactions.AsNoTracking()
                 .Where(pt => pt.InvoiceId == invoiceId && pt.Status == 1)

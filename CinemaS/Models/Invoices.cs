@@ -39,6 +39,9 @@ namespace CinemaS.Models
         [Column("Total_Price", TypeName = "money")]
         public decimal? TotalPrice { get; set; }
 
+        [Column("Original_Total", TypeName = "money")]
+        public decimal? OriginalTotal { get; set; }
+
         [Column("Created_At")]
         public DateTime? CreatedAt { get; set; }
 

@@ -521,7 +521,7 @@
             if (!code || currentBaseTotal <= 0) return;
 
             try {
-                const vRes = await fetch('/Admin/ValidatePromotion', {
+                const vRes = await fetch('/Booking/ValidatePromotion', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code, amount: currentBaseTotal })
@@ -647,10 +647,14 @@
 
                 // 1) Create invoice (pending)
                 const bookRes = await fetch('/Booking/BookSnacks', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ snacks: snacksData })
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    snacks: snacksData,
+                    promoCode: (promoApplied && promoDraftCode) ? promoDraftCode : null
+                  })
                 });
+
 
                 const bookData = await bookRes.json();
                 if (!bookData?.success) {
@@ -664,31 +668,6 @@
                 // 2) If promo applied: apply to invoice
                 currentPayableTotal = currentPayableTotal || currentBaseTotal;
                 currentInvoiceAmount = currentPayableTotal;
-
-                if (promoApplied && promoDraftCode) {
-                    const aRes = await fetch('/Admin/ApplyPromotionToInvoice', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ invoiceId: currentInvoiceId, code: promoDraftCode })
-                    });
-
-                    const aData = await aRes.json();
-                    if (aData?.success) {
-                        currentPayableTotal = aData.totalAfterDiscount ?? currentBaseTotal;
-                        currentInvoiceAmount = currentPayableTotal;
-
-                        const percentText = (typeof aData.discountPercent === 'number')
-                            ? (aData.discountPercent.toLocaleString('vi-VN') + '%')
-                            : '-';
-
-                        setPromoUI(
-                            aData.promotionName || promoName || '-',
-                            percentText,
-                            formatVND(aData.discountAmount || 0),
-                            formatVND(currentPayableTotal)
-                        );
-                    }
-                }
 
                 // 3) VNPay
                 const payRes = await fetch('/Payment/Create', {

@@ -51,18 +51,38 @@ namespace CinemaS.Controllers
         // POST: PointHistories/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        // POST: PointHistories/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PointHistoryId,UserId,InvoiceId,ChangeAmount,Reason,CreatedAt,UpdatedAt")] PointHistories pointHistories)
+        public async Task<IActionResult> Create([Bind("UserId,InvoiceId,ChangeAmount,Reason")] PointHistories pointHistories)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(pointHistories);
+
+            // 1) Tự sinh PointHistoryId (PH + 8 số = 10 ký tự, đúng [StringLength(10)])
+            var lastId = await _context.PointHistories
+                .OrderByDescending(x => x.PointHistoryId)
+                .Select(x => x.PointHistoryId)
+                .FirstOrDefaultAsync();
+
+            var nextNum = 1;
+            if (!string.IsNullOrWhiteSpace(lastId) && lastId.StartsWith("PH") && lastId.Length == 10
+                && int.TryParse(lastId.Substring(2), out var n))
             {
-                _context.Add(pointHistories);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                nextNum = n + 1;
             }
-            return View(pointHistories);
+
+            pointHistories.PointHistoryId = $"PH{nextNum:D8}";
+
+            // 2) Set timestamp
+            pointHistories.CreatedAt = DateTime.Now;
+            pointHistories.UpdatedAt = DateTime.Now;
+
+            _context.Add(pointHistories);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
+
 
         // GET: PointHistories/Edit/5
         public async Task<IActionResult> Edit(string id)
