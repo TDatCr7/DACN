@@ -1,10 +1,4 @@
-// ============================
-// File: CinemaS/Areas/Identity/Pages/Account/Manage/Index.cshtml.cs
-// (Fix lỗi tuple PaidTotal/BaseTotal; dùng đúng InvoiceHistoryVM ở ViewModels; update modal theo yêu cầu)
-// ============================
 
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
 using System;
@@ -104,9 +98,6 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
         // =========================
         // 7) Helper: tính giảm giá theo rule
-        //    - 0 < d <= 1    : tỉ lệ (0.1 = 10%)
-        //    - 1 < d <= 100  : % (10 = 10%)
-        //    - d > 100       : trừ thẳng tiền
         // =========================
         private static (decimal discountAmount, decimal totalAfterDiscount) CalcDiscount(decimal baseTotal, double discountValue)
         {
@@ -127,6 +118,24 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             if (payable < 0m) payable = 0m;
 
             return (discount, payable);
+        }
+        // ===== Helper: tính giá gốc từ line items nếu OriginalTotal null/0 =====
+        private async Task<decimal> GetInvoiceBaseTotalAsync(string invoiceId, decimal? fallbackTotalPrice)
+        {
+            decimal ticketSum = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .SumAsync(t => (decimal)(t.Price ?? 0));
+
+            decimal snackSum = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(s => s.InvoiceId == invoiceId)
+                .SumAsync(s => (decimal)(s.TotalPrice ?? 0));
+
+            var total = ticketSum + snackSum;
+
+            if (total <= 0m && fallbackTotalPrice.HasValue && fallbackTotalPrice.Value > 0m)
+                total = fallbackTotalPrice.Value;
+
+            return total;
         }
 
         // =========================
@@ -187,8 +196,11 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             // ===== Local function: tách giá gốc / giảm / thực trả cho 1 invoice =====
             async Task<(decimal BaseTotal, decimal DiscountAmount, decimal PaidTotal)> GetPriceBreakdownAsync(Invoices inv)
             {
-                // BaseTotal: ưu tiên inv.TotalPrice (giá gốc)
-                var baseTotal = inv.TotalPrice ?? 0m;
+                // BaseTotal: ưu tiên OriginalTotal (giá gốc), fallback sum line items, cuối cùng fallback TotalPrice
+                var baseTotal = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
                 if (baseTotal <= 0m) return (0m, 0m, 0m);
 
                 // (1) Có txn success => PaidTotal = amount; Discount = base - paid
@@ -224,6 +236,7 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 return (BaseTotal: baseTotal, DiscountAmount: 0m, PaidTotal: baseTotal);
             }
 
+
             // ===== priceMap: key invoiceId -> (BaseTotal, DiscountAmount, PaidTotal) =====
             var priceMap = new System.Collections.Generic.Dictionary<string, (decimal BaseTotal, decimal DiscountAmount, decimal PaidTotal)>();
             foreach (var inv in invoices)
@@ -235,11 +248,20 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
             // ===== Điểm: tính theo GIÁ GỐC (BaseTotal) của invoice đã thanh toán (Status == 1) =====
             var paidInvoices = invoices
-                .Where(i => i.Status == 1 && i.TotalPrice.HasValue)
+                .Where(i => i.Status == 1)
                 .ToList();
 
-            // NOTE: BaseTotal đang lấy từ i.TotalPrice (giá gốc)
-            var computedPoint = paidInvoices.Sum(i => (int)((i.TotalPrice ?? 0m) / 1000m));
+            // Điểm: luôn theo GIÁ GỐC (OriginalTotal); fallback sum line items nếu thiếu
+            var computedPoint = 0;
+            foreach (var inv in paidInvoices)
+            {
+                var baseTotal = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
+                computedPoint += (int)(baseTotal / 1000m);
+            }
+
 
             CurrentPoint = computedPoint;
             IsGlFriend = computedPoint > 0;
@@ -297,8 +319,12 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 else
                 {
                     // FIX lỗi tuple mất tên: PHẢI gán named tuple
-                    var baseTotalFallback = inv.TotalPrice ?? 0m;
-                    p = (BaseTotal: baseTotalFallback, DiscountAmount: 0m, PaidTotal: baseTotalFallback);
+                    var baseTotalFallback = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
+                    p = (BaseTotal: baseTotalFallback, DiscountAmount: 0m, PaidTotal: inv.TotalPrice ?? baseTotalFallback);
+
                 }
 
                 // ---- Add history item (TotalPrice = PaidTotal; BaseTotalPrice = BaseTotal) ----
@@ -452,9 +478,25 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
             // =========================
             // A) TÍNH GIÁ: base / discount / paid
-            //    Ưu tiên PaymentTransactions SUCCESS; nếu không có, fallback promo; nếu không có => base
             // =========================
-            var baseTotal = invoice.TotalPrice ?? 0m;
+            decimal baseTotal;
+
+            // Ưu tiên OriginalTotal (giá gốc)
+            if (invoice.OriginalTotal.HasValue && invoice.OriginalTotal.Value > 0m)
+            {
+                baseTotal = invoice.OriginalTotal.Value;
+            }
+            else
+            {
+                // Fallback từ line items đã load trong handler này
+                var ticketSum = tickets.Sum(t => (decimal)(t.Price ?? 0));
+                var snackSum = snackLines.Sum(s => (decimal)(s.TotalPrice ?? 0));
+                baseTotal = ticketSum + snackSum;
+
+                if (baseTotal <= 0m)
+                    baseTotal = invoice.TotalPrice ?? 0m;
+            }
+
 
             var paidTxn = await _context.PaymentTransactions.AsNoTracking()
                 .Where(pt => pt.InvoiceId == invoiceId && pt.Status == 1)
@@ -576,75 +618,73 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
                 // ---- HTML content (giữ bố cục cũ + thêm giá gốc/giảm/đã thanh toán) ----
                 string html = $@"
-<div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
+                        <div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
 
-  <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
-    {typeLabel}
-  </div>
+                            <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
+                            {typeLabel}
+                            </div>
 
-  <div style='font-size:14px; font-weight:800; text-transform:uppercase; color:#fde047;'>TÊN PHIM</div>
-  <div style='font-size:22px; font-weight:900; margin-bottom:20px;'>{movieTitle}</div>
+                            <div style='font-size:14px; font-weight:800; text-transform:uppercase; color:#fde047;'>TÊN PHIM</div>
+                            <div style='font-size:22px; font-weight:900; margin-bottom:20px;'>{movieTitle}</div>
 
-  <div style='display:grid; grid-template-columns:1fr 1fr; gap:22px;'>
-    <div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Mã hóa đơn</div>
-        <div>{invoice.InvoiceId}</div>
-      </div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Phòng chiếu</div>
-        <div>{roomLabel}</div>
-      </div>
-      <div>
-        <div style='font-weight:700; color:#fde047;'>Số ghế</div>
-        <div>{seatText}</div>
-      </div>
-    </div>
+                            <div style='display:grid; grid-template-columns:1fr 1fr; gap:22px;'>
+                            <div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Mã hóa đơn</div>
+                                <div>{invoice.InvoiceId}</div>
+                                </div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Phòng chiếu</div>
+                                <div>{roomLabel}</div>
+                                </div>
+                                <div>
+                                <div style='font-weight:700; color:#fde047;'>Số ghế</div>
+                                <div>{seatText}</div>
+                                </div>
+                            </div>
 
-    <div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Thời gian chiếu</div>
-        <div>{timeText} {dateText}</div>
-      </div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Số vé</div>
-        <div>{tickets.Count}</div>
-      </div>
-      <div>
-        <div style='font-weight:700; color:#fde047;'>Bắp nước</div>
-        <div>{snackLinesHtml}</div>
-      </div>
-    </div>
-  </div>
+                            <div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Thời gian chiếu</div>
+                                <div>{timeText} {dateText}</div>
+                                </div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Số vé</div>
+                                <div>{tickets.Count}</div>
+                                </div>
+                                <div>
+                                <div style='font-weight:700; color:#fde047;'>Bắp nước</div>
+                                <div>{snackLinesHtml}</div>
+                                </div>
+                            </div>
+                            </div>
 
-  <div style='margin-top:22px;'>
-    <div style='font-weight:700; color:#fde047;'>Rạp</div>
-    <div style='font-size:16px; font-weight:700;'>{cinemaName}</div>
-    <div style='font-size:13px; opacity:.9;'>{cinemaAddr}</div>
-  </div>
+                            <div style='margin-top:22px;'>
+                            <div style='font-weight:700; color:#fde047;'>Rạp</div>
+                            <div style='font-size:16px; font-weight:700;'>{cinemaName}</div>
+                            <div style='font-size:13px; opacity:.9;'>{cinemaAddr}</div>
+                            </div>
 
-  <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
+                            <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
 
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
-    <span style='font-weight:800;'>{baseText} VNĐ</span>
-  </div>
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
-    <span style='font-weight:800;'>{discountText} VNĐ</span>
-  </div>
+                            <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
+                            <span style='font-weight:800;'>{baseText} VNĐ</span>
+                            </div>
+                            <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
+                            <span style='font-weight:800;'>{discountText} VNĐ</span>
+                            </div>
 
-  <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
-    <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
-    <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
-  </div>
+                            <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
+                            <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
+                            <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
+                            </div>
 
-</div>";
+                        </div>";
 
                 return Content(html, "text/html");
             }
-
-           
             {
                 // ---- Map snackId -> snackName ----
                 var snackIds = snackLines.Select(x => x.SnackId).ToList();
@@ -718,45 +758,45 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
                 // ---- HTML content ----
                 string snackHtml = $@"
-<div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
+                        <div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
 
-  <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
-    HÓA ĐƠN BẮP NƯỚC
-  </div>
+                          <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
+                            HÓA ĐƠN BẮP NƯỚC
+                          </div>
 
-  <div style='font-size:20px; font-weight:900; margin-bottom:16px;'>
-    Mã hóa đơn: {invoice.InvoiceId}
-  </div>
+                          <div style='font-size:20px; font-weight:900; margin-bottom:16px;'>
+                            Mã hóa đơn: {invoice.InvoiceId}
+                          </div>
 
-  <div style='margin-bottom:12px;'>
-    <div style='font-weight:700; color:#fde047;'>Thời gian mua</div>
-    <div>{createdText}</div>
-  </div>
+                          <div style='margin-bottom:12px;'>
+                            <div style='font-weight:700; color:#fde047;'>Thời gian mua</div>
+                            <div>{createdText}</div>
+                          </div>
 
   
 
-  <div style='margin-bottom:14px;'>
-    <div style='font-weight:700; color:#fde047;'>Danh sách bắp nước</div>
-    <div>{snackLinesHtml}</div>
-  </div>
+                          <div style='margin-bottom:14px;'>
+                            <div style='font-weight:700; color:#fde047;'>Danh sách bắp nước</div>
+                            <div>{snackLinesHtml}</div>
+                          </div>
 
-  <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
+                          <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
 
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
-    <span style='font-weight:800;'>{baseText} VNĐ</span>
-  </div>
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
-    <span style='font-weight:800;'>{discountText} VNĐ</span>
-  </div>
+                          <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
+                            <span style='font-weight:800;'>{baseText} VNĐ</span>
+                          </div>
+                          <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
+                            <span style='font-weight:800;'>{discountText} VNĐ</span>
+                          </div>
 
-  <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
-    <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
-    <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
-  </div>
+                          <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
+                            <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
+                            <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
+                          </div>
 
-</div>";
+                        </div>";
 
                 return Content(snackHtml, "text/html");
             }

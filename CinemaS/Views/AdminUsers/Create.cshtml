@@ -1,0 +1,173 @@
+﻿@* ===== Views/AdminUsers/Create.cshtml (UPDATED) ===== *@
+@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
+@{
+    ViewData["Title"] = "Thêm tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
+
+        @* ONE PANEL: header + content inside, title left, remove subnote *@
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-users"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+
+                <button type="submit"
+                        form="adminUserCreateForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-circle-plus me-1"></i> Tạo
+                </button>
+            </div>
+        </div>
+
+        @* divider like “island” but not separated *@
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <form asp-action="Create" method="post" id="adminUserCreateForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="Age" />
+
+                <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                    Thông tin tài khoản
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="FullName" class="form-label">Họ tên</label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
+                        <input asp-for="PhoneNumber" class="form-control" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Address" class="form-label">Địa chỉ</label>
+                        <input asp-for="Address" class="form-control" />
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="DateOfBirth" class="form-label">Ngày sinh</label>
+
+                        <div class="cine-input-group">
+                            <input asp-for="DateOfBirth" type="date" class="form-control" />
+                            <button type="button"
+                                    class="cine-addon-btn"
+                                    data-picker-target="DateOfBirth"
+                                    aria-label="Chọn ngày sinh">
+                                <i class="fa-regular fa-calendar"></i>
+                            </button>
+                        </div>
+
+                        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Gender" class="form-label">Giới tính</label>
+                        <select asp-for="Gender" class="form-select">
+                            <option value="">-- Chưa chọn --</option>
+                            <option value="1">Nam</option>
+                            <option value="2">Nữ</option>
+                            <option value="3">Khác</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="SavePoint" class="form-label">Điểm thưởng</label>
+                        <input asp-for="SavePoint" type="number" min="0" class="form-control" />
+                        <span asp-validation-for="SavePoint" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div style="height:1px;background:rgba(148,163,255,.14);margin:18px 0 14px;"></div>
+
+                <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                    Bảo mật & phân quyền
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Password" class="form-label">Mật khẩu khởi tạo</label>
+                        <input asp-for="Password" class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Phân quyền</label>
+                        <div class="d-flex flex-wrap mt-1" style="gap:8px;">
+                            @foreach (var role in Model.AllRoles)
+                            {
+                                var checkedRole = Model.SelectedRoles?.Contains(role) == true;
+                                <label class="role-chip" style="margin:0;">
+                                    <input type="checkbox"
+                                           class="js-role-box"
+                                           name="SelectedRoles"
+                                           value="@role"
+                                           @(checkedRole ? "checked" : "") />
+                                    <span>@role</span>
+                                </label>
+                            }
+                        </div>
+                        <span asp-validation-for="SelectedRoles" class="text-danger"></span>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const roleBoxes = Array.from(document.querySelectorAll('.js-role-box'));
+            roleBoxes.forEach(box => {
+                box.addEventListener('change', () => {
+                    if (!box.checked) return;
+                    roleBoxes.forEach(b => { if (b !== box) b.checked = false; });
+                });
+            });
+
+            document.querySelectorAll('.cine-addon-btn[data-picker-target]').forEach(btn => {
+                const id = btn.getAttribute('data-picker-target');
+                const input = document.getElementById(id);
+                if (!input) return;
+
+                btn.addEventListener('click', () => {
+                    if (typeof input.showPicker === 'function') input.showPicker();
+                    else input.focus();
+                });
+            });
+        })();
+    </script>
+}

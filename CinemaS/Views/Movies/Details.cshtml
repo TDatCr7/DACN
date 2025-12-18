@@ -1,5 +1,4 @@
-﻿@* Views/Movies/Details.cshtml *@
-@model CinemaS.Models.Movies
+﻿@model CinemaS.Models.Movies
 @{
     ViewData["Title"] = Model.Title ?? "Chi tiết phim";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -13,7 +12,6 @@
         else if (link.Contains("/shorts/")) { var id = link.Split("/shorts/").Last().Split('?')[0]; embed = $"https://www.youtube.com/embed/{id}"; }
     }
 
-    string ageText = (Model.Age?.ToString()) ?? "13";
     string genreText = (ViewBag.GenreText as string) ?? "Khác";
     string durationText = Model.Duration.HasValue ? $"{Model.Duration}’" : "Chưa có thông tin";
     string countryText = !string.IsNullOrWhiteSpace(Model.Country) ? Model.Country : "Chưa có thông tin";
@@ -25,216 +23,144 @@
 
     var directors = (IEnumerable<string>)(ViewBag.Directors ?? new List<string> { "Chưa có thông tin" });
     var actors = (IEnumerable<string>)(ViewBag.Actors ?? new List<string> { "Chưa có thông tin" });
+
+    bool isAdmin = User.IsInRole("Admin");
+
+    var posterSrc = !string.IsNullOrWhiteSpace(Model.PosterImage) ? Model.PosterImage : "/images/no-poster.png";
+    var bannerSrc = !string.IsNullOrWhiteSpace(Model.BannerImage) ? Model.BannerImage : "/images/no-poster.png";
+    var ratingText = string.IsNullOrWhiteSpace(Model.Rating?.ToString()) ? "NR" : Model.Rating!.ToString();
 }
 
-<style>
-    :root {
-        --bg: #0b0f27;
-        --bg-soft: #111737;
-        --text: #e9ecf6;
-        --muted: #a9b1c7;
-        --blue: #3b5ccc;
-        --purple: #7c3aed;
-        --red: #e53935;
-        --accent: #ffd54d;
-        --line: rgba(255,255,255,.12);
-    }
-    @@media (prefers-color-scheme: light) {
-        : root
+<div class="admin-shell movies-admin movies-crud movies-detail">
+    <div class="admin-panel">
+        <div class="crud-head">
+            <h1 class="crud-title">
+                <i class="fa-solid fa-film"></i>
+                Chi tiết phim
+            </h1>
 
-    {
-        --bg: #f4f6ff;
-        --bg-soft: #eef1ff;
-        --text: #101327;
-        --muted: #4b5470;
-        --line: rgba(0,0,0,.08);
-    }
+            <div class="crud-actions">
+                <a class="btn btn-outline-light-rounded btn-sweep px-3" asp-action="Index">
+                    <i class="fa-solid fa-list me-1"></i> Danh sách
+                </a>
 
-    }
+                @if (isAdmin)
+                {
+                    <a class="btn btn-outline-light-rounded btn-sweep px-3" asp-action="Edit" asp-route-id="@Model.MoviesId">
+                        <i class="fa-solid fa-pen me-1"></i> Sửa
+                    </a>
 
-    body {
-        background: radial-gradient(1300px 700px at 25% -5%, rgba(60,90,200,.35) 0%, rgba(60,90,200,0) 55%), radial-gradient(1200px 800px at 95% 10%, rgba(124,58,237,.28) 0%, rgba(124,58,237,0) 60%), linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
-        color: var(--text);
-    }
-
-    .page {
-        padding: 40px 0 70px;
-    }
-
-    .poster {
-        border-radius: 16px;
-        overflow: hidden;
-        background: #000;
-        box-shadow: 0 10px 28px rgba(0,0,0,.6);
-    }
-
-        .poster img {
-            width: 100%;
-            display: block;
-            aspect-ratio: 3/4;
-            object-fit: cover;
-        }
-
-    .info h1 {
-        font-weight: 900;
-        letter-spacing: .2px;
-    }
-
-    .meta {
-        margin: 14px 0 6px;
-        color: var(--text);
-    }
-
-        .meta .line {
-            margin: 6px 0;
-        }
-
-    .badge-age {
-        display: inline-block;
-        margin: 10px 0;
-        background: var(--accent);
-        color: #111;
-        font-weight: 900;
-        padding: 6px 10px;
-        border-radius: 8px;
-    }
-
-    .section-title {
-        margin-top: 18px;
-        font-weight: 900;
-        text-transform: uppercase;
-        color: var(--accent);
-        letter-spacing: .5px;
-    }
-
-    .kv {
-        color: var(--muted);
-        margin: 2px 0;
-    }
-
-    .desc {
-        color: var(--muted);
-        line-height: 1.85;
-        text-align: justify;
-    }
-
-    .action-bar {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 10px;
-    }
-
-    .btn-primary {
-        background: linear-gradient(90deg,var(--blue),var(--purple));
-        border: none;
-        font-weight: 800;
-    }
-
-    .btn-danger {
-        background: var(--red);
-        border: none;
-        font-weight: 800;
-    }
-
-    .trailer {
-        margin-top: 46px;
-        background: var(--bg-soft);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 36px 20px 46px;
-        box-shadow: 0 12px 28px rgba(0,0,0,.25);
-    }
-
-        .trailer .head {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 14px;
-        }
-
-        .trailer .ribbon {
-            display: inline-block;
-            background: var(--red);
-            color: #fff;
-            font-weight: 900;
-            padding: 8px 18px;
-            border-radius: 10px;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            box-shadow: 0 8px 18px rgba(0,0,0,.35);
-        }
-
-    .video-wrap {
-        display: flex;
-        justify-content: center;
-    }
-
-        .video-wrap iframe {
-            width: 100%;
-            max-width: 900px;
-            aspect-ratio: 16/9;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 10px 28px rgba(0,0,0,.6);
-        }
-</style>
-
-<div class="container page">
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="poster">
-                <img src="@(!string.IsNullOrWhiteSpace(Model.PosterImage) ? Model.PosterImage : "/images/no-poster.png")"
-                     alt="@Model.Title" />
+                    <form asp-action="Delete" asp-route-id="@Model.MoviesId" method="post" class="d-inline"
+                          onsubmit="return confirm('Xoá phim này?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger px-3">
+                            <i class="fa-solid fa-trash-can me-1"></i> Xoá
+                        </button>
+                    </form>
+                }
             </div>
         </div>
 
-        <div class="col-md-8 info">
-            <h1>@($"{Model.Title} (T{ageText})")</h1>
+        <div class="crud-divider"></div>
 
-            <div class="action-bar">
-                <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.MoviesId">Sửa</a>
-                <a class="btn btn-secondary" asp-action="Index">Quay về danh sách</a>
+        <div class="crud-body">
+            <div class="row g-3">
+                <!-- LEFT: media (sticky) -->
+                <div class="col-lg-4 movies-crud-col movie-media-sticky">
+                    <div class="details-panel">
+                        <div class="details-panel-title">Poster</div>
+                        <img class="poster-img" src="@posterSrc" alt="@Model.Title" />
 
-                <form asp-action="Delete" asp-route-id="@Model.MoviesId" method="post" class="d-inline"
-                      onsubmit="return confirm('Xoá phim này?');">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-danger">Xoá</button>
-                </form>
+                        <div class="details-panel-divider"></div>
+
+                        <div class="details-panel-title">Banner</div>
+                        <img class="banner-img" src="@bannerSrc" alt="@Model.Title banner" />
+                    </div>
+                </div>
+
+                <!-- RIGHT: info (sticky) -->
+                <div class="col-lg-8 movie-info-sticky">
+                    <div class="details-panel">
+                        <div class="details-head">
+                            <div class="details-head-left">
+                                <div class="details-title">@Model.Title</div>
+                                <div class="details-sub">@summaryText</div>
+                            </div>
+
+                            <div class="details-head-right">
+                                <div class="details-pill">
+                                    <span class="details-pill-label">IMDb</span>
+                                    <span class="details-pill-value">@ratingText</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="details-panel-divider"></div>
+
+                        <div class="details-section-title">Thông tin</div>
+
+                        <div class="details-kv-grid">
+                            <div class="details-kv">
+                                <div class="details-k">Thể loại</div>
+                                <div class="details-v">@genreText</div>
+                            </div>
+
+                            <div class="details-kv">
+                                <div class="details-k">Khởi chiếu</div>
+                                <div class="details-v">@releaseText</div>
+                            </div>
+
+                            <div class="details-kv">
+                                <div class="details-k">Thời lượng</div>
+                                <div class="details-v">@durationText</div>
+                            </div>
+
+                            <div class="details-kv">
+                                <div class="details-k">Quốc gia</div>
+                                <div class="details-v">@countryText</div>
+                            </div>
+
+                            <div class="details-kv">
+                                <div class="details-k">Âm thanh</div>
+                                <div class="details-v">@audioText</div>
+                            </div>
+
+                            <div class="details-kv">
+                                <div class="details-k">Ngôn ngữ</div>
+                                <div class="details-v">@languageText</div>
+                            </div>
+
+                            <div class="details-kv details-kv-span2">
+                                <div class="details-k">Đạo diễn</div>
+                                <div class="details-v">@string.Join(", ", directors)</div>
+                            </div>
+
+                            <div class="details-kv details-kv-span2">
+                                <div class="details-k">Diễn viên</div>
+                                <div class="details-v">@string.Join(", ", actors)</div>
+                            </div>
+                        </div>
+
+                        <div class="details-panel-divider"></div>
+
+                        <div class="details-section-title">Nội dung</div>
+                        <div class="details-content">
+                            @Html.Raw(contentText)
+                        </div>
+
+                        @if (embed != null)
+                        {
+                            <div class="details-panel-divider"></div>
+
+                            <div class="details-section-title">Trailer</div>
+                            <div class="ratio ratio-16x9">
+                                <iframe src="@embed" title="@Model.Title trailer" allowfullscreen
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
-
-            <div class="meta">
-                <div class="line">@genreText</div>
-                <div class="line">@durationText</div>
-                <div class="line">@countryText</div>
-                <div class="line">@audioText</div>
-                <div class="line">@("Ngôn ngữ: " + languageText)</div>
-            </div>
-
-            <div class="badge-age">
-                @($"T{ageText}: Phim dành cho khán giả từ đủ {ageText} tuổi trở lên ({ageText}+)")
-            </div>
-
-            <h5 class="section-title">MÔ TẢ</h5>
-            <div class="kv"><strong>Đạo diễn:</strong> @string.Join(", ", directors)</div>
-            <div class="kv"><strong>Diễn viên:</strong> @string.Join(", ", actors)</div>
-            <div class="kv"><strong>Khởi chiếu:</strong> @releaseText</div>
-
-            <h5 class="section-title">NỘI DUNG PHIM</h5>
-            <p class="desc">@Html.Raw(contentText)</p>
         </div>
     </div>
-
-    @if (embed != null)
-    {
-        <div class="trailer mt-4">
-            <div class="head">
-                <div class="ribbon">TRAILER</div>
-            </div>
-            <div class="video-wrap">
-                <iframe src="@embed" title="@Model.Title trailer" allowfullscreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share">
-                </iframe>
-            </div>
-        </div>
-    }
 </div>

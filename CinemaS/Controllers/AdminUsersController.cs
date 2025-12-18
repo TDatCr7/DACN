@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using CinemaS.Models;
+﻿using CinemaS.Models;
 using CinemaS.ViewModels.AdminUsers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CinemaS.Controllers
 {
@@ -17,34 +18,96 @@ namespace CinemaS.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly CinemaContext _context;
+        private readonly IEmailSender _emailSender;
+
+        private const string RoleOtpCodeKey = "AdminRoleOtp_Code";
+        private const string RoleOtpExpireKey = "AdminRoleOtp_ExpireAtUtcTicks";
+        private const string RoleOtpVerifiedUntilKey = "AdminRoleOtp_VerifiedUntilUtcTicks";
+        private const string RoleOtpLastSentKey = "AdminRoleOtp_LastSentUtcTicks";
+
+        private static readonly TimeSpan RoleOtpLifetime = TimeSpan.FromMinutes(5);   // OTP sống 5p (gửi/nhập)
+        private static readonly TimeSpan RoleChangeWindow = TimeSpan.FromMinutes(3);  // cửa sổ đổi quyền 3p
+        private static readonly TimeSpan RoleOtpCooldown = TimeSpan.FromSeconds(30);  // chống spam gửi lại
 
         public AdminUsersController(
-            UserManager<AppUser> userManager,
-            RoleManager<IdentityRole> roleManager,
-            CinemaContext context)
+        UserManager<AppUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        CinemaContext context,
+        IEmailSender emailSender)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
+            _emailSender = emailSender;
         }
 
-        // GET: /AdminUsers
-        public async Task<IActionResult> Index(string? search)
+
+        public async Task<IActionResult> Index(string? search, string? role, int page = 1)
         {
+            const int pageSize = 8;
+
+            // normalize input
+            search = (search ?? "").Trim();
+            role = (role ?? "").Trim();
+
             var query = _userManager.Users.AsQueryable();
 
+            // search filter
             if (!string.IsNullOrWhiteSpace(search))
             {
-                search = search.Trim();
                 query = query.Where(u =>
-                    (u.FullName ?? string.Empty).Contains(search) ||
-                    (u.Email ?? string.Empty).Contains(search) ||
-                    (u.UserName ?? string.Empty).Contains(search));
+                    (u.FullName ?? "").Contains(search) ||
+                    (u.Email ?? "").Contains(search) ||
+                    (u.UserName ?? "").Contains(search));
             }
+
+            // role filter (Admin/User)
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                // chỉ cho phép 2 giá trị này để tránh nhập bậy
+                var roleNormalized = role.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "Admin"
+                                   : role.Equals("User", StringComparison.OrdinalIgnoreCase) ? "User"
+                                   : "";
+
+                if (!string.IsNullOrWhiteSpace(roleNormalized))
+                {
+                    // lấy danh sách user thuộc role -> lọc theo Id
+                    var usersInRole = await _userManager.GetUsersInRoleAsync(roleNormalized);
+                    var roleUserIds = usersInRole.Select(u => u.Id).ToList();
+
+                    // nếu role không có ai -> trả rỗng luôn
+                    if (roleUserIds.Count == 0)
+                    {
+                        ViewBag.CurrentPage = 1;
+                        ViewBag.TotalPages = 1;
+                        ViewBag.Search = search;
+                        ViewBag.Role = roleNormalized;
+                        return View(new List<AdminUserListItemVm>());
+                    }
+
+                    query = query.Where(u => roleUserIds.Contains(u.Id));
+                    role = roleNormalized;
+                }
+                else
+                {
+                    // role không hợp lệ -> coi như không lọc
+                    role = "";
+                }
+            }
+
+            // chống page vượt
+            if (page < 1) page = 1;
+
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            if (totalPages < 1) totalPages = 1;
+            if (page > totalPages) page = totalPages;
 
             var users = await query
                 .OrderBy(u => u.FullName)
-                .ThenBy(u => u.Email)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             var vms = new List<AdminUserListItemVm>();
@@ -64,9 +127,15 @@ namespace CinemaS.Controllers
                 });
             }
 
-            ViewData["Title"] = "Quản lý tài khoản";
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.Search = search;
+            ViewBag.Role = role ?? "";
+
             return View(vms);
         }
+
+
 
         // GET: /AdminUsers/Details/5
         public async Task<IActionResult> Details(string id)
@@ -116,7 +185,7 @@ namespace CinemaS.Controllers
                 Address = user.Address,
                 Age = ageField,
                 Email = user.Email,
-                UserName = user.UserName,
+                UserName = profile?.UserId ?? user.UserName,
                 PhoneNumber = user.PhoneNumber,
                 EmailConfirmed = user.EmailConfirmed,
                 SelectedRoles = roles.ToList(),
@@ -124,7 +193,8 @@ namespace CinemaS.Controllers
                 DateOfBirth = profile?.DateOfBirth,
                 Gender = profile?.Gender,
                 SavePoint = profile?.SavePoint ?? 0,
-                AgeFromBirth = ageFromBirth
+                AgeFromBirth = ageFromBirth,
+                AvatarPath = profile?.AvatarUrl
             };
 
             ViewData["Title"] = "Thông tin tài khoản";
@@ -143,7 +213,7 @@ namespace CinemaS.Controllers
             };
 
             ViewData["Title"] = "Thêm tài khoản";
-            return View("Edit", vm);
+            return View("Create", vm);
         }
 
         // POST: /AdminUsers/Create
@@ -159,7 +229,7 @@ namespace CinemaS.Controllers
             if (!ModelState.IsValid)
             {
                 ViewData["Title"] = "Thêm tài khoản";
-                return View("Edit", vm);
+                return View("Create", vm);
             }
 
             var user = new AppUser
@@ -185,11 +255,28 @@ namespace CinemaS.Controllers
                     ModelState.AddModelError(string.Empty, error.Description);
 
                 ViewData["Title"] = "Thêm tài khoản";
-                return View("Edit", vm);
+                return View("Create", vm);
             }
 
-            if (vm.SelectedRoles != null && vm.SelectedRoles.Any())
-                await _userManager.AddToRolesAsync(user, vm.SelectedRoles);
+            var selectedRole = vm.SelectedRoles?.FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(selectedRole))
+            {
+                ModelState.AddModelError("SelectedRoles", "Vui lòng chọn 1 quyền.");
+                ViewData["Title"] = "Thêm tài khoản";
+                return View("Create", vm);
+            }
+
+            var rr = await SetSingleRoleAsync(user, selectedRole);
+            if (!rr.Succeeded)
+            {
+                foreach (var e in rr.Errors)
+                    ModelState.AddModelError(string.Empty, e.Description);
+
+                ViewData["Title"] = "Thêm tài khoản";
+                return View("Create", vm);
+            }
+
 
             return RedirectToAction(nameof(Index));
         }
@@ -275,16 +362,50 @@ namespace CinemaS.Controllers
             }
 
             var currentRoles = await _userManager.GetRolesAsync(user);
-            var selectedRoles = vm.SelectedRoles ?? new List<string>();
+            var selectedRole = vm.SelectedRoles?.FirstOrDefault(); // chỉ lấy 1
 
-            var rolesToAdd = selectedRoles.Except(currentRoles);
-            var rolesToRemove = currentRoles.Except(selectedRoles);
+            // bắt buộc phải chọn role
+            if (string.IsNullOrWhiteSpace(selectedRole))
+            {
+                ModelState.AddModelError("SelectedRoles", "Vui lòng chọn 1 quyền.");
+                ViewData["Title"] = "Chỉnh sửa tài khoản";
+                return View(vm);
+            }
 
-            if (rolesToAdd.Any())
-                await _userManager.AddToRolesAsync(user, rolesToAdd);
+            var isRoleChanging = currentRoles.Count != 1 || !string.Equals(currentRoles[0], selectedRole, StringComparison.OrdinalIgnoreCase);
 
-            if (rolesToRemove.Any())
-                await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            if (isRoleChanging)
+            {
+                var untilStr = HttpContext.Session.GetString(RoleOtpVerifiedUntilKey);
+                if (!long.TryParse(untilStr, out var untilTicks))
+                {
+                    ModelState.AddModelError(string.Empty, "Cần xác minh Gmail (OTP) trước khi đổi quyền.");
+                    ViewData["Title"] = "Chỉnh sửa tài khoản";
+                    return View(vm);
+                }
+
+                var until = new DateTimeOffset(untilTicks, TimeSpan.Zero);
+                if (DateTimeOffset.UtcNow > until)
+                {
+                    HttpContext.Session.Remove(RoleOtpVerifiedUntilKey);
+                    ModelState.AddModelError(string.Empty, "Hết thời gian đổi quyền (3 phút). Vui lòng xác minh Gmail lại.");
+                    ViewData["Title"] = "Chỉnh sửa tài khoản";
+                    return View(vm);
+                }
+
+                var rr = await SetSingleRoleAsync(user, selectedRole);
+                if (!rr.Succeeded)
+                {
+                    foreach (var e in rr.Errors)
+                        ModelState.AddModelError(string.Empty, e.Description);
+
+                    ViewData["Title"] = "Chỉnh sửa tài khoản";
+                    return View(vm);
+                }
+
+                HttpContext.Session.Remove(RoleOtpVerifiedUntilKey);
+            }
+
 
             return RedirectToAction(nameof(Index));
         }
@@ -301,9 +422,141 @@ namespace CinemaS.Controllers
             if (user == null)
                 return NotFound();
 
+            Users? profile = null;
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                profile = await _context.Set<Users>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Email == user.Email);
+            }
+
+            if (profile != null)
+            {
+                var hasInvoices = await _context.Set<Invoices>()
+                    .AsNoTracking()
+                    .AnyAsync(i => i.CustomerId == profile.UserId);
+
+                if (hasInvoices)
+                {
+                    TempData["Error"] = "Không thể xoá tài khoản vì tài khoản đã có hoá đơn.";
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+            }
+
             await _userManager.DeleteAsync(user);
-            // CinemaContext.SaveChangesAsync sẽ tự xoá bản Users tương ứng nếu cấu hình cascade / xử lý thủ công
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendRoleOtp()
+        {
+            // admin đang thao tác
+            var admin = await _userManager.GetUserAsync(User);
+            if (admin == null || string.IsNullOrWhiteSpace(admin.Email))
+                return Json(new { ok = false, message = "Không có email admin để gửi OTP." });
+
+            var session = HttpContext.Session;
+            var now = DateTimeOffset.UtcNow;
+
+            // cooldown 30s
+            var lastSentStr = session.GetString(RoleOtpLastSentKey);
+            if (long.TryParse(lastSentStr, out var lastSentTicks))
+            {
+                var lastSent = new DateTimeOffset(lastSentTicks, TimeSpan.Zero);
+                var diff = now - lastSent;
+                if (diff < RoleOtpCooldown)
+                {
+                    var remain = (int)Math.Ceiling((RoleOtpCooldown - diff).TotalSeconds);
+                    return Json(new { ok = false, message = "Vui lòng chờ trước khi gửi lại OTP.", cooldown = remain });
+                }
+            }
+
+            var code = new Random().Next(100000, 999999).ToString();
+
+            session.SetString(RoleOtpCodeKey, code);
+            session.SetString(RoleOtpExpireKey, now.Add(RoleOtpLifetime).UtcTicks.ToString());
+            session.SetString(RoleOtpLastSentKey, now.UtcTicks.ToString());
+
+            // reset cửa sổ đổi quyền
+            session.Remove(RoleOtpVerifiedUntilKey);
+
+            var subject = "OTP xác minh đổi quyền CinemaS";
+            var body = $@"
+<p>Mã OTP xác minh đổi quyền của bạn là: <strong>{code}</strong></p>
+<p>Mã có hiệu lực trong {RoleOtpLifetime.TotalMinutes:N0} phút.</p>";
+
+            try
+            {
+                await _emailSender.SendEmailAsync(admin.Email, subject, body);
+            }
+            catch
+            {
+                return Json(new
+                {
+                    ok = false,
+                    message = "Không gửi được email OTP. Kiểm tra cấu hình SMTP/Gmail và App Password."
+                });
+            }
+
+            return Json(new
+            {
+                ok = true,
+                message = $"Đã gửi OTP tới {admin.Email}.",
+                otpLifetimeSeconds = (int)RoleOtpLifetime.TotalSeconds
+            });
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult VerifyRoleOtp([FromForm] string otp)
+        {
+            var session = HttpContext.Session;
+            var now = DateTimeOffset.UtcNow;
+
+            var storedCode = session.GetString(RoleOtpCodeKey);
+            var expireStr = session.GetString(RoleOtpExpireKey);
+
+            if (string.IsNullOrWhiteSpace(storedCode) || string.IsNullOrWhiteSpace(expireStr))
+                return Json(new { ok = false, message = "Chưa gửi OTP hoặc OTP đã hết hạn." });
+
+            if (!long.TryParse(expireStr, out var expireTicks))
+                return Json(new { ok = false, message = "OTP không hợp lệ." });
+
+            var expireAt = new DateTimeOffset(expireTicks, TimeSpan.Zero);
+            if (now > expireAt)
+                return Json(new { ok = false, message = "OTP đã hết hạn." });
+
+            if (!string.Equals(storedCode, (otp ?? "").Trim(), StringComparison.Ordinal))
+                return Json(new { ok = false, message = "OTP không đúng." });
+
+            // OTP đúng -> mở cửa sổ đổi quyền 3 phút
+            var verifiedUntil = now.Add(RoleChangeWindow).UtcTicks.ToString();
+            session.SetString(RoleOtpVerifiedUntilKey, verifiedUntil);
+
+            return Json(new
+            {
+                ok = true,
+                message = "Xác minh thành công. Có thể đổi quyền trong 3 phút.",
+                roleWindowSeconds = (int)RoleChangeWindow.TotalSeconds
+            });
+        }
+        private async Task<IdentityResult> SetSingleRoleAsync(AppUser user, string role)
+        {
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            if (currentRoles.Count > 0)
+            {
+                var rm = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!rm.Succeeded) return rm;
+            }
+
+            if (string.IsNullOrWhiteSpace(role))
+                return IdentityResult.Success;
+
+            return await _userManager.AddToRoleAsync(user, role);
+        }
+
     }
 }

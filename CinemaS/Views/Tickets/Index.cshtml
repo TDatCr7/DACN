@@ -3,9 +3,56 @@
 @{
     ViewData["Title"] = "Quản lý Vé";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var page = (int)(ViewBag.Page ?? 1);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var totalItems = (int)(ViewBag.TotalItems ?? 0);
 }
 
+
 <link rel="stylesheet" href="~/css/management.css" />
+<style>
+    .ticket-pager {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .ticket-page-btn {
+        min-width: 40px;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.45);
+        background: rgba(15,23,42,.88);
+        color: #e9ecf6;
+        font-weight: 800;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+        .ticket-page-btn:hover {
+            filter: brightness(1.08);
+            color: #fff;
+        }
+
+        .ticket-page-btn.is-active {
+            background: linear-gradient(120deg, var(--indigo), var(--purple));
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .ticket-page-btn.is-disabled {
+            opacity: .45;
+            pointer-events: none;
+        }
+</style>
 
 <div class="container-fluid mt-4">
     <!-- Header -->
@@ -136,11 +183,25 @@
                             <td class="text-end" style="color: #fbbf24; font-weight: 700;">@(ticket.Price?.ToString("N0") ?? "0") đ</td>
                             <td>@ticket.CreatedBooking?.ToString("dd/MM/yyyy HH:mm")</td>
                             <td class="text-end">
-                                <a asp-action="Delete" asp-route-id="@ticket.TicketId" 
-                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                <!-- XEM CHI TIẾT -->
+                                <a asp-controller="Tickets"
+                                   asp-action="Details"
+                                   asp-route-id="@ticket.TicketId"
+                                   class="admin-icon-btn"
+                                   title="Xem chi tiết">
+                                    <i class="fa-regular fa-eye"></i>
+                                </a>
+
+                                <!-- XÓA -->
+                                <a asp-controller="Tickets"
+                                   asp-action="Delete"
+                                   asp-route-id="@ticket.TicketId"
+                                   class="admin-icon-btn admin-icon-btn-danger"
+                                   title="Xóa">
                                     <i class="fa-solid fa-trash-can"></i>
                                 </a>
                             </td>
+
                         </tr>
                     }
                 }
@@ -156,13 +217,52 @@
             </tbody>
         </table>
     </div>
+    @if (totalPages > 1)
+    {
+        <div class="ticket-pager">
+            <!-- Prev -->
+            <a class="ticket-page-btn @(page <= 1 ? "is-disabled" : "")"
+               asp-action="Index"
+               asp-route-page="@(page - 1)"
+               asp-route-searchString="@ViewData["CurrentFilter"]"
+               asp-route-fromDate="@ViewData["FromDate"]"
+               asp-route-toDate="@ViewData["ToDate"]"
+               asp-route-statusFilter="@ViewData["StatusFilter"]">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                <a class="ticket-page-btn @(p == page ? "is-active" : "")"
+                   asp-action="Index"
+                   asp-route-page="@p"
+                   asp-route-searchString="@ViewData["CurrentFilter"]"
+                   asp-route-fromDate="@ViewData["FromDate"]"
+                   asp-route-toDate="@ViewData["ToDate"]"
+                   asp-route-statusFilter="@ViewData["StatusFilter"]">
+                    @p
+                </a>
+            }
+
+            <!-- Next -->
+            <a class="ticket-page-btn @(page >= totalPages ? "is-disabled" : "")"
+               asp-action="Index"
+               asp-route-page="@(page + 1)"
+               asp-route-searchString="@ViewData["CurrentFilter"]"
+               asp-route-fromDate="@ViewData["FromDate"]"
+               asp-route-toDate="@ViewData["ToDate"]"
+               asp-route-statusFilter="@ViewData["StatusFilter"]">
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
+    }
 
     <div class="d-flex justify-content-between mt-4">
         @if (Model != null && Model.Any())
         {
             <div class="text-white">
                 <i class="fas fa-info-circle"></i>
-                <strong>Tổng số vé: @Model.Count()</strong>
+                <strong>Tổng số vé: @totalItems</strong>
             </div>
         }
     </div>

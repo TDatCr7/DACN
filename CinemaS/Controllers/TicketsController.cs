@@ -27,17 +27,16 @@ namespace CinemaS.Controllers
         }
 
         // GET: Tickets
-        public async Task<IActionResult> Index(string searchString, DateTime? fromDate, DateTime? toDate, byte? statusFilter)
+        public async Task<IActionResult> Index(string searchString, DateTime? fromDate, DateTime? toDate, byte? statusFilter, int page = 1)
         {
+            const int PageSize = 8;
+            if (page < 1) page = 1;
+
             ViewData["CurrentFilter"] = searchString;
             ViewData["FromDate"] = fromDate?.ToString("yyyy-MM-dd");
             ViewData["ToDate"] = toDate?.ToString("yyyy-MM-dd");
             ViewData["StatusFilter"] = statusFilter;
 
-            // total tickets in DB for debugging
-            var totalTicketsInDb = await _context.Tickets.CountAsync();
-
-            // Use left joins to avoid dropping tickets when related record is missing
             var ticketsQuery = from ticket in _context.Tickets
                                join invoice in _context.Invoices on ticket.InvoiceId equals invoice.InvoiceId into invGroup
                                from invoice in invGroup.DefaultIfEmpty()
@@ -78,10 +77,7 @@ namespace CinemaS.Controllers
                                    TicketTypeName = ticketType != null ? ticketType.Name : null
                                };
 
-            // Debug: count before filters
-            var preFilterCount = await ticketsQuery.CountAsync();
-
-            // Filter by search string
+            // ===== FILTER: SEARCH =====
             if (!string.IsNullOrEmpty(searchString))
             {
                 ticketsQuery = ticketsQuery.Where(t =>
@@ -93,11 +89,9 @@ namespace CinemaS.Controllers
                 );
             }
 
-            // Filter by date range
+            // ===== FILTER: DATE =====
             if (fromDate.HasValue)
-            {
                 ticketsQuery = ticketsQuery.Where(t => t.Ticket.CreatedBooking >= fromDate.Value);
-            }
 
             if (toDate.HasValue)
             {
@@ -105,27 +99,35 @@ namespace CinemaS.Controllers
                 ticketsQuery = ticketsQuery.Where(t => t.Ticket.CreatedBooking <= endOfDay);
             }
 
-            // Filter by status
+            // ===== FILTER: STATUS =====
             if (statusFilter.HasValue)
-            {
                 ticketsQuery = ticketsQuery.Where(t => t.Ticket.Status == statusFilter.Value);
-            }
 
+            // ===== COUNT for paging =====
+            var totalItems = await ticketsQuery.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)PageSize);
+            if (totalPages < 1) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            // ===== PAGE DATA =====
             var results = await ticketsQuery
                 .OrderByDescending(t => t.Ticket.CreatedBooking)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync();
 
-            // set debug info for view
-            ViewBag.TotalTicketsInDb = totalTicketsInDb;
-            ViewBag.PreFilterCount = preFilterCount;
-            ViewBag.ResultCount = results.Count;
-            ViewBag.SampleIds = results.Take(10).Select(r => r.Ticket?.TicketId).Where(id => id != null).ToList();
+            // paging info for view
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.PageSize = PageSize;
+            ViewBag.TotalItems = totalItems;
 
-            ViewBag.TicketData = results; // pass rich anonymous objects to view
+            // (nếu view có dùng TicketData thì vẫn giữ)
+            ViewBag.TicketData = results;
 
-            // Also return Tickets list as model for compatibility
             return View(results.Select(r => r.Ticket).ToList());
         }
+
 
         // GET: Tickets/Details/5
         public async Task<IActionResult> Details(string id)

@@ -53,10 +53,39 @@ namespace CinemaS.Controllers
         }
 
         // GET: Genres
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
-            return View(await _context.Genres.ToListAsync());
+            // ===== PHÂN TRANG =====
+            const int PageSize = 8;                 // mỗi trang 8 thể loại
+            if (page < 1) page = 1;                 // chống page âm/0
+
+            // Tổng số dòng
+            var totalItems = await _context.Genres.CountAsync();
+
+            // Tổng số trang (ceil)
+            var totalPages = (int)Math.Ceiling(totalItems / (double)PageSize);
+            if (totalPages < 1) totalPages = 1;     // nếu bảng rỗng vẫn để 1 trang
+
+            // Nếu page vượt quá totalPages thì kéo về trang cuối
+            if (page > totalPages) page = totalPages;
+
+            // Lấy dữ liệu theo trang (nên có OrderBy để ổn định)
+            var items = await _context.Genres
+                .AsNoTracking()
+                .OrderBy(g => g.GenresId)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
+                .ToListAsync();
+
+            // ===== GỬI DỮ LIỆU PHÂN TRANG QUA VIEWBAG =====
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.PageSize = PageSize;
+            ViewBag.TotalItems = totalItems;
+
+            return View(items);
         }
+
 
         // GET: Genres/Details/5
         public async Task<IActionResult> Details(string id)

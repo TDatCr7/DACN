@@ -4,7 +4,13 @@
     ViewData["Title"] = "Lịch sử mua bắp nước";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var list = Model ?? new List<CinemaS.Models.ViewModels.SnackInvoiceHistoryVM>();
+
+    var page = (int)(ViewBag.Page ?? 1);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 8);
+    var offset = (page - 1) * pageSize;
 }
+
 
 <style>
     :root {
@@ -328,7 +334,7 @@
                         {
                             var i = list[idx];
                             <tr>
-                                <td>@(idx + 1)</td>
+                                <td>@(offset + idx + 1)</td>
                                 <td>@i.InvoiceId</td>
                                 <td>@(i.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
                                 <td class="price-value">@i.TotalPrice.ToString("#,0") đ</td>
@@ -362,5 +368,34 @@
                 </table>
             </div>
         }
+        @if (totalPages > 1)
+        {
+            <div class="cine-pager">
+                <a class="cine-page-btn @(page <= 1 ? "is-disabled" : "")"
+                   asp-controller="Payment"
+                   asp-action="SnackHistory"
+                   asp-route-page="@(page - 1)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <a class="cine-page-btn @(p == page ? "is-active" : "")"
+                       asp-controller="Payment"
+                       asp-action="SnackHistory"
+                       asp-route-page="@p">
+                        @p
+                    </a>
+                }
+
+                <a class="cine-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                   asp-controller="Payment"
+                   asp-action="SnackHistory"
+                   asp-route-page="@(page + 1)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+        }
+
     </div>
 </div>

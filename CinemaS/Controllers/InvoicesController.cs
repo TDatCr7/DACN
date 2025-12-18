@@ -110,7 +110,11 @@ namespace CinemaS.Controllers
             string roomLabel = room?.Name ?? st.CinemaTheaterId ?? "N/A";
             string cinemaName = theater?.Name ?? "N/A";
             string totalText = (invoice.TotalPrice ?? 0m).ToString("#,0");
+            var payable = (invoice.TotalPrice ?? 0m);
+            var original = (invoice.OriginalTotal ?? 0m);
 
+            string payableText = $"{payable:#,0} đ";
+            string originalText = $"{original:#,0} đ";
             string html = $@"
 <div style='border-radius:16px; padding:24px 28px;
             color:#f9fafb; font-size:15px;
@@ -166,21 +170,31 @@ namespace CinemaS.Controllers
 
     <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
 
-    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;'>
-        <span style='font-size:18px; font-weight:800; color:#fde047;'>TỔNG TIỀN</span>
-        <span style='font-size:22px; font-weight:900;'>{totalText} VNĐ</span>
+    <div style='margin-top:16px; padding-top:14px; border-top:1px solid rgba(148,163,255,.24);'>
+    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;'>
+      <span style='color:#9ca3af;'>Giá gốc</span>
+      <span style='font-weight:800; color:#e5e7eb;'>{originalText}</span>
     </div>
+    <div style='display:flex; justify-content:space-between; align-items:center;'>
+      <span style='font-size:16px; font-weight:900; color:#fde047;'>Thanh toán</span>
+      <span style='font-size:20px; font-weight:900;'>{payableText}</span>
+    </div>
+  </div>
 </div>";
 
             return Content(html, "text/html");
         }
 
         // ========== INDEX ==========
-        public async Task<IActionResult> Index(string? search, DateTime? fromDate, DateTime? toDate)
+        public async Task<IActionResult> Index(string? search, DateTime? fromDate, DateTime? toDate, string? type, int page = 1)
         {
+            const int PageSize = 8;
+            if (page < 1) page = 1;
+
             ViewBag.Search = search;
             ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
             ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
+            ViewBag.Type = type;
 
             var query =
                 from inv in _context.Invoices
@@ -214,10 +228,51 @@ namespace CinemaS.Controllers
 
             if (toDate.HasValue)
                 query = query.Where(x => x.CreatedAt <= toDate.Value.AddDays(1).AddSeconds(-1));
+            // ===== INVOICE TYPE MAP (Ticket / Snack) =====
+            var invoiceIdsQuery = query.Select(x => x.InvoiceId);
 
-            // ===== RETURN DATA =====
+            var ticketInvoiceIds = await _context.Tickets.AsNoTracking()
+                .Where(t => invoiceIdsQuery.Contains(t.InvoiceId))
+                .Select(t => t.InvoiceId)
+                .Distinct()
+                .ToListAsync();
+
+            var snackInvoiceIds = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(d => invoiceIdsQuery.Contains(d.InvoiceId))
+                .Select(d => d.InvoiceId)
+                .Distinct()
+                .ToListAsync();
+
+            // ===== FILTER: TYPE (all | ticket | snack-only) =====
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                type = type.Trim().ToLowerInvariant();
+
+                if (type == "ticket")
+                {
+                    // hóa đơn có vé (có thể kèm snack)
+                    query = query.Where(x => ticketInvoiceIds.Contains(x.InvoiceId));
+                }
+                else if (type == "snack")
+                {
+                    // hóa đơn bắp nước (snack-only): có snack và KHÔNG có vé
+                    query = query.Where(x => snackInvoiceIds.Contains(x.InvoiceId)
+                                          && !ticketInvoiceIds.Contains(x.InvoiceId));
+                }
+                // else: all -> không lọc
+            }
+
+            // ===== COUNT for paging =====
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)PageSize);
+            if (totalPages < 1) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            // ===== DATA for current page =====
             var data = await query
                 .OrderByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .Select(x => new InvoiceIndexVM
                 {
                     InvoiceId = x.InvoiceId,
@@ -226,15 +281,121 @@ namespace CinemaS.Controllers
                     PhoneNumber = x.Phone,
                     TotalPrice = x.TotalPrice ?? 0m,
                     Status = x.Status,
-                    CreatedAt = x.CreatedAt
+                    CreatedAt = x.CreatedAt,
+
+                    HasTickets = ticketInvoiceIds.Contains(x.InvoiceId),
+                    HasSnacks = snackInvoiceIds.Contains(x.InvoiceId)
                 })
+
                 .ToListAsync();
+
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.PageSize = PageSize;
+            ViewBag.TotalItems = totalItems;
 
             return View(data);
         }
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> SnackPopup(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return Content("Không có mã hóa đơn.", "text/html");
 
+            var invoice = await _context.Invoices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == id);
 
+            if (invoice == null)
+                return Content("Hóa đơn không tồn tại.", "text/html");
 
+            var snackLines = await _context.DetailBookingSnacks
+                .AsNoTracking()
+                .Where(d => d.InvoiceId == id)
+                .ToListAsync();
+
+            if (!snackLines.Any())
+                return Content("Hóa đơn này chưa có bắp nước.", "text/html");
+
+            var snackIds = snackLines.Select(x => x.SnackId).Distinct().ToList();
+
+            var snackMap = await _context.Snacks
+                .AsNoTracking()
+                .Where(s => snackIds.Contains(s.SnackId))
+                .ToDictionaryAsync(s => s.SnackId, s => new
+                {
+                    Name = s.Name ?? "Snack",
+                    Price = (decimal)(s.Price ?? 0m)
+                });
+
+            string rowsHtml = "";
+            decimal snackTotal = 0m;
+
+            foreach (var line in snackLines)
+            {
+                snackMap.TryGetValue(line.SnackId, out var sn);
+
+                var name = sn?.Name ?? "Snack";
+                var unit = sn?.Price ?? 0m;
+
+                int qty = line.TotalSnack ?? 0;
+                if (qty < 0) qty = 0;
+
+                var lineTotal = unit * qty;
+                snackTotal += lineTotal;
+
+                rowsHtml += $@"
+<div style='display:flex; justify-content:space-between; gap:12px; padding:10px 0;
+            border-bottom:1px dashed rgba(255,255,255,.18);'>
+  <div style='flex:1; font-weight:700; color:#e5e7eb; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>{name}</div>
+  <div style='min-width:54px; text-align:right; color:#cbd5f5;'>x{qty}</div>
+  <div style='min-width:120px; text-align:right; font-weight:800; color:#22c55e;'>{lineTotal:#,0} đ</div>
+</div>";
+            }
+
+            var payable = (invoice.TotalPrice ?? 0m);
+            var original = (invoice.OriginalTotal ?? 0m);
+
+            string payableText = $"{payable:#,0} đ";
+            string originalText = $"{original:#,0} đ";
+
+            string html = $@"
+<div style='border-radius:16px; padding:22px 24px;
+            color:#f9fafb; font-size:14px;
+            background:#020617;
+            border:1px solid rgba(148,163,255,.45);
+            box-shadow:0 22px 55px rgba(15,23,42,.95);'>
+
+  <div style='display:flex; justify-content:space-between; align-items:flex-start; gap:10px;'>
+    <div>
+      <div style='font-size:13px; font-weight:900; text-transform:uppercase; color:#fde047;'>BẮP NƯỚC</div>
+      <div style='opacity:.9; font-size:12px; margin-top:4px;'>Mã hóa đơn: <strong>{invoice.InvoiceId}</strong></div>
+    </div>
+    <div style='text-align:right;'>
+      <div style='font-size:12px; color:#a5b4fc;'>Tạm tính</div>
+      <div style='font-size:16px; font-weight:900; color:#e5e7eb;'>{snackTotal:#,0} đ</div>
+    </div>
+  </div>
+
+  <div style='margin-top:14px; border-radius:14px; background:rgba(15,23,42,.7); border:1px solid rgba(148,163,255,.18); padding:12px 14px;'>
+    {rowsHtml}
+  </div>
+
+  <div style='margin-top:16px; padding-top:14px; border-top:1px solid rgba(148,163,255,.24);'>
+    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;'>
+      <span style='color:#9ca3af;'>Giá gốc</span>
+      <span style='font-weight:800; color:#e5e7eb;'>{originalText}</span>
+    </div>
+    <div style='display:flex; justify-content:space-between; align-items:center;'>
+      <span style='font-size:16px; font-weight:900; color:#fde047;'>Thanh toán</span>
+      <span style='font-size:20px; font-weight:900;'>{payableText}</span>
+    </div>
+  </div>
+</div>";
+
+            return Content(html, "text/html");
+        }
 
 
         // ========== DETAILS ==========

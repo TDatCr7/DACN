@@ -3,55 +3,204 @@
 @{
     ViewData["Title"] = "Quản lý Thể Loại";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var page = (int)(ViewBag.Page ?? 1);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
 }
 
 <style>
-    .page-genres-index {
-        padding: 32px 0 50px;
+    /* =========================
+           GENRES - INDEX (FULL + CHỈ FIX 2 CHỖ)
+           1) XÓA “ĐƯỜNG KẺ/TRẮNG” DƯ Ở CUỐI TABLE (bootstrap border-bottom)
+           2) FIX CỘT THAO TÁC: HẾT DƯ BÊN PHẢI + KHÔNG CÓ VẠCH DỌC THỪA
+           ========================= */
+
+    /* bỏ panel nhỏ (chỉ giữ chữ "Tổng") */
+    .genres-index .genres-panel {
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
     }
 
-    .genres-card {
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.22), transparent 55%), #020617;
-        border-radius: 24px;
-        border: 1px solid rgba(148,163,255,.5);
-        box-shadow: 0 20px 50px rgba(15,23,42,.95);
-        padding: 18px 20px 20px;
-    }
-
-    .genres-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-    }
-
-    .genres-header-title {
+    .genres-index .genres-sub {
+        margin: 0 0 12px !important;
+        padding: 0 2px !important;
+        line-height: 1.55 !important;
         font-weight: 900;
-        font-size: 22px;
-        margin: 0;
-        color: #e5e7eb;
+        color: rgba(226,232,240,.92);
     }
 
-    .genres-header-sub {
-        font-size: 13px;
-        color: #9ca3af;
+    .genres-index .admin-table-wrap {
+        margin-top: 10px !important;
+        padding-bottom: 0 !important;
     }
 
-    .genres-actions {
+    /* TABLE: GIỮ style site (separate) + full width */
+    .genres-index .admin-table {
+        width: 100% !important;
+        table-layout: fixed;
+        margin-bottom: 0 !important;
+        /* QUAN TRỌNG: giữ đường kẻ đúng theo CSS site */
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+    }
+
+        /* (1) XÓA đường kẻ/trắng dư do bootstrap: .table > * > * có border-bottom */
+        .genres-index .admin-table > :not(caption) > * > * {
+            border-bottom: 0 !important;
+        }
+
+        .genres-index .admin-table th,
+        .genres-index .admin-table td {
+            vertical-align: middle !important;
+            padding: 14px 16px !important;
+        }
+
+            .genres-index .admin-table th i,
+            .genres-index .admin-table td i {
+                margin-right: 6px;
+            }
+
+    /* CỘT */
+    .genres-index .col-id {
+        width: 140px;
+        white-space: nowrap;
+    }
+
+    .genres-index .col-name {
+        width: 260px;
+    }
+
+    .genres-index .col-desc {
+        width: auto;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    /* (2) CỘT THAO TÁC: thu hẹp vừa đủ 3 icon, canh giữa */
+    .genres-index .col-actions {
+        width: 190px !important; /* vừa đủ 3 icon, hết dư */
+        white-space: nowrap;
+        text-align: center !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    /* header thao tác canh giữa */
+    .genres-index thead th.col-actions {
+        text-align: center !important;
+    }
+
+    /* bỏ vạch dọc thừa của cột cuối (thead/tbody) */
+    .genres-index .admin-table thead th.col-actions,
+    .genres-index .admin-table tbody td.col-actions {
+        border-right: none !important;
+    }
+
+    /* tên đậm */
+    .genres-index td.col-name strong {
+        font-weight: 900;
+    }
+
+    /* THAO TÁC: 1 hàng, nằm GIỮA cột, không xuống dòng */
+    .genres-index .admin-actions {
+        width: 100%;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 12px !important;
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
+        line-height: 1 !important;
+    }
+
+    .genres-index .admin-actions .admin-icon-btn {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 999px !important;
+        box-sizing: border-box !important;
+    }
+
+            .genres-index .admin-actions .admin-icon-btn i {
+                margin: 0 !important;
+                line-height: 1 !important;
+                font-size: 15px;
+            }
+
+    
+    /* (giữ nguyên phần divider/pager như code bạn đang dùng) */
+    .genres-index .admin-table tbody tr {
+        border-bottom: 1px solid rgba(148,163,255,.12);
+    }
+
+        .genres-index .admin-table tbody tr:last-child {
+            border-bottom: 0 !important;
+        }
+
+    .genres-index .admin-table,
+    .genres-index .admin-table thead,
+    .genres-index .admin-table tbody,
+    .genres-index .admin-table tr,
+    .genres-index .admin-table th,
+    .genres-index .admin-table td {
+        box-shadow: none !important;
+    }
+
+    .genres-index .genres-pager {
+        margin-top: 0 !important;
+        padding: 14px 0 6px !important;
         display: flex;
-        gap: 8px;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        border-top: 1px solid rgba(148,163,255,.14);
+        background: transparent !important;
+        box-shadow: none !important;
     }
 
-    .admin-table-wrap {
-        margin-top: 10px;
+    .genres-index .genres-page-btn {
+        min-width: 42px;
+        height: 40px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.35);
+        background: rgba(15,23,42,.72);
+        color: #e5e7eb;
+        font-weight: 900;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: none !important;
     }
 
-    .admin-table th i,
-    .admin-table td i {
-        margin-right: 4px;
-    }
+        .genres-index .genres-page-btn:hover {
+            filter: brightness(1.08);
+            color: #fff;
+        }
 
-    /* Modal detail thể loại */
+        .genres-index .genres-page-btn.is-active {
+            background: linear-gradient(120deg,#3b5ccc,#7c3aed);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: none !important;
+        }
+
+        .genres-index .genres-page-btn.is-disabled {
+            opacity: .45;
+            pointer-events: none;
+        }
+
+    /* MODAL (giữ nguyên) */
     #genreDetailBackdrop {
         position: fixed;
         inset: 0;
@@ -111,12 +260,15 @@
     .genre-detail-value {
         font-size: 15px;
         font-weight: 600;
+        color: #f1f5ff;
     }
 
     .genre-detail-desc {
         font-size: 14px;
         line-height: 1.6;
         white-space: pre-wrap;
+        color: rgba(226,232,240,.92);
+        font-weight: 700;
     }
 
     .genre-detail-close {
@@ -128,93 +280,128 @@
     }
 </style>
 
-<div class="container page-genres-index">
-    <div class="genres-card">
-        <div class="genres-header">
-            <div>
-                <h1 class="genres-header-title">
-                    <i class="fa-solid fa-film me-2"></i>Quản lý Thể Loại
-                </h1>
-                <div class="genres-header-sub">
-                    Tổng: @Model.Count() thể loại
-                </div>
-            </div>
-            <div class="genres-actions">
-                <a asp-action="Create" class="btn btn-primary rounded-pill">
-                    <i class="fa-solid fa-plus-circle me-1"></i> Tạo mới
+<div class="admin-shell movies-admin movies-crud genres-index">
+    <div class="admin-panel">
+        <div class="crud-head">
+            <h1 class="crud-title">
+                <i class="fa-solid fa-layer-group"></i>
+                Quản lý Thể Loại
+            </h1>
+
+            <div class="crud-actions">
+                <a asp-action="Create" class="btn btn-primary btn-sweep px-3">
+                    <i class="fa-solid fa-plus me-1"></i> Tạo mới
                 </a>
-                <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
-                    <i class="fas fa-arrow-left me-1"></i> Quay lại
+                <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3">
+                    <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
                 </a>
             </div>
         </div>
 
-        <div class="admin-table-wrap">
-            <table class="table admin-table align-middle">
-                <thead>
-                    <tr>
-                        <th style="width:130px;"><i class="fa-solid fa-hashtag"></i>Mã</th>
-                        <th style="width:220px;"><i class="fa-solid fa-tag"></i>Tên thể loại</th>
-                        <th><i class="fa-solid fa-align-left"></i>Mô tả</th>
-                        <th style="text-align:right; width:160px;">
-                            <i class="fa-solid fa-ellipsis-vertical"></i>Thao tác
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!Model.Any())
-                    {
-                        <tr>
-                            <td colspan="4" class="text-center admin-text-muted py-4">
-                                Không có thể loại nào.
-                            </td>
-                        </tr>
-                    }
-                    else
-                    {
-                        foreach (var item in Model)
-                        {
-                            var fullDesc = item.Description ?? "N/A";
-                            var shortDesc = fullDesc;
-                            if (!string.IsNullOrEmpty(fullDesc) && fullDesc.Length > 50)
+        <div class="crud-divider"></div>
+
+        <div class="crud-body">
+            <div class="genres-panel">
+                <div class="genres-sub">
+                    Tổng: @(ViewBag.TotalItems ?? 0) thể loại
+                </div>
+
+                <div class="admin-table-wrap">
+                    <table class="table admin-table align-middle">
+                        <thead>
+                            <tr>
+                                <th class="col-id"><i class="fa-solid fa-hashtag"></i>Mã</th>
+                                <th class="col-name"><i class="fa-solid fa-tag"></i>Tên thể loại</th>
+                                <th class="col-desc"><i class="fa-solid fa-align-left"></i>Mô tả</th>
+                                <th class="col-actions"><i class="fa-solid fa-ellipsis-vertical"></i>Thao tác</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @if (!Model.Any())
                             {
-                                shortDesc = fullDesc.Substring(0, 50) + "...";
+                                <tr>
+                                    <td colspan="4" class="text-center admin-text-muted py-4">
+                                        Không có thể loại nào.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var item in Model)
+                                {
+                                    var fullDesc = item.Description ?? "N/A";
+                                    var shortDesc = fullDesc;
+                                    if (!string.IsNullOrEmpty(fullDesc) && fullDesc.Length > 50)
+                                    {
+                                        shortDesc = fullDesc.Substring(0, 50) + "...";
+                                    }
+
+                                    <tr>
+                                        <td class="admin-text-muted col-id">@item.GenresId</td>
+                                        <td class="col-name"><strong>@(item.Name ?? "N/A")</strong></td>
+                                        <td class="admin-text-muted col-desc">@shortDesc</td>
+
+                                        <td class="col-actions">
+                                            <div class="admin-actions">
+                                                <button type="button"
+                                                        class="admin-icon-btn"
+                                                        title="Chi tiết"
+                                                        data-id="@item.GenresId"
+                                                        data-name="@item.Name"
+                                                        data-desc="@fullDesc"
+                                                        onclick="openGenreDetail(this)">
+                                                    <i class="fa-regular fa-circle-question"></i>
+                                                </button>
+
+                                                <a asp-action="Edit"
+                                                   asp-route-id="@item.GenresId"
+                                                   class="admin-icon-btn"
+                                                   title="Chỉnh sửa">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+
+                                                <a asp-action="Delete"
+                                                   asp-route-id="@item.GenresId"
+                                                   class="admin-icon-btn admin-icon-btn-danger"
+                                                   title="Xóa">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (totalPages > 1)
+                    {
+                        <div class="genres-pager">
+                            <a class="genres-page-btn @(page <= 1 ? "is-disabled" : "")"
+                               asp-action="Index"
+                               asp-route-page="@(page - 1)">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </a>
+
+                            @for (int p = 1; p <= totalPages; p++)
+                            {
+                                <a class="genres-page-btn @(p == page ? "is-active" : "")"
+                                   asp-action="Index"
+                                   asp-route-page="@p">
+                                    @p
+                                </a>
                             }
 
-                            <tr>
-                                <td class="admin-text-muted">@item.GenresId</td>
-                                <td><strong>@(item.Name ?? "N/A")</strong></td>
-                                <td class="admin-text-muted">@shortDesc</td>
-                                <td class="text-end">
-                                    <button type="button"
-                                            class="admin-icon-btn"
-                                            title="Chi tiết"
-                                            data-id="@item.GenresId"
-                                            data-name="@item.Name"
-                                            data-desc="@fullDesc"
-                                            onclick="openGenreDetail(this)">
-                                        <i class="fa-regular fa-circle-question"></i>
-                                    </button>
-
-                                    <a asp-action="Edit"
-                                       asp-route-id="@item.GenresId"
-                                       class="admin-icon-btn"
-                                       title="Chỉnh sửa">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </a>
-
-                                    <a asp-action="Delete"
-                                       asp-route-id="@item.GenresId"
-                                       class="admin-icon-btn admin-icon-btn-danger"
-                                       title="Xóa">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                        }
+                            <a class="genres-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                               asp-action="Index"
+                               asp-route-page="@(page + 1)">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        </div>
                     }
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -258,20 +445,16 @@
             document.getElementById("genreDetailName").textContent = name;
             document.getElementById("genreDetailDesc").textContent = desc;
 
-            const backdrop = document.getElementById("genreDetailBackdrop");
-            backdrop.style.display = "block";
+            document.getElementById("genreDetailBackdrop").style.display = "block";
         }
 
         function closeGenreDetail() {
-            const backdrop = document.getElementById("genreDetailBackdrop");
-            backdrop.style.display = "none";
+            document.getElementById("genreDetailBackdrop").style.display = "none";
         }
 
         document.getElementById("genreDetailBackdrop")
             .addEventListener("click", function (e) {
-                if (e.target === this) {
-                    closeGenreDetail();
-                }
+                if (e.target === this) closeGenreDetail();
             });
     </script>
 }
