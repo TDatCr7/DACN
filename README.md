@@ -1,69 +1,118 @@
-# CinemaS
+# 🎬 CinemaS
 
-CinemaS is an ASP.NET Core 9.0 MVC web application for cinema ticketing, snack ordering, and membership management. It uses ASP.NET Identity for authentication, integrates VNPAY for payments, and ships with an admin portal for managing movies, showtimes, and promotions.
+**CinemaS** là ứng dụng web **ASP.NET Core MVC (.NET 9)** phục vụ **đặt vé xem phim**, **gọi combo/snack**, và **quản lý thành viên/điểm thưởng**. Hệ thống sử dụng **ASP.NET Identity** để xác thực & phân quyền, tích hợp **VNPAY** cho thanh toán, và cung cấp **cổng quản trị** để vận hành dữ liệu rạp, phim, suất chiếu, giá vé, khuyến mãi.
 
-## Features
+---
 
-- **Movie discovery & showtimes**: Manage movies, genres, participants, showtimes, cinemas, and seat maps.
-- **Ticketing flow**: Reserve seats, choose ticket types, add snacks, and generate invoices with transaction tracking.
-- **Payments**: Built-in VNPAY integration with configurable gateway settings.
-- **Accounts & roles**: ASP.NET Identity with role-based access (Admin/User) and email confirmation support.
-- **Loyalty**: Membership ranks, points, and promotions with customizable seat and ticket types.
-- **Admin portal**: CRUD management for cinema data, pricing, permissions, and statuses.
+## Table of Contents
 
-## Project structure
+1. [Overview](#-overview)  
+2. [Features](#-features)  
+3. [Project Structure](#%EF%B8%8F-project-structure)  
+4. [Technology Stack](#-technology-stack)  
+5. [Prerequisites](#%EF%B8%8F-prerequisites)  
+6. [Configuration](#-configuration)  
+7. [Database Setup](#%EF%B8%8F-database-setup)  
+8. [Getting Started](#-getting-started)  
+9. [Running the Application](#%EF%B8%8F-running-the-application)  
+10. [Development Tips](#-development-tips)  
+11. [Roadmap](#%EF%B8%8F-roadmap)
 
-- `Controllers/` – MVC controllers for booking, payments, admin management, and Identity endpoints.
-- `Models/` – Entity models, payment/email settings, and identity models.
-- `Services/` – Application services including the Gmail-based email sender.
-- `VNPAY/` – VNPAY helper utilities and configuration bindings.
-- `Views/` & `wwwroot/` – Razor views, static assets, and UI resources.
-- `Migrations/` – Entity Framework Core migrations for the SQL Server database.
+---
 
-## Prerequisites
+## 📘 Overview
 
-- .NET SDK 9.0 or later
-- SQL Server instance (local or remote)
-- A configured SMTP account (Gmail by default) for confirmation emails
+CinemaS hỗ trợ quản lý và vận hành quy trình đặt vé theo các bước: **khám phá phim → chọn suất chiếu → chọn ghế → chọn loại vé → thêm snack → thanh toán → tạo hóa đơn & theo dõi giao dịch**.  
+Hệ thống phân tách rõ nghiệp vụ người dùng và nghiệp vụ quản trị thông qua **role-based authorization (Admin/User)**, phù hợp triển khai cho mô hình rạp chiếu có nhiều phòng chiếu, sơ đồ ghế, và chính sách giá/khuyến mãi đa dạng.
 
-## Configuration
+---
 
-1. Copy `CinemaS/appsettings.json` to `CinemaS/appsettings.Development.json` (or set environment variables) to avoid editing the committed file directly.
-2. Update the configuration values:
-   - `ConnectionStrings:CinemaS` – point to your SQL Server database.
-   - `EmailSettings` – supply SMTP server, port, sender email, and app password.
-   - `VnPay` – set your merchant code (`TmnCode`), `HashSecret`, and gateway URLs.
-3. Optional: use [Secret Manager](https://learn.microsoft.com/aspnet/core/security/app-secrets) to store sensitive values during development.
+## ✨ Features
 
-## Database setup
+- 🎞️ **Movie discovery & showtimes**: quản lý phim, thể loại, người tham gia, suất chiếu, cụm rạp/phòng chiếu, sơ đồ ghế.  
+- 🎟️ **Ticketing flow**: đặt ghế, chọn loại vé, thêm snack/combo, tạo **invoice** và theo dõi trạng thái giao dịch.  
+- 💳 **Payments (VNPAY)**: tích hợp VNPAY, cấu hình gateway theo `TmnCode`, `HashSecret`, URL thanh toán/return.  
+- 👤 **Accounts & roles**: ASP.NET Identity, phân quyền Admin/User, hỗ trợ xác thực email.  
+- 🏅 **Loyalty & promotions**: hạng thành viên, điểm thưởng, khuyến mãi; cấu hình loại ghế/loại vé.  
+- 🛠️ **Admin portal**: CRUD dữ liệu vận hành (phim, suất chiếu, giá, khuyến mãi, trạng thái, phân quyền).
 
-1. Ensure the EF Core CLI is available:
-   ```bash
-   dotnet tool install --global dotnet-ef  # if not already installed
-   ```
-2. Apply migrations from the `CinemaS` project directory:
-   ```bash
-   dotnet ef database update
-   ```
-3. On first run, the app seeds default data:
-   - Roles `Admin` and `User`.
-   - Admin account `admin@cinemas.local` with password `Admin@123`.
-   - Basic membership rank and seat types (Normal, VIP, Couple).
+---
 
-## Run the application
+## 🗂️ Project Structure
 
-From the `CinemaS` directory:
+```
+CinemaS/
+├── Controllers/
+├── Models/
+├── Services/
+├── VNPAY/
+├── Views/
+├── wwwroot/
+├── Migrations/
+├── appsettings.json
+└── Program.cs
+```
+
+---
+
+## 🧰 Technology Stack
+
+- ⚙️ **.NET 9 / ASP.NET Core MVC**  
+- 🗄️ **Entity Framework Core + SQL Server**  
+- 🔐 **ASP.NET Identity**  
+- 💳 **VNPAY**  
+- ✉️ **SMTP Email (Gmail)**  
+
+---
+
+## ⚙️ Prerequisites
+
+- .NET SDK 9.0+  
+- SQL Server  
+- SMTP account  
+
+---
+
+## 🔧 Configuration
+
+- `ConnectionStrings:CinemaS`
+- `EmailSettings`
+- `VnPay`
+
+---
+
+## 🗄️ Database Setup
+
+```bash
+dotnet ef database update
+```
+
+---
+
+## 🚀 Getting Started
 
 ```bash
 dotnet restore
 dotnet run
 ```
 
-The app listens on the configured ASP.NET URLs (HTTPS by default). Access the site and log in with the seeded admin account or register a new user (email confirmation required).
+---
 
-## Development tips
+## ▶️ Running the Application
 
-- Identity UI endpoints use default ASP.NET Identity pages for account management and email confirmation.
-- Adjust authentication paths in `Program.cs` if hosting behind a reverse proxy.
-- Static assets are mapped via `app.MapStaticAssets()`; ensure file paths under `wwwroot` remain consistent when adding images.
+Ứng dụng chạy theo ASP.NET URLs đã cấu hình (mặc định HTTPS).
 
+---
+
+## 🧪 Development Tips
+
+- Sử dụng ASP.NET Identity UI mặc định.  
+- Kiểm tra mapping static assets trong `wwwroot`.
+
+---
+
+## 🛣️ Roadmap
+
+- Policy-based authorization  
+- REST API  
+- Dashboard thống kê nâng cao
