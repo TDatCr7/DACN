@@ -46,8 +46,15 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Identity/Account/Logout";
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
+builder.Services.AddDistributedMemoryCache();
 
-builder.Services.AddSession();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
@@ -82,8 +89,7 @@ using (var scope = app.Services.CreateScope())
     }
     if (!await userMgr.IsInRoleAsync(admin, "Admin"))
         await userMgr.AddToRoleAsync(admin, "Admin");
-    if (!await userMgr.IsInRoleAsync(admin, "User"))
-        await userMgr.AddToRoleAsync(admin, "User");
+
 
     // Seed Membership Rank
     if (!await context.MembershipRanks.AnyAsync())

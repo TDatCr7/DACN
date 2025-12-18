@@ -874,7 +874,7 @@
                     const trimmedKey = key.trim();
 
                     try {
-                        const response = await fetch(`/Booking/CheckCustomerAccount?key=${encodeURIComponent(trimmedKey)}`);
+                        const response = await fetch(`/Admin/CheckCustomerAccount?key=${encodeURIComponent(trimmedKey)}`);
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                         const data = await response.json();

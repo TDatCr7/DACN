@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,6 +34,22 @@ namespace CinemaS.Controllers
                 return RedirectToAction("Index", "Home");
 
             return View();
+        }
+        private async Task<string?> GetCurrentAdminStaffIdAsync()
+        {
+            var email = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(email)) return null;
+
+            // Ưu tiên dbo.Users.UserId (thường là mã 10 ký tự)
+            var staff = await _db.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+
+            if (staff != null && !string.IsNullOrWhiteSpace(staff.UserId))
+                return staff.UserId;
+
+            // Fallback AspNetUsers.Id
+            var adminAppUser = await _userManager.GetUserAsync(User);
+            return adminAppUser?.Id;
         }
 
         /* ===================== ADMIN BOOKING - ĐẶT VÉ HỘ ===================== */
@@ -138,6 +155,12 @@ namespace CinemaS.Controllers
             if (request == null || request.Snacks == null || !request.Snacks.Any())
                 return Json(new { success = false, message = "Vui lòng chọn ít nhất 1 món!" });
 
+            // ===== Lấy StaffId = admin đang đăng nhập =====
+            var staffId = await GetCurrentAdminStaffIdAsync();
+            if (string.IsNullOrWhiteSpace(staffId))
+                return Json(new { success = false, message = "Không xác định được mã nhân viên (StaffId)." });
+
+
             var userEmail = User.Identity?.Name;
             var currentUser = await _db.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == userEmail);
@@ -184,16 +207,26 @@ namespace CinemaS.Controllers
             var invoice = new Invoices
             {
                 InvoiceId = invoiceId,
+
+                StaffId = staffId,
                 CustomerId = invoiceOwner.UserId,
+
                 Email = invoiceOwner.Email,
                 PhoneNumber = invoiceOwner.PhoneNumber,
+
                 CreatedAt = now,
                 UpdatedAt = now,
                 TotalTicket = 0,
-                TotalPrice = total, // baseTotal (chưa áp promotion)
+
+                // lưu giá gốc để tính điểm
+                OriginalTotal = total,
+
+                // TotalPrice là số tiền hiện tại (chưa giảm ở bước tạo)
+                TotalPrice = total,
                 Status = 0,
                 PromotionId = null
             };
+
 
             _db.Invoices.Add(invoice);
             await _db.SaveChangesAsync();
@@ -212,6 +245,248 @@ namespace CinemaS.Controllers
                 success = true,
                 invoiceId,
                 totalPrice = total,
+                memberNotFound
+            });
+        }
+
+        /* ===================== ADMIN - CHECK CUSTOMER ACCOUNT ===================== */
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> CheckCustomerAccount(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return Json(new { exists = false, message = "Vui lòng nhập thông tin" });
+
+            key = key.Trim().ToLower();
+
+            // 1) Tìm trong bảng dbo.Users (bảng tích điểm)
+            var user = await _db.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u =>
+                    (u.PhoneNumber != null && u.PhoneNumber.ToLower() == key) ||
+                    (u.Email != null && u.Email.ToLower() == key));
+
+            if (user != null)
+            {
+                int? age = null;
+                if (user.DateOfBirth.HasValue)
+                {
+                    age = DateTime.Now.Year - user.DateOfBirth.Value.Year;
+                    if (user.DateOfBirth.Value.Date > DateTime.Now.AddYears(-age.Value).Date)
+                        age--;
+                }
+
+                bool isAdmin = false;
+                if (!string.IsNullOrEmpty(user.Email))
+                {
+                    var appUser = await _userManager.FindByEmailAsync(user.Email);
+                    if (appUser != null)
+                        isAdmin = await _userManager.IsInRoleAsync(appUser, "Admin");
+                }
+
+                return Json(new
+                {
+                    exists = true,
+                    message = $"Tìm thấy tài khoản: {user.FullName ?? user.Email}",
+                    userId = user.UserId,
+                    fullName = user.FullName ?? "",
+                    email = user.Email ?? "",
+                    phone = user.PhoneNumber ?? "",
+                    address = user.Address ?? "",
+                    age = age,
+                    dateOfBirth = user.DateOfBirth?.ToString("dd/MM/yyyy"),
+                    isAdmin = isAdmin
+                });
+            }
+
+            // 2) Fallback: có thể tồn tại trong AspNetUsers nhưng chưa có trong dbo.Users
+            var appUserOnly = await _userManager.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u =>
+                    (u.PhoneNumber != null && u.PhoneNumber.ToLower() == key) ||
+                    (u.Email != null && u.Email.ToLower() == key));
+
+            if (appUserOnly != null)
+            {
+                bool isAdmin = await _userManager.IsInRoleAsync(appUserOnly, "Admin");
+
+                int? age = null;
+                if (!string.IsNullOrWhiteSpace(appUserOnly.Age) &&
+                    int.TryParse(appUserOnly.Age, out var parsedAge))
+                {
+                    age = parsedAge;
+                }
+
+                return Json(new
+                {
+                    exists = true,
+                    message = $"Tìm thấy tài khoản: {appUserOnly.FullName ?? appUserOnly.Email}",
+                    userId = appUserOnly.Id,
+                    fullName = appUserOnly.FullName ?? "",
+                    email = appUserOnly.Email ?? "",
+                    phone = appUserOnly.PhoneNumber ?? "",
+                    address = appUserOnly.Address ?? "",
+                    age = age,
+                    isAdmin = isAdmin
+                });
+            }
+
+            return Json(new
+            {
+                exists = false,
+                message = "Không tìm thấy tài khoản với thông tin này"
+            });
+        }
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> BookSeats([FromBody] AdminBookSeatRequest request)
+        {
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.ShowTimeId) ||
+                request.SeatIds == null ||
+                !request.SeatIds.Any())
+            {
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ!" });
+            }
+
+            var staffId = await GetCurrentAdminStaffIdAsync();
+            if (string.IsNullOrWhiteSpace(staffId))
+                return Json(new { success = false, message = "Không xác định được mã nhân viên (StaffId)." });
+
+            var userEmail = User.Identity?.Name;
+            var currentUser = await _db.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (currentUser == null)
+                return Json(new { success = false, message = "Không tìm thấy tài khoản đang đăng nhập." });
+
+            var showTimeId = request.ShowTimeId.Trim();
+
+            var showTime = await _db.ShowTimes.AsNoTracking()
+                .FirstOrDefaultAsync(st => st.ShowTimeId == showTimeId);
+
+            if (showTime == null)
+                return Json(new { success = false, message = "Suất chiếu không tồn tại!" });
+
+            var distinctSeatIds = request.SeatIds
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim())
+                .Distinct()
+                .ToList();
+
+            if (!distinctSeatIds.Any())
+                return Json(new { success = false, message = "Danh sách ghế không hợp lệ!" });
+
+            // Chỉ khóa ghế đã thanh toán (Status = 2)
+            var paidSeatIds = await _db.Tickets.AsNoTracking()
+                .Where(t => t.ShowTimeId == showTimeId && t.Status == 2)
+                .Select(t => t.SeatId)
+                .ToListAsync();
+
+            var paidSet = new HashSet<string>(paidSeatIds);
+            if (distinctSeatIds.Any(id => paidSet.Contains(id)))
+                return Json(new { success = false, message = "Có ghế đã được thanh toán. Vui lòng tải lại và chọn ghế khác." });
+
+            // ===== xác định customer để lưu hoá đơn =====
+            string? loyaltyKey = request.LoyaltyKey?.Trim().ToLower();
+            CinemaS.Models.Users? loyaltyUser = null;
+            bool memberNotFound = false;
+
+            if (!string.IsNullOrWhiteSpace(loyaltyKey))
+            {
+                loyaltyUser = await _db.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u =>
+                        (u.PhoneNumber != null && u.PhoneNumber.ToLower() == loyaltyKey) ||
+                        (u.Email != null && u.Email.ToLower() == loyaltyKey));
+
+                if (loyaltyUser == null)
+                    memberNotFound = true;
+            }
+            else
+            {
+                // để trống => lưu vào tài khoản admin đang đăng nhập
+                loyaltyUser = currentUser;
+            }
+
+            var invoiceOwner = loyaltyUser ?? currentUser;
+
+            // ===== baseTotal: tính ghế =====
+            var seatTypePrices = await _db.Seats.AsNoTracking()
+                .Where(s => distinctSeatIds.Contains(s.SeatId) && !s.IsDeleted)
+                .Join(_db.SeatTypes.AsNoTracking(),
+                    s => s.SeatTypeId,
+                    t => t.SeatTypeId,
+                    (s, t) => new { s.SeatId, t.Price })
+                .ToListAsync();
+
+            decimal baseTotal = seatTypePrices.Sum(x => Convert.ToDecimal(x.Price ?? 0m));
+
+            // ===== cộng snack =====
+            var snacksReq = request.Snacks ?? new List<AdminSnackRequest>();
+            if (snacksReq.Any())
+            {
+                var reqSnackIds = snacksReq.Select(x => x.SnackId).Distinct().ToList();
+
+                var snacks = await _db.Snacks.AsNoTracking()
+                    .Where(s => reqSnackIds.Contains(s.SnackId))
+                    .ToDictionaryAsync(s => s.SnackId, s => (decimal)(s.Price ?? 0m));
+
+                foreach (var s in snacksReq)
+                {
+                    if (snacks.TryGetValue(s.SnackId, out var p))
+                        baseTotal += p * Math.Max(1, s.Quantity);
+                }
+            }
+
+            var invoiceId = await GenerateInvoiceIdAsync();
+            var now = DateTime.UtcNow;
+
+            var invoice = new Invoices
+            {
+                InvoiceId = invoiceId,
+
+                // admin booking: staff = admin, customer = người nhập (hoặc admin nếu để trống)
+                StaffId = staffId,
+                CustomerId = invoiceOwner.UserId,
+
+                Email = invoiceOwner.Email,
+                PhoneNumber = invoiceOwner.PhoneNumber,
+
+                CreatedAt = now,
+                UpdatedAt = now,
+
+                TotalTicket = distinctSeatIds.Count,
+
+                // Lưu giá gốc để lịch sử/điểm (đúng yêu cầu OriginalTotal)
+                OriginalTotal = baseTotal,
+
+                // Chưa áp promo trong bước này (promo sẽ ApplyPromotionToInvoice)
+                TotalPrice = baseTotal,
+                PromotionId = null,
+
+                Status = 0
+            };
+
+            _db.Invoices.Add(invoice);
+            await _db.SaveChangesAsync();
+
+            // ===== lưu pending giống BookingController để Payment xử lý =====
+            var payload = new PendingSelection
+            {
+                ShowTimeId = showTimeId,
+                SeatIds = distinctSeatIds,
+                Snacks = snacksReq
+            };
+
+            HttpContext.Session.SetString(
+                $"pending:{invoiceId}",
+                JsonSerializer.Serialize(payload));
+
+            return Json(new
+            {
+                success = true,
+                invoiceId,
+                totalPrice = invoice.TotalPrice,
                 memberNotFound
             });
         }
@@ -292,9 +567,15 @@ namespace CinemaS.Controllers
             if (string.IsNullOrWhiteSpace(req.Code))
             {
                 invoice.PromotionId = null;
-                invoice.TotalPrice = baseTotal; // reset về base
+
+                invoice.TotalPrice = (invoice.OriginalTotal != null && invoice.OriginalTotal > 0)
+                ? invoice.OriginalTotal
+                : baseTotal;
+
+
                 invoice.UpdatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
+
 
                 return Json(new
                 {
@@ -316,10 +597,20 @@ namespace CinemaS.Controllers
             var (discountAmount, totalAfterDiscount) = CalcDiscount(baseTotal, discountValue);
             var discountPercent = GetDiscountPercentForDisplay(discountValue);
 
+            // Lưu tổng gốc lần đầu (chỉ set nếu chưa có)
+            if (invoice.OriginalTotal == null || invoice.OriginalTotal <= 0)
+            {
+                invoice.OriginalTotal = baseTotal;
+            }
+
             invoice.PromotionId = promo.PromotionId;
-            invoice.TotalPrice = baseTotal;                
+
+            // TotalPrice phải là giá phải trả sau giảm
+            invoice.TotalPrice = totalAfterDiscount;
+
             invoice.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
+
 
             return Json(new
             {
@@ -429,6 +720,13 @@ namespace CinemaS.Controllers
             public string SnackId { get; set; } = default!;
             public int Quantity { get; set; }
         }
+        public class AdminBookSeatRequest
+        {
+            public string ShowTimeId { get; set; } = default!;
+            public List<string> SeatIds { get; set; } = new();
+            public List<AdminSnackRequest>? Snacks { get; set; }
+            public string? LoyaltyKey { get; set; }
+        }
 
         public class AdminBookSnacksRequest
         {
@@ -440,5 +738,12 @@ namespace CinemaS.Controllers
         {
             public List<AdminSnackRequest> Snacks { get; set; } = new();
         }
+        private class PendingSelection
+        {
+            public string ShowTimeId { get; set; } = default!;
+            public List<string> SeatIds { get; set; } = new();
+            public List<AdminSnackRequest> Snacks { get; set; } = new();
+        }
+
     }
 }

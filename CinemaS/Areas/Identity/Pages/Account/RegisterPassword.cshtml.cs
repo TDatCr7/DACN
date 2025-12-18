@@ -135,10 +135,22 @@ namespace CinemaS.Areas.Identity.Pages.Account
             {
                 _logger.LogInformation("User created a new account with password (via OTP).");
                 const string defaultRoleName = "User";
-                if (await _roleManager.RoleExistsAsync(defaultRoleName))
+
+                if (!await _roleManager.RoleExistsAsync(defaultRoleName))
                 {
-                    await _userManager.AddToRoleAsync(user, defaultRoleName);
+                    ModelState.AddModelError(string.Empty, "Role mặc định 'User' không tồn tại.");
+                    return Page();
                 }
+
+                var roleResult = await SetSingleRoleAsync(user, defaultRoleName);
+                if (!roleResult.Succeeded)
+                {
+                    foreach (var e in roleResult.Errors)
+                        ModelState.AddModelError(string.Empty, e.Description);
+
+                    return Page();
+                }
+
                 //    Users đã được tạo tự động trong CinemaContext.SaveChangesAsync khi AppUser được thêm.
                 if (!string.IsNullOrEmpty(user.Email))
                 {
@@ -146,14 +158,14 @@ namespace CinemaS.Areas.Identity.Pages.Account
                     if (dbUser != null)
                     {
                         // xoá toàn bộ UserRole cũ (nếu có)
-                        var oldUserRoles = _context.UserRole.Where(ur => ur.UserId == dbUser.UserId);
-                        _context.UserRole.RemoveRange(oldUserRoles);
+                        var oldUserRoles = _context.UserRoles.Where(ur => ur.UserId == dbUser.UserId);
+                        _context.UserRoles.RemoveRange(oldUserRoles);
 
                         // tìm role domain tương ứng tên "User"
                         var dbRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == defaultRoleName);
                         if (dbRole != null)
                         {
-                            _context.UserRole.Add(new UserRole
+                            _context.UserRoles.Add(new UserRole
                             {
                                 UserId = dbUser.UserId,
                                 RoleId = dbRole.RoleId
@@ -201,5 +213,21 @@ namespace CinemaS.Areas.Identity.Pages.Account
                     $"Ensure that '{nameof(AppUser)}' is not an abstract class and has a parameterless constructor.");
             }
         }
+        private async Task<IdentityResult> SetSingleRoleAsync(AppUser user, string role)
+        {
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            if (currentRoles.Count > 0)
+            {
+                var rm = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!rm.Succeeded) return rm;
+            }
+
+            if (string.IsNullOrWhiteSpace(role))
+                return IdentityResult.Success;
+
+            return await _userManager.AddToRoleAsync(user, role);
+        }
+
     }
 }

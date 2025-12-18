@@ -154,7 +154,18 @@ namespace CinemaS.Areas.Identity.Pages.Account
 <p>Mã xác nhận đăng ký tài khoản CinemaS của bạn là: <strong>{code}</strong></p>
 <p>Mã có hiệu lực trong {OtpLifetime.TotalMinutes:N0} phút.</p>
 <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.</p>";
-            await _emailSender.SendEmailAsync(Input.Email, subject, body);
+            try
+            {
+                await _emailSender.SendEmailAsync(Input.Email, subject, body);
+            }
+            catch
+            {
+                // Không suy đoán nguyên nhân; chỉ báo chung
+                OtpStatusMessage = "Không gửi được email OTP. Vui lòng thử lại sau.";
+                ComputeOtpCountdown();
+                return Page();
+            }
+
 
             return Page();
         }

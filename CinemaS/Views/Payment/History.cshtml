@@ -5,7 +5,13 @@
     ViewData["Title"] = "Vé/Hóa đơn của tôi";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var list = Model ?? new List<CinemaS.Models.ViewModels.InvoiceHistoryVM>();
+
+    var page = (int)(ViewBag.Page ?? 1);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 8);
+    var offset = (page - 1) * pageSize;
 }
+
 
 <style>
     :root {
@@ -465,7 +471,7 @@
                     <div class="invoice-card">
                         <div class="invoice-header">
                             <div class="invoice-id">
-                                <span>Vé #@(idx + 1)</span>
+                                <span>Vé #@(offset + idx + 1)</span>
                             </div>
                             @if (i.Status == 1)
                             {
@@ -557,7 +563,7 @@
                         {
                             var i = list[idx];
                             <tr>
-                                <td>@(idx + 1)</td>
+                                <td>@(offset + idx + 1)</td>
                                 <td class="movie-title">@(i.MovieTitle ?? "N/A")</td>
                                 <td>@(i.Room ?? "N/A")</td>
                                 <td>@(i.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A")</td>
@@ -613,5 +619,34 @@
                 </table>
             </div>
         }
+        @if (totalPages > 1)
+        {
+            <div class="history-pager">
+                <a class="history-page-btn @(page <= 1 ? "is-disabled" : "")"
+                   asp-controller="Payment"
+                   asp-action="History"
+                   asp-route-page="@(page - 1)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <a class="history-page-btn @(p == page ? "is-active" : "")"
+                       asp-controller="Payment"
+                       asp-action="History"
+                       asp-route-page="@p">
+                        @p
+                    </a>
+                }
+
+                <a class="history-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                   asp-controller="Payment"
+                   asp-action="History"
+                   asp-route-page="@(page + 1)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+        }
+
     </div>
 </div>

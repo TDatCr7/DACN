@@ -67,13 +67,23 @@ namespace CinemaS.Controllers
             if (!validation.Success)
                 return Json(new { success = false, message = validation.ErrorMessage });
 
-            invoice.PromotionId = promo.PromotionId;
-            invoice.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            // 1) Tính tổng gốc từ line items (hoặc dùng TotalPrice hiện tại nếu chưa có line items và CHƯA áp promo)
+            var baseTotal = await GetInvoiceBaseTotalForPricingAsync(invoice.InvoiceId, invoice.TotalPrice, invoice.PromotionId);
+            if (!baseTotal.ok)
+                return Json(new { success = false, message = baseTotal.error });
 
-            var calc = await CalcPayableAsync(invoice);
-            if (!calc.Success)
-                return Json(new { success = false, message = calc.ErrorMessage });
+            // 2) Tính giá sau giảm
+            var (_, percent) = NormalizeDiscountPercent(promo.Discount!.Value);
+            decimal discountAmount = Math.Round(baseTotal.total * (decimal)percent / 100m, 0, MidpointRounding.AwayFromZero);
+            decimal payable = baseTotal.total - discountAmount;
+            if (payable < 0) payable = 0;
+
+            // 3) Ghi DB: có PromotionId thì TotalPrice = giá sau giảm
+            invoice.PromotionId = promo.PromotionId;
+            invoice.TotalPrice = payable;
+            invoice.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
 
             return Json(new
             {
@@ -81,10 +91,10 @@ namespace CinemaS.Controllers
                 message = "Áp dụng mã khuyến mãi thành công.",
                 promotionId = promo.PromotionId,
                 code = promo.Code,
-                discountPercent = calc.DiscountPercent,
-                originalAmount = calc.OriginalAmount,
-                discountAmount = calc.DiscountAmount,
-                payableAmount = calc.PayableAmountVnd
+                discountPercent = percent,
+                originalAmount = baseTotal.total,
+                discountAmount = discountAmount,
+                payableAmount = ToVndLong(payable)
             });
         }
 
@@ -110,21 +120,27 @@ namespace CinemaS.Controllers
                     return Json(new { success = false, message = "Không có quyền thao tác hóa đơn này." });
             }
 
-            invoice.PromotionId = null;
-            invoice.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            // Tính lại tổng gốc để phục hồi TotalPrice về giá chưa giảm
+            var baseTotal = await GetInvoiceBaseTotalForPricingAsync(invoice.InvoiceId, invoice.TotalPrice, invoice.PromotionId);
+            if (!baseTotal.ok)
+                return Json(new { success = false, message = baseTotal.error });
 
-            var calc = await CalcPayableAsync(invoice);
+            invoice.PromotionId = null;
+            invoice.TotalPrice = baseTotal.total; // trả về giá gốc
+            invoice.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
 
             return Json(new
             {
                 success = true,
                 message = "Đã xóa mã khuyến mãi.",
-                originalAmount = calc.OriginalAmount,
-                discountAmount = calc.DiscountAmount,
-                payableAmount = calc.PayableAmountVnd
+                originalAmount = baseTotal.total,
+                discountAmount = 0,
+                payableAmount = ToVndLong(baseTotal.total)
             });
         }
+
 
         /* ===================== 1) Tạo URL VNPay ===================== */
 
@@ -462,8 +478,6 @@ namespace CinemaS.Controllers
                     if (baseTotal <= 0m && invoice.TotalPrice.HasValue && invoice.TotalPrice.Value > 0m)
                         baseTotal = invoice.TotalPrice.Value;
 
-                    invoice.TotalPrice = baseTotal;
-
                     var calcAfter = await CalcPayableAsync(invoice);
                     if (!calcAfter.Success)
                     {
@@ -473,8 +487,14 @@ namespace CinemaS.Controllers
                         return View("Result", vm);
                     }
 
-                    invoice.TotalPrice = baseTotal; // tổng gốc
+                    // ✅ DB lưu giá sau giảm nếu có promo
+                    invoice.TotalPrice = (decimal)calcAfter.PayableAmountVnd;
 
+                    // ✅ FIX: ĐỔ tickets/snacks/invoice trước để AwardPoints query DB ra đúng
+                    await _context.SaveChangesAsync();
+
+                    // ✅ Sau khi DB đã có line-items mới tính/ghi PointHistories
+                    await AwardPointsForInvoiceAsync(invoice);
 
                     await _context.SaveChangesAsync();
                     await tx.CommitAsync();
@@ -507,18 +527,16 @@ namespace CinemaS.Controllers
                             _context.Tickets.Remove(t);
                     }
 
-                    // Recompute total after removing duplicates
                     await _context.SaveChangesAsync();
 
                     var recomputedBase = await GetInvoiceBaseTotalAsync(invoice.InvoiceId, invoice.TotalPrice);
                     invoice.TotalPrice = recomputedBase;
 
-                    var calcAfter = await CalcPayableAsync(invoice);
-                    if (calcAfter.Success)
-                        invoice.TotalPrice = recomputedBase; // tổng gốc sau khi loại ghế trùng
-
-
+                    // cập nhật lại thời gian
                     invoice.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                    // ✅ FIX: vẫn phải cộng điểm + tạo PointHistories
+                    await AwardPointsForInvoiceAsync(invoice);
 
                     await _context.SaveChangesAsync();
                     await tx2.CommitAsync();
@@ -766,23 +784,43 @@ namespace CinemaS.Controllers
 
         [HttpGet("History")]
         [Authorize]
-        public async Task<IActionResult> History()
+        public async Task<IActionResult> History(int page = 1)
         {
+            const int PageSize = 8;
+            if (page < 1) page = 1;
+
             var email = User.Identity?.Name;
             var user = await _context.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null)
+            {
+                ViewBag.Page = 1;
+                ViewBag.TotalPages = 1;
+                ViewBag.TotalItems = 0;
+                ViewBag.PageSize = PageSize;
                 return View("History", new List<InvoiceHistoryVM>());
+            }
 
-            var invoices = await _context.Invoices.AsNoTracking()
+            // Base query (đúng logic cũ: bỏ snack-only)
+            var baseQuery = _context.Invoices.AsNoTracking()
                 .Where(i => i.CustomerId == user.UserId)
-                .OrderByDescending(i => i.CreatedAt)
+                .OrderByDescending(i => i.CreatedAt);
+
+            var totalItems = await baseQuery.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(totalItems / (double)PageSize);
+            if (totalPages < 1) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var invoicesPage = await baseQuery
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync();
 
             var vm = new List<InvoiceHistoryVM>();
 
-            foreach (var inv in invoices)
+            foreach (var inv in invoicesPage)
             {
                 var anyTicket = await _context.Tickets.AsNoTracking()
                     .Where(t => t.InvoiceId == inv.InvoiceId)
@@ -811,6 +849,7 @@ namespace CinemaS.Controllers
 
                         var mv = await _context.Movies.AsNoTracking()
                             .FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
+
                         var ct = await _context.CinemaTheaters.AsNoTracking()
                             .FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
 
@@ -819,7 +858,6 @@ namespace CinemaS.Controllers
                     }
                 }
 
-                // ✅ LẤY SỐ TIỀN PHẢI TRẢ (SAU GIẢM) để hiển thị History đúng như Result
                 var di = await GetDiscountInfoAsync(inv.InvoiceId, inv.TotalPrice);
                 var payable = di.payable;
 
@@ -828,10 +866,7 @@ namespace CinemaS.Controllers
                     InvoiceId = inv.InvoiceId,
                     CreatedAt = inv.CreatedAt,
                     Status = inv.Status.GetValueOrDefault(0),
-
-                    // ✅ hiển thị tổng tiền sau giảm
                     TotalPrice = payable,
-
                     MovieTitle = movie,
                     Room = room,
                     ShowDate = showDate,
@@ -839,8 +874,14 @@ namespace CinemaS.Controllers
                 });
             }
 
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize = PageSize;
+
             return View("History", vm);
         }
+
 
 
         /* ===================== 5) Thanh toán tiền mặt (Admin) ===================== */
@@ -1082,7 +1123,6 @@ namespace CinemaS.Controllers
                 if (baseTotal <= 0m && invoice.TotalPrice.HasValue && invoice.TotalPrice.Value > 0m)
                     baseTotal = invoice.TotalPrice.Value;
 
-                invoice.TotalPrice = baseTotal;
 
                 var calcPay = await CalcPayableAsync(invoice);
                 if (!calcPay.Success)
@@ -1091,7 +1131,9 @@ namespace CinemaS.Controllers
                     return Json(new { success = false, message = calcPay.ErrorMessage });
                 }
 
-                invoice.TotalPrice = baseTotal; // tổng gốc
+                // ✅ DB lưu giá sau giảm nếu có promo
+                invoice.TotalPrice = (decimal)calcPay.PayableAmountVnd;
+
 
 
                 long amountLong = calcPay.PayableAmountVnd;
@@ -1129,6 +1171,8 @@ namespace CinemaS.Controllers
                 };
 
                 _context.PaymentTransactions.Add(cashTxn);
+                await _context.SaveChangesAsync();
+                await AwardPointsForInvoiceAsync(invoice);
 
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -1161,6 +1205,7 @@ namespace CinemaS.Controllers
         [Authorize]
         public async Task<IActionResult> SnackResult(string invoiceId)
         {
+
             if (string.IsNullOrWhiteSpace(invoiceId))
                 return RedirectToAction("SnackHistory");
 
@@ -1171,44 +1216,51 @@ namespace CinemaS.Controllers
                 return RedirectToAction("SnackHistory");
 
             var details = await _context.DetailBookingSnacks.AsNoTracking()
-                .Where(d => d.InvoiceId == invoiceId)
-                .Join(_context.Snacks.AsNoTracking(),
-                    d => d.SnackId,
-                    s => s.SnackId,
-                    (d, s) => new
-                    {
-                        s.Name,
-                        Quantity = d.TotalSnack ?? 0,
-                        LineTotal = (s.Price ?? 0m) * (d.TotalSnack ?? 0)
-                    })
-                .ToListAsync();
-
+    .Where(d => d.InvoiceId == invoiceId)
+    .Join(_context.Snacks.AsNoTracking(),
+        d => d.SnackId,
+        s => s.SnackId,
+        (d, s) => new
+        {
+            s.SnackId,
+            s.Name,
+            s.Image, // ✅ lấy ảnh từ bảng Snacks
+            Quantity = d.TotalSnack ?? 0,
+            LineTotal = d.TotalPrice ?? ((s.Price ?? 0m) * (d.TotalSnack ?? 0)) // ✅ ưu tiên TotalPrice đã lưu
+        })
+    .ToListAsync();
 
             decimal baseTotal = details.Sum(x => x.LineTotal);
 
-            // ✅ TÍNH LẠI SAU GIẢM
             var di = await GetDiscountInfoAsync(invoice.InvoiceId, baseTotal);
-            var payable = di.payable;
 
             var vm = new SnackPaymentResultVM
             {
                 OrderId = invoice.InvoiceId,
                 IsSuccess = invoice.Status == 1,
+
                 Detail = new SnackInvoiceDetailVM
                 {
+                    PaymentMethod = await GetPaymentMethodTextAsync(invoice),
+                    InvoiceId = invoice.InvoiceId,
                     CreatedAt = invoice.CreatedAt,
                     InvoiceEmail = invoice.Email,
                     InvoicePhone = invoice.PhoneNumber,
 
                     SnackItems = details.Select(x => new SnackItemVM
                     {
+                        SnackId = x.SnackId,     // nếu VM có
                         Name = x.Name,
                         Quantity = x.Quantity,
-                        LineTotal = x.LineTotal
+                        LineTotal = x.LineTotal,
+                        Image = x.Image          // ✅ đẩy ảnh xuống VM
                     }).ToList(),
 
-                    // ✅ GIÁ ĐÚNG
-                    SnackTotal = payable
+                    OriginalAmount = di.original,
+                    DiscountAmount = di.discount,
+                    PayableAmount = di.payable,
+                    PromotionName = di.promoName,
+                    DiscountPercent = di.percent,
                 }
             };
 
@@ -1217,32 +1269,48 @@ namespace CinemaS.Controllers
 
         [HttpGet("SnackHistory")]
         [Authorize]
-        public async Task<IActionResult> SnackHistory()
+        public async Task<IActionResult> SnackHistory(int page = 1)
         {
+            const int PageSize = 8;
+            if (page < 1) page = 1;
+
             var email = User.Identity?.Name;
             var user = await _context.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null)
+            {
+                ViewBag.Page = 1;
+                ViewBag.TotalPages = 1;
+                ViewBag.TotalItems = 0;
+                ViewBag.PageSize = PageSize;
                 return View(new List<SnackInvoiceHistoryVM>());
+            }
 
-            var invoices = await _context.Invoices.AsNoTracking()
+            var baseQuery = _context.Invoices.AsNoTracking()
                 .Where(i => i.CustomerId == user.UserId && (i.TotalTicket ?? 0) == 0)
-                .OrderByDescending(i => i.CreatedAt)
+                .OrderByDescending(i => i.CreatedAt);
+
+            var totalItems = await baseQuery.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(totalItems / (double)PageSize);
+            if (totalPages < 1) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
+            var invoicesPage = await baseQuery
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync();
 
             var vm = new List<SnackInvoiceHistoryVM>();
 
-            foreach (var inv in invoices)
+            foreach (var inv in invoicesPage)
             {
-                // chỉ lấy hóa đơn có snack
                 var hasSnack = await _context.DetailBookingSnacks.AsNoTracking()
                     .AnyAsync(d => d.InvoiceId == inv.InvoiceId);
 
-                if (!hasSnack)
-                    continue;
+                if (!hasSnack) continue;
 
-                // ✅ TÍNH SỐ TIỀN PHẢI TRẢ (SAU GIẢM)
                 var di = await GetDiscountInfoAsync(inv.InvoiceId, inv.TotalPrice);
                 var payable = di.payable;
 
@@ -1251,53 +1319,96 @@ namespace CinemaS.Controllers
                     InvoiceId = inv.InvoiceId,
                     CreatedAt = inv.CreatedAt,
                     Status = inv.Status.GetValueOrDefault(0),
-
-                    // ✅ GIÁ ĐÚNG
                     TotalPrice = payable
                 });
             }
+
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.PageSize = PageSize;
 
             return View(vm);
         }
 
 
+
         /* ===================== Helpers ===================== */
-        private async Task<(decimal original, decimal discount, decimal payable, double? percent, string? promoName)> GetDiscountInfoAsync(string invoiceId, decimal? fallbackTotal)
+        private async Task<(bool ok, decimal total, string? error)> GetInvoiceBaseTotalForPricingAsync(
+    string invoiceId,
+    decimal? fallbackTotalPrice,
+    string? promotionId
+)
         {
-            // Tổng gốc = tổng vé + tổng snack (không bị “mất” dù invoice.TotalPrice đã bị trừ giảm)
-            decimal original = await GetInvoiceBaseTotalAsync(invoiceId, fallbackTotal);
+            // 1) Nếu đã lưu OriginalTotal thì dùng luôn
+            var inv = await _context.Invoices.AsNoTracking()
+                .Where(i => i.InvoiceId == invoiceId)
+                .Select(i => new { i.OriginalTotal, i.TotalPrice, i.PromotionId })
+                .FirstOrDefaultAsync();
 
-            decimal discount = 0m;
-            decimal payable = original;
-            double? percent = null;
-            string? promoName = null;
+            if (inv != null && inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0)
+                return (true, inv.OriginalTotal.Value, null);
 
+            // 2) Sum line-items
+            decimal ticketSum = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .SumAsync(t => (decimal)(t.Price ?? 0));
+
+            decimal snackSum = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(s => s.InvoiceId == invoiceId)
+                .SumAsync(s => (decimal)(s.TotalPrice ?? 0));
+
+            var sum = ticketSum + snackSum;
+            if (sum > 0) return (true, sum, null);
+
+            // 3) Fallback
+            if (fallbackTotalPrice.HasValue && fallbackTotalPrice.Value > 0)
+                return (true, fallbackTotalPrice.Value, null);
+
+            return (false, 0m, "Không tính được tổng gốc của hóa đơn.");
+        }
+
+
+
+        private async Task<(decimal original, decimal discount, decimal payable, double? percent, string? promoName)> GetDiscountInfoAsync(
+    string invoiceId,
+    decimal? fallbackTotal)
+        {
             var invoice = await _context.Invoices.AsNoTracking()
                 .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
 
-            if (invoice == null || string.IsNullOrWhiteSpace(invoice.PromotionId))
-                return (original, discount, payable, percent, promoName);
+            if (invoice == null)
+                return (0m, 0m, 0m, null, null);
+
+            var baseTotal = await GetInvoiceBaseTotalForPricingAsync(invoiceId, fallbackTotal, invoice.PromotionId);
+            if (!baseTotal.ok)
+                return (0m, 0m, 0m, null, null);
+
+            decimal original = baseTotal.total;
+
+            if (string.IsNullOrWhiteSpace(invoice.PromotionId))
+                return (original, 0m, invoice.TotalPrice ?? original, null, null);
 
             var promo = await _context.Promotion.AsNoTracking()
                 .FirstOrDefaultAsync(p => p.PromotionId == invoice.PromotionId);
 
-            if (promo == null) return (original, discount, payable, percent, promoName);
+            if (promo == null)
+                return (original, 0m, invoice.TotalPrice ?? 0m, null, null);
 
-            // chỉ tính nếu promo còn hợp lệ
             var nowVn = NowVn();
             var valid = ValidatePromotion(promo, nowVn);
-            if (!valid.Success) return (original, discount, payable, percent, promoName);
+            if (!valid.Success)
+                return (original, 0m, invoice.TotalPrice ?? 0m, null, null);
 
             var (_, p) = NormalizeDiscountPercent(promo.Discount!.Value);
-            percent = p;
-            promoName = promo.Name;
 
-            discount = Math.Round(original * (decimal)p / 100m, 0, MidpointRounding.AwayFromZero);
-            payable = original - discount;
-            if (payable < 0) payable = 0;
+            decimal payable = invoice.TotalPrice ?? 0m;
+            decimal discount = original - payable;
+            if (discount < 0) discount = 0;
 
-            return (original, discount, payable, percent, promoName);
+            return (original, discount, payable, p, promo.Name);
         }
+
 
         private sealed record PromotionValidationResult(bool Success, string? ErrorMessage);
 
@@ -1352,9 +1463,19 @@ namespace CinemaS.Controllers
 
         private async Task<PayableCalcResult> CalcPayableAsync(Invoices invoice)
         {
-            decimal original = await GetInvoiceBaseTotalAsync(invoice.InvoiceId, invoice.TotalPrice);
+            // Lấy tổng gốc ưu tiên từ line items (Tickets + DetailBookingSnacks)
+            var baseTotal = await GetInvoiceBaseTotalForPricingAsync(
+                invoice.InvoiceId,
+                invoice.TotalPrice,
+                invoice.PromotionId
+            );
 
+            if (!baseTotal.ok)
+                return new(false, baseTotal.error, 0m, 0m, null, 0);
 
+            decimal original = baseTotal.total;
+
+            // Không có promo => payable = original
             if (string.IsNullOrWhiteSpace(invoice.PromotionId))
                 return new(true, null, original, 0m, null, ToVndLong(original));
 
@@ -1371,12 +1492,14 @@ namespace CinemaS.Controllers
 
             var (_, percent) = NormalizeDiscountPercent(promo.Discount!.Value);
 
+            // ✅ Tự tính payable từ original (không lấy invoice.TotalPrice làm payable nữa)
             decimal discountAmount = Math.Round(original * (decimal)percent / 100m, 0, MidpointRounding.AwayFromZero);
             decimal payable = original - discountAmount;
             if (payable < 0) payable = 0;
 
             return new(true, null, original, discountAmount, percent, ToVndLong(payable));
         }
+
 
         private async Task<decimal> GetInvoiceBaseTotalAsync(string invoiceId, decimal? fallbackTotalPrice)
         {
@@ -1597,7 +1720,6 @@ namespace CinemaS.Controllers
             };
 
             _context.PaymentTransactions.Add(transaction);
-            await _context.SaveChangesAsync();
         }
 
 
@@ -1693,7 +1815,92 @@ namespace CinemaS.Controllers
 
             return html;
         }
+        // ===================== Point / Point_Histories helpers =====================
+
+        private async Task<string> NextPointHistoryIdSafeAsync()
+        {
+            // ID dạng: PH00000001 (10 ký tự)
+            string lastId = await _context.PointHistories.AsNoTracking()
+                .OrderByDescending(p => p.PointHistoryId)
+                .Select(p => p.PointHistoryId)
+                .FirstOrDefaultAsync() ?? "PH00000000";
+
+            int nextNum = 0;
+            if (lastId.Length >= 10 && lastId.StartsWith("PH"))
+                _ = int.TryParse(lastId.Substring(2), out nextNum);
+
+            while (true)
+            {
+                nextNum++;
+                string candidate = $"PH{nextNum:D8}";
+                bool exists = await _context.PointHistories.AsNoTracking()
+                    .AnyAsync(p => p.PointHistoryId == candidate);
+                if (!exists) return candidate;
+            }
+        }
+
+        private async Task AwardPointsForInvoiceAsync(Invoices invoice)
+        {
+            if (invoice == null) return;
+
+            // Chỉ tích điểm khi đã paid
+            if (invoice.Status != (byte)1) return;
+
+            // Load user (tracked) để cộng SavePoint
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == invoice.CustomerId);
+
+            if (user == null) return;
+
+            // Chặn tạo trùng lịch sử cho cùng invoice + user
+            bool existedHistory = await _context.PointHistories.AsNoTracking()
+                .AnyAsync(ph => ph.InvoiceId == invoice.InvoiceId && ph.UserId == user.UserId);
+
+            if (existedHistory) return;
+
+            var rank = await _context.Set<MembershipRank>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.MembershipRankId == user.MembershipRankId);
+
+
+            int pointPerTicket = rank?.PointReturnTicket ?? 0;
+            int pointPerCombo = rank?.PointReturnCombo ?? 0;
+
+            // Số vé: ưu tiên đếm Tickets theo InvoiceId (chuẩn nhất)
+            int ticketCount = await _context.Tickets.AsNoTracking()
+                .CountAsync(t => t.InvoiceId == invoice.InvoiceId);
+
+            if (ticketCount <= 0)
+                ticketCount = invoice.TotalTicket ?? 0;
+
+            // Số combo/snack: tổng quantity từ DetailBookingSnacks
+            int snackQty = await _context.DetailBookingSnacks.AsNoTracking()
+                .Where(d => d.InvoiceId == invoice.InvoiceId)
+                .SumAsync(d => (int)(d.TotalSnack ?? 0));
+
+            int earned = (ticketCount * pointPerTicket) + (snackQty * pointPerCombo);
+            if (earned <= 0) return;
+
+            // Cộng điểm vào Users.SavePoint
+            user.SavePoint = (user.SavePoint ?? 0) + earned;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // Tạo Point_Histories
+            var newId = await NextPointHistoryIdSafeAsync();
+
+            _context.PointHistories.Add(new PointHistories
+            {
+                PointHistoryId = newId,
+                UserId = user.UserId,
+                InvoiceId = invoice.InvoiceId,
+                ChangeAmount = earned, // ChangeAmount đang để money/decimal trong model
+                Reason = $"+{earned} điểm từ hóa đơn {invoice.InvoiceId}",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
     }
+    
 
     /* ===================== DTOs ===================== */
 

@@ -1,4 +1,5 @@
-﻿@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
+﻿
+@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
 @{
     Layout = "_Layout";
     var isCreate = string.IsNullOrEmpty(Model.Id);
@@ -152,14 +153,79 @@
             gap: 10px;
         }
     }
+    /* OTP Backdrop (custom, giống Genres) */
+    #roleOtpBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15,23,42,.85);
+        z-index: 1050;
+        display: none;
+    }
+
+    .role-otp-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .role-otp-card {
+        width: 100%;
+        max-width: 520px;
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.28), transparent 60%), #020617;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,255,.6);
+        box-shadow: 0 22px 60px rgba(15,23,42,.96);
+        overflow: hidden;
+        color: #e5e7eb;
+    }
+
+    .role-otp-header {
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: radial-gradient(circle at 0 0, rgba(37,99,235,.7), transparent 60%), rgba(15,23,42,.98);
+        border-bottom: 1px solid rgba(148,163,255,.5);
+        font-weight: 800;
+        font-size: 15px;
+    }
+
+    .role-otp-close {
+        border: none;
+        background: transparent;
+        color: #e5e7eb;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .role-otp-body {
+        padding: 18px 20px 16px;
+        font-size: 14px;
+    }
 </style>
 
 
 <div class="admin-shell">
     <div class="admin-card">
         <div class="admin-title">@ViewData["Title"]</div>
+        @{
+            var isAdminRole = Model.SelectedRoles != null &&
+            Model.SelectedRoles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase));
+            var accountType = isAdminRole ? "Tài khoản siêu cấp" : "Tài khoản người thường";
+        }
+        <div class="mb-3" style="display:flex;gap:10px;flex-wrap:wrap;">
+            <span class="role-chip" style="border-color:rgba(34,197,94,.35);">
+                <i class="fa-solid fa-user-shield"></i> @accountType
+            </span>
+        </div>
 
         <form asp-action="@(isCreate ? "Create" : "Edit")" method="post">
+
+            @Html.AntiForgeryToken()
+
             @if (!isCreate)
             {
                 <input type="hidden" asp-for="Id" />
@@ -235,20 +301,37 @@
                 <div class="col-12">
                     <div class="field-group">
                         <label class="form-label">Phân quyền (Roles)</label>
-                        <div class="d-flex flex-wrap">
-                            @foreach (var role in Model.AllRoles)
-                            {
-                                var checkedRole = Model.SelectedRoles?.Contains(role) == true;
-                                <label class="role-chip">
-                                    <input type="checkbox"
-                                           name="SelectedRoles"
-                                           value="@role"
-                                           @(checkedRole ? "checked" : "") />
-                                    <span>@role</span>
-                                </label>
-                            }
+
+                        <div id="roleGate" class="role-gate is-locked">
+                            <div class="d-flex flex-wrap">
+                                @foreach (var role in Model.AllRoles)
+                                {
+                                    var checkedRole = Model.SelectedRoles?.Contains(role) == true;
+                                    <label class="role-chip">
+                                        <input type="checkbox"
+                                               class="js-role-box"
+                                               name="SelectedRoles"
+                                               value="@role"
+                                               @(checkedRole ? "checked" : "") />
+                                        <span>@role</span>
+                                    </label>
+                                }
+                            </div>
                         </div>
                     </div>
+
+                    <button type="button"
+                            class="btn btn-outline-light"
+                            id="btnOpenOtp"
+                            data-bs-toggle="modal"
+                            data-bs-target="#roleOtpModal">
+                        <i class="fa-solid fa-shield-keyhole me-1"></i> Xác minh Gmail để đổi quyền
+                    </button>
+
+                    <div class="field-note mt-2" id="roleGateNote">
+                        Phần phân quyền bị khóa cho tới khi xác minh OTP.
+                    </div>
+
                 </div>
             </div>
 
@@ -263,7 +346,204 @@
         </form>
     </div>
 </div>
+<div id="roleOtpBackdrop">
+    <div class="role-otp-wrap">
+        <div class="role-otp-card">
+            <div class="role-otp-header">
+                <span><i class="fa-solid fa-shield-keyhole me-2"></i>Xác minh Gmail để đổi quyền</span>
+                <button type="button" class="role-otp-close" id="btnCloseOtp">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="role-otp-body">
+                <div class="mb-2" style="color:#9aa5c6;font-size:13px;">
+                    OTP sẽ gửi về Gmail của admin đang đăng nhập.
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    <button type="button" class="btn btn-gradient" id="btnSendOtp">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Gửi OTP
+                    </button>
+                    <span id="otpCooldownText" style="color:#9aa5c6;font-weight:800;"></span>
+                </div>
+
+                <div class="field-group" style="margin-bottom:10px;">
+                    <label class="form-label">Nhập OTP</label>
+                    <input type="text" id="otpInput" class="form-control admin-input" placeholder="6 chữ số" maxlength="6" />
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-light" id="btnCancelOtp">Đóng</button>
+                    <button type="button" class="btn btn-gradient" id="btnVerifyOtp">
+                        <i class="fa-solid fa-circle-check me-1"></i> Xác minh
+                    </button>
+                </div>
+
+                <div class="mt-2" id="otpMsg" style="font-size:13px;font-weight:800;color:#cbd5e1;"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            const btnOpenOtp = document.getElementById('btnOpenOtp');
+
+            const backdrop = document.getElementById('roleOtpBackdrop');
+            const btnCloseOtp = document.getElementById('btnCloseOtp');
+            const btnCancelOtp = document.getElementById('btnCancelOtp');
+
+            const btnSend = document.getElementById('btnSendOtp');
+            const btnVerify = document.getElementById('btnVerifyOtp');
+            const otpInput = document.getElementById('otpInput');
+            const otpMsg = document.getElementById('otpMsg');
+            const otpCooldownText = document.getElementById('otpCooldownText');
+
+            const roleBoxes = Array.from(document.querySelectorAll('.js-role-box'));
+            const roleGate = document.getElementById('roleGate');
+            const roleGateNote = document.getElementById('roleGateNote');
+
+            let roleWindowTimer = null;
+            let roleWindowRemain = 0;
+                    // chỉ cho phép chọn 1 role
+            roleBoxes.forEach(box => {
+                box.addEventListener('change', () => {
+                    if (!box.checked) return;
+                    roleBoxes.forEach(b => {
+                        if (b !== box) b.checked = false;
+                    });
+                });
+            });
+
+            function openOtpPopup() {
+                if (!backdrop) return;
+                otpInput.value = '';
+                otpCooldownText.textContent = '';
+                setMsg('', true);
+                backdrop.style.display = 'block';
+            }
+
+            function closeOtpPopup() {
+                if (!backdrop) return;
+                backdrop.style.display = 'none';
+            }
+
+            // click outside để đóng (giống Genres)
+            backdrop?.addEventListener('click', function (e) {
+                if (e.target === this) closeOtpPopup();
+            });
+
+            btnCloseOtp?.addEventListener('click', closeOtpPopup);
+            btnCancelOtp?.addEventListener('click', closeOtpPopup);
+
+            btnOpenOtp?.addEventListener('click', openOtpPopup);
+
+            function setMsg(text, ok) {
+                otpMsg.textContent = text || '';
+                otpMsg.style.color = ok ? '#bbf7d0' : '#fecaca';
+            }
+
+            function setRolesEnabled(enabled) {
+                roleBoxes.forEach(x => x.disabled = !enabled);
+                if (roleGate) roleGate.classList.toggle('is-locked', !enabled);
+
+                if (roleGateNote) {
+                    roleGateNote.textContent = enabled
+                        ? `Đã xác minh. Có thể đổi quyền trong ${roleWindowRemain}s.`
+                        : 'Phần phân quyền bị khóa cho tới khi xác minh OTP.';
+                }
+            }
+
+            // mặc định: khóa roles
+            setRolesEnabled(false);
+
+            async function postForm(url, formObj) {
+                const body = new URLSearchParams(formObj).toString();
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': token
+                    },
+                    body
+                });
+
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    return { ok: false, message: 'Request không trả JSON (có thể hết phiên đăng nhập hoặc lỗi server).' };
+                }
+                return await res.json();
+            }
+
+            function startRoleWindow(seconds) {
+                roleWindowRemain = seconds;
+                setRolesEnabled(true);
+
+                if (roleWindowTimer) clearInterval(roleWindowTimer);
+                roleWindowTimer = setInterval(() => {
+                    roleWindowRemain--;
+                    if (roleWindowRemain <= 0) {
+                        clearInterval(roleWindowTimer);
+                        roleWindowTimer = null;
+                        setRolesEnabled(false);
+                    } else {
+                        setRolesEnabled(true);
+                    }
+                }, 1000);
+            }
+
+            btnSend?.addEventListener('click', async () => {
+                setMsg('Đang gửi OTP...', true);
+
+                const data = await postForm('@Url.Action("SendRoleOtp", "AdminUsers")', {});
+                if (!data.ok) {
+                    setMsg(data.message || 'Gửi OTP thất bại.', false);
+                    if (data.cooldown) otpCooldownText.textContent = `Cooldown: ${data.cooldown}s`;
+                    return;
+                }
+
+                setMsg(data.message || 'Đã gửi OTP.', true);
+
+                otpCooldownText.textContent = 'Cooldown: 30s';
+                let c = 30;
+                const t = setInterval(() => {
+                    c--;
+                    otpCooldownText.textContent = c > 0 ? `Cooldown: ${c}s` : '';
+                    if (c <= 0) clearInterval(t);
+                }, 1000);
+            });
+
+            btnVerify?.addEventListener('click', async () => {
+                const otp = (otpInput.value || '').trim();
+                if (!/^\d{6}$/.test(otp)) {
+                    setMsg('OTP phải là 6 chữ số.', false);
+                    return;
+                }
+
+                setMsg('Đang xác minh...', true);
+
+                const data = await postForm('@Url.Action("VerifyRoleOtp", "AdminUsers")', { otp });
+                if (!data.ok) {
+                    setMsg(data.message || 'Xác minh thất bại.', false);
+                    return;
+                }
+
+                setMsg(data.message || 'Xác minh thành công.', true);
+
+                const seconds = data.roleWindowSeconds || 180;
+                startRoleWindow(seconds);
+
+                setTimeout(() => closeOtpPopup(), 300);
+            });
+        })();
+    </script>
 }
+
+

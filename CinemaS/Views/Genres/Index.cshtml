@@ -126,6 +126,51 @@
         font-size: 18px;
         cursor: pointer;
     }
+    /* =========================
+       PAGINATION (ADD)
+       ========================= */
+    .genres-pager {
+        margin-top: 16px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .genres-page-btn {
+        min-width: 40px;
+        height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(148,163,255,.45);
+        background: rgba(15,23,42,.85);
+        color: #e5e7eb;
+        font-weight: 800;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 10px 24px rgba(15,23,42,.75);
+    }
+
+        .genres-page-btn:hover {
+            filter: brightness(1.08);
+            color: #fff;
+        }
+
+        .genres-page-btn.is-active {
+            background: linear-gradient(120deg, #3b5ccc, #7c3aed);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .genres-page-btn.is-disabled {
+            opacity: .45;
+            pointer-events: none;
+        }
+
 </style>
 
 <div class="container page-genres-index">
@@ -136,7 +181,7 @@
                     <i class="fa-solid fa-film me-2"></i>Quản lý Thể Loại
                 </h1>
                 <div class="genres-header-sub">
-                    Tổng: @Model.Count() thể loại
+                    Tổng: @(ViewBag.TotalItems ?? 0) thể loại
                 </div>
             </div>
             <div class="genres-actions">
@@ -215,6 +260,40 @@
                     }
                 </tbody>
             </table>
+            @{
+                var page = (int)(ViewBag.Page ?? 1);
+                var totalPages = (int)(ViewBag.TotalPages ?? 1);
+            }
+
+            @if (totalPages > 1)
+            {
+                <div class="genres-pager">
+                    <!-- Prev -->
+                    <a class="genres-page-btn @(page <= 1 ? "is-disabled" : "")"
+                       asp-action="Index"
+                       asp-route-page="@(page - 1)">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+
+                    <!-- Page numbers -->
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <a class="genres-page-btn @(p == page ? "is-active" : "")"
+                           asp-action="Index"
+                           asp-route-page="@p">
+                            @p
+                        </a>
+                    }
+
+                    <!-- Next -->
+                    <a class="genres-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                       asp-action="Index"
+                       asp-route-page="@(page + 1)">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+            }
+
         </div>
     </div>
 </div>
