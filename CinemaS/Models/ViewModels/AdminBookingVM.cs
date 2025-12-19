@@ -13,6 +13,12 @@ namespace CinemaS.Models.ViewModels
         public DateTime? ShowDate { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        
+        /// <summary>
+        /// Price adjustment percentage for this showtime (-100 to 100).
+        /// </summary>
+        public decimal? PriceAdjustmentPercent { get; set; }
+        
         public List<SeatVM> Seats { get; set; } = new();
         public int NumOfRows { get; set; }
         public int NumOfColumns { get; set; }

@@ -105,7 +105,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-3" >
                                 <label class="form-label">
                                     <i class="fa-solid fa-hourglass-end"></i> Giờ kết thúc <span class="text-danger">*</span>
                                 </label>
@@ -123,11 +123,33 @@
                                 </small>
                             </div>
                         </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-sliders"></i> Điều chỉnh giá suất chiếu (%)
+                                    </label>
+                                    <div class="input-group">
+                                        <input asp-for="PriceAdjustmentPercent"
+                                               type="text"
+                                               class="form-control"
+                                               id="priceAdjustmentPercent"
+                                               value="0"
+                                               placeholder="VD: 10 (tăng 10%), -20 (giảm 20%)"
+                                               inputmode="numeric" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <small class="text-white-50">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                        VD: 10 = tăng 10% ; -20 = giảm 20%
+                                    </small>
+                                    <small class="text-danger" id="priceAdjustmentError" style="display:none;"></small>
+                                    <span asp-validation-for="PriceAdjustmentPercent" class="text-danger"></span>
+                                </div>
+                            </div>
 
-                        <!-- Điều chỉnh giá ghế -->
                         <div class="card mb-3">
                             <div class="card-header text-white d-flex justify-content-between align-items-center">
-                                <strong><i class="fa-solid fa-tags"></i> Điều chỉnh giá ghế</strong>
+                                <strong><i class="fa-solid fa-tags"></i> Giá ghế</strong>
                                 <a asp-action="Index" asp-controller="SeatTypes" class="btn btn-sm btn-info">
                                     <i class="fa-solid fa-couch"></i> Quản lý loại ghế
                                 </a>
@@ -156,13 +178,20 @@
                                                         <span class="badge bg-danger">Ghế đôi</span>
                                                     }
                                                 </label>
-                                                <input type="number"
+                                                <div class="p-3 border rounded">
+                                                    <div class="mb-2" readonly>
+                                                        <strong id="price-display-@seatType.SeatTypeId">@priceInt.ToString("N0")</strong> đ
+                                                    </div>
+                                                </div>
+                                                <input type="hidden"
                                                        name="seatTypePrices[@seatType.SeatTypeId]"
-                                                       class="form-control"
-                                                       value="@priceInt"
-                                                       placeholder="Nhập giá..."
-                                                       readonly="readonly"
-                                                       title="Chọn quản lý loại ghế để thay đổi giá" />
+                                                       class="form-control seat-base-price"
+                                                       data-seat-id="@seatType.SeatTypeId"
+                                                       data-price="@priceInt"
+                                                       value="@priceInt" />
+                                                <small style="display:block; margin-top: 5px;">
+                                                    Giá gốc: <strong>@priceInt.ToString("N0") đ</strong>
+                                                </small>
                                             </div>
                                         }
                                     }
@@ -188,89 +217,171 @@
 
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
-}
+    
+    <script>
+        // Price adjustment input validation and display
+        const priceAdjustmentInput = document.getElementById('priceAdjustmentPercent');
+        const priceAdjustmentError = document.getElementById('priceAdjustmentError');
+        const seatPriceElements = document.querySelectorAll('.seat-base-price');
 
-<script>
-    const moviesData = {
-        @if (ViewBag.MoviesWithDuration is Dictionary<string, int> moviesWithDuration)
-        {
-                var last = moviesWithDuration.Last();
-                foreach (var item in moviesWithDuration)
-                {
-                        if (item.Key == last.Key)
-                        {
-                                @: '@item.Key': @item.Value
-                        }
-                        else
-                        {
-                                @: '@item.Key': @item.Value,
-                        }
+        // Restrict input to only -, +, and numbers (0-9)
+        priceAdjustmentInput.addEventListener('input', function(e) {
+            let value = this.value;
+            
+            // Remove all characters that are not -, +, or digits
+            value = value.replace(/[^\d+\-]/g, '');
+            
+            // Handle multiple signs or signs not at the beginning
+            if (value.length > 0) {
+                const firstChar = value[0];
+                const hasSign = firstChar === '+' || firstChar === '-';
+                
+                if (hasSign) {
+                    // Keep only the first sign and remove others
+                    value = firstChar + value.slice(1).replace(/[+\-]/g, '');
+                } else {
+                    // Remove any signs that appear later
+                    value = value.replace(/[+\-]/g, '');
                 }
+            }
+            
+            this.value = value;
+            updateAdjustedPrices();
+            validateAdjustmentPercent();
+        });
+
+        // Validate the adjustment percentage is between -100 and 100
+        function validateAdjustmentPercent() {
+            let value = priceAdjustmentInput.value.trim();
+            
+            // Check if input is only a sign (-, +) with no digits
+            if (value === '-' || value === '+' || value === '.') {
+                priceAdjustmentError.textContent = 'Giá trị không hợp lệ';
+                priceAdjustmentError.style.display = 'block';
+                priceAdjustmentInput.classList.add('is-invalid');
+                return false;
+            }
+            
+            let numValue = parseFloat(value) || 0;
+            
+            if (value !== '' && (numValue < -100 || numValue > 100)) {
+                priceAdjustmentError.textContent = 'Giá trị phải từ -100 đến 100';
+                priceAdjustmentError.style.display = 'block';
+                priceAdjustmentInput.classList.add('is-invalid');
+                return false;
+            } else {
+                priceAdjustmentError.style.display = 'none';
+                priceAdjustmentInput.classList.remove('is-invalid');
+                return true;
+            }
         }
-    };
 
-    const form = document.getElementById('createForm');
-    const movieSelect = document.getElementById('movieSelect');
-    const startTime = document.getElementById('startTime');
-    const endTime = document.getElementById('endTime');
-    const durationInfo = document.getElementById('movieDurationInfo');
-    const durationSpan = document.getElementById('movieDuration');
-    let userEditedEndTime = false;
+        // Update adjusted prices for all seat types
+        function updateAdjustedPrices() {
+            let percent = parseFloat(priceAdjustmentInput.value) || 0;
+            
+            // Clamp the value to -100 to 100
+            if (percent < -100) percent = -100;
+            if (percent > 100) percent = 100;
+            
+            seatPriceElements.forEach(element => {
+                const basePrice = parseFloat(element.getAttribute('data-price'));
+                const seatId = element.getAttribute('data-seat-id');
+                const adjustedPrice = Math.round(basePrice * (1 + percent / 100));
+                
+                const priceDisplay = document.getElementById(`price-display-${seatId}`);
+                if (priceDisplay) {
+                    priceDisplay.textContent = adjustedPrice.toLocaleString('vi-VN');
+                }
+            });
+        }
 
-    form.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
-    });
+        // Initialize on page load
+        priceAdjustmentInput.addEventListener('blur', validateAdjustmentPercent);
+        priceAdjustmentInput.addEventListener('change', validateAdjustmentPercent);
 
-    movieSelect.addEventListener('change', () => {
-        const movieId = movieSelect.value;
-        if (movieId && moviesData[movieId]) {
+        // Movie duration and time handling
+        const moviesData = {
+            @if (ViewBag.MoviesWithDuration is Dictionary<string, int> moviesWithDuration)
+            {
+                    var last = moviesWithDuration.Last();
+                    foreach (var item in moviesWithDuration)
+                    {
+                            if (item.Key == last.Key)
+                            {
+                                    @: '@item.Key': @item.Value
+                            }
+                            else
+                            {
+                                    @: '@item.Key': @item.Value,
+                            }
+                    }
+            }
+        };
+
+        const form = document.getElementById('createForm');
+        const movieSelect = document.getElementById('movieSelect');
+        const startTime = document.getElementById('startTime');
+        const endTime = document.getElementById('endTime');
+        const durationInfo = document.getElementById('movieDurationInfo');
+        const durationSpan = document.getElementById('movieDuration');
+        let userEditedEndTime = false;
+
+        form.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
+        });
+
+        movieSelect.addEventListener('change', () => {
+            const movieId = movieSelect.value;
+            if (movieId && moviesData[movieId]) {
+                const duration = moviesData[movieId];
+                const hours = Math.floor(duration / 60);
+                const minutes = duration % 60;
+                let displayText = `${duration} phút`;
+                if (hours > 0 || minutes > 0)
+                    displayText += ` (${hours > 0 ? hours + ' giờ' : ''}${minutes > 0 ? ' ' + minutes + ' phút' : ''})`;
+                durationSpan.textContent = displayText;
+                durationInfo.style.display = 'block';
+                if (startTime.value && !userEditedEndTime) updateEndTime();
+            } else {
+                durationInfo.style.display = 'none';
+                durationSpan.textContent = '';
+                if (!userEditedEndTime) endTime.value = '';
+            }
+        });
+
+        startTime.addEventListener('change', () => {
+            if (!userEditedEndTime) updateEndTime();
+        });
+
+        endTime.addEventListener('input', () => userEditedEndTime = true);
+
+        function updateEndTime() {
+            const movieId = movieSelect.value;
+            const start = startTime.value;
+            if (!movieId || !start || !moviesData[movieId]) return;
+
             const duration = moviesData[movieId];
-            const hours = Math.floor(duration / 60);
-            const minutes = duration % 60;
-            let displayText = `${duration} phút`;
-            if (hours > 0 || minutes > 0)
-                displayText += ` (${hours > 0 ? hours + ' giờ' : ''}${minutes > 0 ? ' ' + minutes + ' phút' : ''})`;
-            durationSpan.textContent = displayText;
-            durationInfo.style.display = 'block';
-            if (startTime.value && !userEditedEndTime) updateEndTime();
-        } else {
-            durationInfo.style.display = 'none';
-            durationSpan.textContent = '';
-            if (!userEditedEndTime) endTime.value = '';
+            const [h, m] = start.split(':').map(Number);
+            const total = h * 60 + m + duration;
+            const endH = Math.floor(total / 60) % 24;
+            const endM = total % 60;
+
+            const pad = n => n.toString().padStart(2, '0');
+            endTime.value = `${pad(endH)}:${pad(endM)}`;
+
+            const ampm = endH >= 12 ? 'CH' : 'SA';
+            const h12 = endH % 12 || 12;
+            endTime.title = `Giờ kết thúc: ${pad(h12)}:${pad(endM)} ${ampm}`;
+
+            userEditedEndTime = false;
         }
-    });
 
-    startTime.addEventListener('change', () => {
-        if (!userEditedEndTime) updateEndTime();
-    });
-
-    endTime.addEventListener('input', () => userEditedEndTime = true);
-
-    function updateEndTime() {
-        const movieId = movieSelect.value;
-        const start = startTime.value;
-        if (!movieId || !start || !moviesData[movieId]) return;
-
-        const duration = moviesData[movieId];
-        const [h, m] = start.split(':').map(Number);
-        const total = h * 60 + m + duration;
-        const endH = Math.floor(total / 60) % 24;
-        const endM = total % 60;
-
-        const pad = n => n.toString().padStart(2, '0');
-        endTime.value = `${pad(endH)}:${pad(endM)}`;
-
-        const ampm = endH >= 12 ? 'CH' : 'SA';
-        const h12 = endH % 12 || 12;
-        endTime.title = `Giờ kết thúc: ${pad(h12)}:${pad(endM)} ${ampm}`;
-
-        userEditedEndTime = false;
-    }
-
-    const clearBtn = document.getElementById('clearTimeBtn');
-    clearBtn.addEventListener('click', () => {
-        startTime.value = '';
-        endTime.value = '';
-        userEditedEndTime = false;
-    });
-</script>
+        const clearBtn = document.getElementById('clearTimeBtn');
+        clearBtn.addEventListener('click', () => {
+            startTime.value = '';
+            endTime.value = '';
+            userEditedEndTime = false;
+        });
+    </script>
+}

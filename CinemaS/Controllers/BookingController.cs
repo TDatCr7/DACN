@@ -54,15 +54,24 @@ namespace CinemaS.Controllers
 
             var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
 
+            // ✅ Get price adjustment percentage from showtime
+            decimal priceAdjustmentPercent = showTime.PriceAdjustmentPercent ?? 0m;
+
             var seatVMs = seats.Select(s =>
             {
                 var st = seatTypes.FirstOrDefault(x => x.SeatTypeId == s.SeatTypeId);
+                decimal basePrice = st?.Price ?? 0m;
+                
+                // ✅ Apply price adjustment: FinalPrice = BasePrice * (1 + Percent / 100)
+                decimal adjustedPrice = basePrice * (1 + priceAdjustmentPercent / 100m);
+                adjustedPrice = Math.Round(adjustedPrice, 0, MidpointRounding.AwayFromZero);
+                
                 return new SeatVM
                 {
                     SeatId = s.SeatId,
                     SeatTypeId = s.SeatTypeId,
                     SeatTypeName = st?.Name,
-                    SeatTypePrice = st?.Price,
+                    SeatTypePrice = adjustedPrice, // ✅ Use adjusted price
                     RowIndex = s.RowIndex,
                     ColumnIndex = s.ColumnIndex,
                     Label = s.Label,
@@ -89,6 +98,7 @@ namespace CinemaS.Controllers
                 ShowDate = showTime.ShowDate,
                 StartTime = showTime.StartTime,
                 EndTime = showTime.EndTime,
+                PriceAdjustmentPercent = priceAdjustmentPercent, // ✅ Pass adjustment to view
                 Seats = seatVMs,
                 NumOfRows = theater.NumOfRows ?? 6,
                 NumOfColumns = theater.NumOfColumns ?? 14
@@ -216,16 +226,27 @@ namespace CinemaS.Controllers
             if (!distinctSeatIds.Any())
                 return Json(new { success = false, message = "Danh sách ghế không hợp lệ!" });
 
-            // ===== baseTotal =====
+            // ✅ Get price adjustment percentage
+            decimal priceAdjustmentPercent = showTime.PriceAdjustmentPercent ?? 0m;
+
+            // ===== baseTotal with adjusted prices =====
             var seatTypes = await _context.Seats.AsNoTracking()
                 .Where(s => distinctSeatIds.Contains(s.SeatId) && !s.IsDeleted)
                 .Join(_context.SeatTypes.AsNoTracking(),
                     s => s.SeatTypeId,
                     t => t.SeatTypeId,
-                    (s, t) => new { s.SeatId, t.Price })
+                    (s, t) => new { s.SeatId, BasePrice = t.Price })
                 .ToListAsync();
 
-            decimal baseTotal = seatTypes.Sum(x => Convert.ToDecimal(x.Price ?? 0m));
+            // ✅ Apply price adjustment to each seat
+            decimal baseTotal = 0m;
+            foreach (var seat in seatTypes)
+            {
+                decimal basePrice = seat.BasePrice ?? 0m;
+                decimal adjustedPrice = basePrice * (1 + priceAdjustmentPercent / 100m);
+                adjustedPrice = Math.Round(adjustedPrice, 0, MidpointRounding.AwayFromZero);
+                baseTotal += adjustedPrice;
+            }
 
             if (request.Snacks?.Any() == true)
             {

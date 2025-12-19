@@ -1042,7 +1042,6 @@
 
         window.toggleSeat = function (element, isCouple) {
             if (element.classList.contains('booked') || element.getAttribute('data-is-active') === 'false') {
-                showBookingToast('⚠️ Ghế này không thể chọn!', 'error');
                 return;
             }
 

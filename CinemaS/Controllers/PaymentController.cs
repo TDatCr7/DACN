@@ -376,6 +376,9 @@ namespace CinemaS.Controllers
 
                                 var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
 
+                                // ✅ Get price adjustment percentage from showtime
+                                decimal priceAdjustmentPercent = st.PriceAdjustmentPercent ?? 0m;
+
                                 string lastId = await _context.Tickets.AsNoTracking()
                                     .OrderByDescending(t => t.TicketId)
                                     .Select(t => t.TicketId)
@@ -405,8 +408,12 @@ namespace CinemaS.Controllers
                                     if (stype != null && !string.IsNullOrEmpty(stype.SeatTypeId) && stype.SeatTypeId.Length >= 5)
                                         ticketTypeId = "TT" + stype.SeatTypeId.Substring(2);
 
-                                    decimal price = stype?.Price ?? 0m;
-                                    ticketSum += price;
+                                    // ✅ Apply price adjustment to ticket price
+                                    decimal basePrice = stype?.Price ?? 0m;
+                                    decimal adjustedPrice = basePrice * (1 + priceAdjustmentPercent / 100m);
+                                    adjustedPrice = Math.Round(adjustedPrice, 0, MidpointRounding.AwayFromZero);
+                                    
+                                    ticketSum += adjustedPrice;
 
                                     var newTicketId = await NextTicketIdSafeAsync();
 
@@ -420,7 +427,7 @@ namespace CinemaS.Controllers
                                         Status = (byte)2,
                                         CreatedBooking = DateTime.UtcNow,
                                         Expire = null,
-                                        Price = (int?)Convert.ToInt32(price)
+                                        Price = (int?)Convert.ToInt32(adjustedPrice) // ✅ Save adjusted price
                                     });
                                 }
 
@@ -1024,6 +1031,9 @@ namespace CinemaS.Controllers
 
                                 var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
 
+                                // ✅ Get price adjustment percentage from showtime
+                                decimal priceAdjustmentPercent = st.PriceAdjustmentPercent ?? 0m;
+
                                 string lastId = await _context.Tickets.AsNoTracking()
                                     .OrderByDescending(t => t.TicketId)
                                     .Select(t => t.TicketId)
@@ -1053,8 +1063,12 @@ namespace CinemaS.Controllers
                                     if (stype != null && !string.IsNullOrEmpty(stype.SeatTypeId) && stype.SeatTypeId.Length >= 5)
                                         ticketTypeId = "TT" + stype.SeatTypeId.Substring(2);
 
-                                    decimal price = stype?.Price ?? 0m;
-                                    ticketSum += price;
+                                    // ✅ Apply price adjustment to ticket price
+                                    decimal basePrice = stype?.Price ?? 0m;
+                                    decimal adjustedPrice = basePrice * (1 + priceAdjustmentPercent / 100m);
+                                    adjustedPrice = Math.Round(adjustedPrice, 0, MidpointRounding.AwayFromZero);
+                                    
+                                    ticketSum += adjustedPrice;
 
                                     var newTicketId = await NextTicketIdSafeAsync();
 
@@ -1068,7 +1082,7 @@ namespace CinemaS.Controllers
                                         Status = (byte)2,
                                         CreatedBooking = DateTime.UtcNow,
                                         Expire = null,
-                                        Price = (int?)Convert.ToInt32(price)
+                                        Price = (int?)Convert.ToInt32(adjustedPrice) // ✅ Save adjusted price
                                     });
                                 }
 

@@ -284,6 +284,7 @@ namespace CinemaS.Controllers
             if (showTimes == null) return NotFound();
 
             LoadDropdowns();
+            LoadSeatTypesAndMoviesDuration();
 
             ViewBag.Movies = new SelectList(
                 _context.Movies
@@ -306,7 +307,7 @@ namespace CinemaS.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id,
-            [Bind("ShowTimeId,MoviesId,CinemaTheaterId,OriginPrice,ShowDate,StartTime,EndTime,TotalCinema,CreatedAt,UpdatedAt")]
+            [Bind("ShowTimeId,MoviesId,CinemaTheaterId,OriginPrice,PriceAdjustmentPercent,ShowDate,StartTime,EndTime,TotalCinema,CreatedAt,UpdatedAt")]
             ShowTimes showTimes)
         {
             if (id != showTimes.ShowTimeId) return NotFound();

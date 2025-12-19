@@ -6,6 +6,13 @@ namespace CinemaS.Models.ViewModels
         public string SeatTypeId { get; set; } = default!;
         public string? SeatTypeName { get; set; }
         public decimal? SeatTypePrice { get; set; }
+        
+        /// <summary>
+        /// The adjusted price after applying ShowTime's PriceAdjustmentPercent.
+        /// This is the actual price shown to users and used for booking.
+        /// </summary>
+        public decimal? AdjustedPrice { get; set; }
+        
         public string? RowIndex { get; set; }
         public int? ColumnIndex { get; set; }
         public string? Label { get; set; }
