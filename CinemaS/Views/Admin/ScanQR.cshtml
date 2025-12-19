@@ -1,0 +1,1005 @@
+@{
+    ViewData["Title"] = "Quét mã QR vé";
+    Layout = "~/Views/Shared/_LayoutHeader.cshtml";
+}
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    :root {
+        --bg: #0b0f27;
+        --panel: #0e1333;
+        --accent: #ffd54d;
+        --indigo: #3b5ccc;
+        --purple: #7c3aed;
+        --text: #e9ecf6;
+        --line: rgba(255,255,255,.12);
+    }
+
+    .qr-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    /* Tabs */
+    .qr-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 40px;
+        border-bottom: 2px solid rgba(148,163,255,.2);
+    }
+
+    .qr-tab {
+        flex: 1;
+        padding: 16px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #9aa5c6;
+        cursor: pointer;
+        border: none;
+        background: none;
+        transition: all 0.3s ease;
+        position: relative;
+        text-align: center;
+    }
+
+        .qr-tab.active {
+            color: var(--text);
+        }
+
+            .qr-tab.active::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, var(--indigo), var(--purple));
+            }
+
+        .qr-tab:hover:not(.active) {
+            color: var(--text);
+        }
+
+    /* Tab Content */
+    .qr-tab-content {
+        display: none;
+    }
+
+        .qr-tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ===== STATE 1: BEFORE CAMERA ===== */
+    .camera-init-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 500px;
+        padding: 60px 20px;
+    }
+
+    .camera-init-icon {
+        font-size: 120px;
+        color: rgba(59,130,246,.6);
+        margin-bottom: 32px;
+        animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    @@keyframes floatIcon {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-16px);
+        }
+    }
+
+    .camera-init-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 40px;
+        background: linear-gradient(120deg, var(--indigo), var(--purple));
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 12px 40px rgba(59,130,246,.3);
+    }
+
+        .camera-init-button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(59,130,246,.4);
+            filter: brightness(1.1);
+        }
+
+        .camera-init-button:active {
+            transform: translateY(-2px);
+        }
+
+    /* ===== STATE 2: CAMERA ACTIVE ===== */
+    .camera-active-state {
+        display: none;
+    }
+
+        .camera-active-state.show {
+            display: block;
+        }
+
+    .camera-viewport {
+        position: relative;
+        max-width: 600px;
+        margin: 0 auto 30px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid rgba(148,163,255,.3);
+        box-shadow: 0 20px 60px rgba(15,23,42,.8);
+        background: #000;
+    }
+
+    #camera-video {
+        width: 100%;
+        height: auto;
+        display: block;
+        border-radius: 18px;
+    }
+
+    .camera-overlay {
+        position: absolute;
+        inset: 0;
+        border: 3px solid rgba(59,130,246,.3);
+        border-radius: 20px;
+        pointer-events: none;
+    }
+
+        .camera-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 50%;
+            width: 250px;
+            height: 250px;
+            margin: -125px 0 0 -125px;
+            border: 3px solid var(--indigo);
+            border-radius: 20px;
+            box-shadow: inset 0 0 20px rgba(59,130,246,.3);
+        }
+
+    .scan-indicator {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(59,130,246,.9);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 10;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    .camera-controls {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .camera-control-btn {
+        flex: 1;
+        padding: 14px 24px;
+        border-radius: 999px;
+        border: none;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .camera-control-btn.stop {
+            background: linear-gradient(120deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 8px 20px rgba(239,68,68,.3);
+        }
+
+            .camera-control-btn.stop:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 12px 30px rgba(239,68,68,.4);
+            }
+
+    /* Upload Area */
+    .upload-area {
+        border: 2px dashed rgba(148,163,255,.3);
+        border-radius: 16px;
+        padding: 60px 20px;
+        text-align: center;
+        background: rgba(15,23,42,.4);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .upload-area:hover {
+            border-color: rgba(59,130,246,.6);
+            background: rgba(15,23,42,.6);
+        }
+
+        .upload-area.drag-over {
+            border-color: rgba(59,130,246,.8);
+            background: rgba(15,23,42,.8);
+            box-shadow: 0 0 20px rgba(59,130,246,.3);
+        }
+
+    .upload-icon {
+        font-size: 64px;
+        color: rgba(59,130,246,.6);
+        margin-bottom: 16px;
+    }
+
+    .upload-text {
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .upload-subtext {
+        color: #9aa5c6;
+        font-size: 14px;
+    }
+
+    .upload-input {
+        display: none;
+    }
+
+    /* Canvas for QR detection (hidden) */
+    #qr-canvas {
+        display: none;
+    }
+
+    /* Modal */
+    .qr-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+        .qr-modal-overlay.show {
+            display: flex;
+            animation: overlayFadeIn 0.3s ease;
+        }
+
+    @@keyframes overlayFadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .qr-modal {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.15), transparent 55%), radial-gradient(circle at 100% 100%, rgba(124,58,237,.12), transparent 55%), rgba(2,6,23,.95);
+        border: 1px solid rgba(148,163,255,.3);
+        border-radius: 24px;
+        padding: 0;
+        max-width: 700px;
+        width: 100%;
+        max-height: 95vh;
+        overflow-y: auto;
+        box-shadow: 0 30px 90px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.8);
+        animation: modalSlideUp 0.4s cubic-bezier(.2,.9,.25,1);
+    }
+
+    @@keyframes modalSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .qr-modal-header {
+        padding: 28px;
+        border-bottom: 1px solid rgba(148,163,255,.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .qr-modal-header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .qr-modal-status-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        flex-shrink: 0;
+    }
+
+        .qr-modal-status-icon.valid {
+            background: linear-gradient(120deg, rgba(34,197,94,.3), rgba(16,185,129,.25));
+            color: #10b981;
+            box-shadow: 0 8px 24px rgba(16,185,129,.2);
+        }
+
+        .qr-modal-status-icon.invalid {
+            background: linear-gradient(120deg, rgba(239,68,68,.3), rgba(220,38,38,.25));
+            color: #ef4444;
+            box-shadow: 0 8px 24px rgba(239,68,68,.2);
+        }
+
+    .qr-modal-header-text h3 {
+        margin: 0 0 4px 0;
+        font-weight: 900;
+        font-size: 20px;
+        color: var(--text);
+    }
+
+    .qr-modal-header-text p {
+        margin: 0;
+        font-size: 14px;
+        color: #9aa5c6;
+    }
+
+    .qr-modal-close {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid rgba(148,163,255,.3);
+        background: rgba(15,23,42,.6);
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+        .qr-modal-close:hover {
+            background: rgba(59,130,246,.25);
+            border-color: rgba(148,163,255,.5);
+            color: var(--text);
+        }
+
+    .qr-modal-body {
+        padding: 28px;
+    }
+
+    .ticket-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 28px;
+    }
+
+    .ticket-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ticket-info-label {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #c7d2fe;
+    }
+
+    .ticket-info-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        word-break: break-word;
+    }
+
+    .ticket-info-item.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .snacks-section {
+        margin-top: 28px;
+        padding-top: 28px;
+        border-top: 1px solid rgba(148,163,255,.15);
+    }
+
+    .snacks-title {
+        font-size: 14px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--accent);
+        margin-bottom: 14px;
+    }
+
+    .snacks-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .snacks-list li {
+            padding: 12px 16px;
+            background: rgba(15,23,42,.5);
+            border: 1px solid rgba(148,163,255,.2);
+            border-radius: 12px;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+    .qr-modal-footer {
+        padding: 24px 28px;
+        border-top: 1px solid rgba(148,163,255,.15);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-close-modal {
+        padding: 12px 32px;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(120deg, var(--indigo), var(--purple));
+        color: white;
+        font-weight: 900;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 6px 16px rgba(59,130,246,.3);
+    }
+
+        .btn-close-modal:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(59,130,246,.4);
+        }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 40px;
+        padding: 12px 28px;
+        background: rgba(15,23,42,.6);
+        color: var(--text);
+        border: 1px solid rgba(148,163,255,.3);
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+        .back-button:hover {
+            background: rgba(59,130,246,.2);
+            border-color: rgba(148,163,255,.5);
+            color: white;
+        }
+
+    @@media (max-width: 768px) {
+        .qr-container {
+            margin: 20px auto;
+        }
+
+        .ticket-info-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .qr-tab {
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .camera-init-state {
+            min-height: 400px;
+            padding: 40px 20px;
+        }
+
+        .camera-init-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .camera-init-button {
+            font-size: 16px;
+            padding: 14px 32px;
+        }
+
+        .qr-modal {
+            max-width: 90%;
+        }
+
+        .qr-modal-header {
+            padding: 20px;
+        }
+
+        .qr-modal-body {
+            padding: 20px;
+        }
+
+        .qr-modal-footer {
+            padding: 16px 20px;
+        }
+    }
+</style>
+<div class="qr-container">
+    <!-- Tabs -->
+    <div class="qr-tabs">
+        <button class="qr-tab active" onclick="switchTab('camera')">
+            <i class="fas fa-camera"></i> Máy ảnh quét mã QR
+        </button>
+        <button class="qr-tab" onclick="switchTab('upload')">
+            <i class="fas fa-image"></i> Tải lên hình ảnh mã QR
+        </button>
+    </div>
+
+    <!-- Camera Tab -->
+    <div class="qr-tab-content active" id="camera-tab">
+        <!-- STATE 1: Before Camera -->
+        <div class="camera-init-state" id="cameraInitState">
+            <div class="camera-init-icon">
+                <i class="fas fa-video"></i>
+            </div>
+            <button class="camera-init-button" onclick="startCamera()">
+                <i class="fas fa-play-circle"></i> Mở Camera
+            </button>
+        </div>
+
+        <!-- STATE 2: Camera Active -->
+        <div class="camera-active-state" id="cameraActiveState">
+            <div class="camera-viewport">
+                <video id="camera-video" playsinline></video>
+                <canvas id="qr-canvas"></canvas>
+                <div class="camera-overlay"></div>
+                <div class="scan-indicator">
+                    <i class="fas fa-circle-notch fa-spin"></i> Quét mã QR...
+                </div>
+            </div>
+
+            <div class="camera-controls">
+                <button class="camera-control-btn stop" onclick="stopCamera()">
+                    <i class="fas fa-stop-circle"></i> Dừng Camera
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Tab -->
+    <div class="qr-tab-content" id="upload-tab">
+        <div class="upload-area" id="upload-area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+            <input type="file" id="qr-file-input" class="upload-input" accept="image/*" onchange="handleFileUpload(event)">
+            <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <div class="upload-text">Tải lên hoặc kéo ảnh QR vào đây</div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div style="text-align: center;">
+        <a href="javascript:history.back()" class="back-button">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+</div>
+
+<!-- Validation Modal -->
+<div class="qr-modal-overlay" id="validationModal">
+    <div class="qr-modal">
+        <div class="qr-modal-header">
+            <div class="qr-modal-header-left">
+                <div class="qr-modal-status-icon" id="modalStatusIcon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="qr-modal-header-text">
+                    <h3 id="modalTitle">Vé hợp lệ</h3>
+                    <p id="modalSubtitle">Thông tin chi tiết vé</p>
+                </div>
+            </div>
+            <button class="qr-modal-close" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="qr-modal-body">
+            <div id="modalContent"></div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        let cameraStream = null;
+        let scanningActive = false;
+        let lastScannedQR = null;
+        let lastCanvasDataUrl = null; // store last captured canvas image
+        const QR_SCAN_COOLDOWN = 2000; // 2 seconds
+
+        function switchTab(tab) {
+            // Update tab buttons and content
+            document.querySelectorAll('.qr-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.qr-tab-content').forEach(c => c.classList.remove('active'));
+
+            event.target.closest('.qr-tab').classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+
+            // Stop scanner when leaving camera tab
+            if (tab === 'upload' && scanningActive) {
+                stopCamera();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+
+                const video = document.getElementById('camera-video');
+                video.srcObject = cameraStream;
+
+                // Show camera active state
+                document.getElementById('cameraInitState').style.display = 'none';
+                document.getElementById('cameraActiveState').classList.add('show');
+
+                // Start scanning when video is ready
+                video.onloadedmetadata = () => {
+                    video.play();
+                    scanningActive = true;
+                    scanQrCode();
+                };
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Không thể truy cập camera. Vui lòng kiểm tra quyền.');
+            }
+        }
+
+        function stopCamera() {
+            scanningActive = false;
+
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+
+            const video = document.getElementById('camera-video');
+            video.srcObject = null;
+
+            // Hide active state, show init state
+            document.getElementById('cameraActiveState').classList.remove('show');
+            document.getElementById('cameraInitState').style.display = 'flex';
+
+            lastScannedQR = null;
+            lastCanvasDataUrl = null;
+        }
+
+        function scanQrCode() {
+            if (!scanningActive) return;
+
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('qr-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // Use jsQR to decode
+            const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+            if (code && code.data) {
+                // Prevent scanning the same QR code multiple times
+                if (lastScannedQR !== code.data) {
+                    lastScannedQR = code.data;
+                    // capture current canvas image for download
+                    try {
+                        lastCanvasDataUrl = canvas.toDataURL('image/png');
+                    } catch (e) {
+                        lastCanvasDataUrl = null;
+                    }
+
+                    scanningActive = false; // Stop scanning
+                    validateQrCode(code.data);
+                    return;
+                }
+            }
+
+            // Continue scanning
+            requestAnimationFrame(scanQrCode);
+        }
+
+        function validateQrCode(qrContent) {
+            if (!qrContent || qrContent.trim().length === 0) {
+                showInvalidQr("Nội dung QR trống");
+                return;
+            }
+
+            const payload = {
+                qrContent: qrContent.trim()
+            };
+
+            fetch('/Admin/ValidateQrCode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.data) {
+                    showValidQr(data.data);
+                } else {
+                    showInvalidQr(data.message || "Vé không hợp lệ");
+                }
+            })
+            .catch(error => {
+                console.error('Error validating QR:', error);
+                showInvalidQr("Lỗi xử lý: " + error.message);
+            });
+        }
+
+        function showValidQr(ticketData) {
+            const modalContent = document.getElementById("modalContent");
+            const icon = document.getElementById("modalStatusIcon");
+            const title = document.getElementById("modalTitle");
+            const subtitle = document.getElementById("modalSubtitle");
+
+            icon.className = "qr-modal-status-icon valid";
+            icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            title.textContent = "Vé hợp lệ";
+            subtitle.textContent = "Thông tin chi tiết vé";
+
+            let snacksHtml = "";
+            if (ticketData.snacks && ticketData.snacks.length > 0) {
+                snacksHtml = `
+                    <div class="snacks-section">
+                        <div class="snacks-title">Đồ ăn đi kèm</div>
+                        <ul class="snacks-list">
+                            ${ticketData.snacks.map(s => `<li>${s}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            modalContent.innerHTML = `
+                <div class="ticket-info-grid">
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Phim</div>
+                        <div class="ticket-info-value">${escapeHtml(ticketData.movieTitle || "N/A")}</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Rạp / Phòng</div>
+                        <div class="ticket-info-value">${escapeHtml((ticketData.theaterName || "") + " / " + (ticketData.roomName || ""))}</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Ngày giờ chiếu</div>
+                        <div class="ticket-info-value">${escapeHtml((ticketData.showDate || "N/A") + " " + (ticketData.showTime || ""))}</div>
+                    </div>
+                    <div class="ticket-info-item full-width">
+                        <div class="ticket-info-label">Ghế</div>
+                        <div class="ticket-info-value">${escapeHtml(ticketData.seats || "N/A")}</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Khách hàng</div>
+                        <div class="ticket-info-value">${escapeHtml(ticketData.customerName || "N/A")}</div>
+                    </div>
+                    <div class="ticket-info-item">
+                        <div class="ticket-info-label">Email</div>
+                        <div class="ticket-info-value">${escapeHtml(ticketData.customerEmail || "N/A")}</div>
+                    </div>
+                        <div class="ticket-info-label">Ngày giờ đặt
+                        <div class="ticket-info-value">${escapeHtml((ticketData.bookingDate || "N/A") + " " + (ticketData.bookingTime || ""))}</div>
+                    </div>
+                </div>
+                ${snacksHtml}
+            `;
+
+            showModal();
+        }
+
+        function showInvalidQr(message) {
+            const modalContent = document.getElementById("modalContent");
+            const icon = document.getElementById("modalStatusIcon");
+            const title = document.getElementById("modalTitle");
+            const subtitle = document.getElementById("modalSubtitle");
+
+            icon.className = "qr-modal-status-icon invalid";
+            icon.innerHTML = '<i class="fas fa-times-circle"></i>';
+            title.textContent = "Vé không hợp lệ";
+            subtitle.textContent = "Xác thực thất bại";
+
+            modalContent.innerHTML = `
+                <div class="ticket-info-item full-width">
+                    <div class="ticket-info-label">Lỗi</div>
+                    <div class="ticket-info-value">${escapeHtml(message)}</div>
+                </div>
+            `;
+
+            showModal();
+        }
+
+        function showModal() {
+            const modal = document.getElementById("validationModal");
+            if (modal) {
+                modal.classList.add("show");
+            }
+            stopCamera(); // Stop camera when modal appears
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("validationModal");
+            if (modal) {
+                modal.classList.remove("show");
+            }
+        }
+
+        // Download captured QR frame (fixed filename)
+        function downloadQr() {
+            if (!lastCanvasDataUrl) {
+                alert('Không có ảnh QR để tải. Vui lòng quét lại.');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = lastCanvasDataUrl;
+            a.download = 'CinemaS_Tickets.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Upload handling
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('qr-file-input');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('upload-area').classList.add('drag-over');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('upload-area').classList.remove('drag-over');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('upload-area').classList.remove('drag-over');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload({ target: { files: files } });
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('qr-canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    try {
+                        lastCanvasDataUrl = canvas.toDataURL('image/png');
+                    } catch (e) {
+                        lastCanvasDataUrl = null;
+                    }
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+                    if (code) {
+                        validateQrCode(code.data);
+                    } else {
+                        showInvalidQr("Không thể đọc mã QR trong ảnh");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+}

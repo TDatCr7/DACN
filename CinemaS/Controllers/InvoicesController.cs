@@ -151,7 +151,7 @@ namespace CinemaS.Controllers
             </div>
 
             <div style='margin-bottom:14px;'>
-                <div style='font-weight:700; color:#fde047;'>Số vé</div>
+                <div style='font-weight:700; color:#fde047;'>Số ghế</div>
                 <div>{tickets.Count}</div>
             </div>
 

@@ -17,6 +17,9 @@ namespace CinemaS.Models.ViewModels
         public string? Message { get; set; }
 
         public TicketDetailVM? Detail { get; set; }
+
+        // QR Code Data
+        public string? QrImageBase64 { get; set; }
     }
 
     public class TicketDetailVM
@@ -49,6 +52,9 @@ namespace CinemaS.Models.ViewModels
         public decimal GrandTotal { get; set; }            // số tiền phải trả (sau giảm)
         public decimal OriginalAmount { get; set; }
         public decimal PayableAmount { get; set; }
+
+        // QR Code Data
+        public string? QrImageBase64 { get; set; }
     }
 
 

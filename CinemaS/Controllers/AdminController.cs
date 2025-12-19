@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +9,7 @@ using CinemaS.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
+using CinemaS.Services;
 
 namespace CinemaS.Controllers
 {
@@ -18,14 +18,16 @@ namespace CinemaS.Controllers
     {
         private readonly CinemaContext _db;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IQrTicketService _qrService;
 
         private static readonly TimeZoneInfo _vnTz =
             TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
 
-        public AdminController(CinemaContext db, UserManager<AppUser> userManager)
+        public AdminController(CinemaContext db, UserManager<AppUser> userManager, IQrTicketService qrService)
         {
             _db = db;
             _userManager = userManager;
+            _qrService = qrService;
         }
 
         public IActionResult Index()
@@ -745,5 +747,102 @@ namespace CinemaS.Controllers
             public List<AdminSnackRequest> Snacks { get; set; } = new();
         }
 
+        /* ===================== ADMIN QR SCAN ===================== */
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public IActionResult ScanQR()
+        {
+            return View("~/Views/Admin/ScanQR.cshtml");
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> ValidateQrCode([FromBody] ValidateQrRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.QrContent))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Nội dung QR trống hoặc không hợp lệ."
+                });
+            }
+
+            try
+            {
+                // Use existing QR validation service
+                var validationResult = await _qrService.ValidateQrAsync(request.QrContent);
+
+                if (!validationResult.IsValid)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = validationResult.ErrorMessage ?? "Vé không hợp lệ hoặc đã bị giả mạo."
+                    });
+                }
+
+                // Get snacks for this invoice
+                var snackItems = await _db.DetailBookingSnacks.AsNoTracking()
+                    .Where(d => d.InvoiceId == validationResult.InvoiceId)
+                    .Join(_db.Snacks.AsNoTracking(),
+                        d => d.SnackId,
+                        s => s.SnackId,
+                        (d, s) => new
+                        {
+                            Name = s.Name ?? "Snack",
+                            Quantity = d.TotalSnack ?? 0
+                        })
+                    .ToListAsync();
+
+                // Convert BookingDate to VN time (UTC+7)
+                var vnBookingDate = validationResult.BookingDate.HasValue ? TimeZoneInfo.ConvertTimeFromUtc(validationResult.BookingDate.Value, _vnTz) : (DateTime?)null;
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Vé hợp lệ",
+                    data = new
+                    {
+                        ticketCode = validationResult.TicketId,
+                        invoiceId = validationResult.InvoiceId,
+                        movieTitle = validationResult.MovieTitle,
+                        moviePoster = validationResult.MoviePoster,
+                        roomName = validationResult.RoomName,
+                        theaterName = validationResult.TheaterName,
+                        showDate = validationResult.ShowDate?.ToString("dd/MM/yyyy"),
+                        showTime = validationResult.ShowTime?.ToString("HH:mm"),
+                        seats = validationResult.SeatLabels != null ? string.Join(", ", validationResult.SeatLabels) : "N/A",
+                        totalPrice = validationResult.TotalPrice?.ToString("N0") ?? "0",
+                        snacks = snackItems.Any() 
+                            ? snackItems.Select(s => $"{s.Name} x {s.Quantity}").ToList() 
+                            : new List<string> { "Không có" },
+                        bookingDate = vnBookingDate?.ToString("dd/MM/yyyy"),
+                        bookingTime = vnBookingDate?.ToString("HH:mm"),
+                        customerName = validationResult.CustomerName,
+                        customerEmail = validationResult.CustomerEmail,
+                        customerPhone = validationResult.CustomerPhone,
+                        ticketStatus = validationResult.TicketStatus,
+                        ticketCount = validationResult.TicketCount ?? 0
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Lỗi xử lý: " + ex.Message
+                });
+            }
+        }
+
+    }
+
+    public class ValidateQrRequest
+    {
+        public string QrContent { get; set; } = default!;
     }
 }

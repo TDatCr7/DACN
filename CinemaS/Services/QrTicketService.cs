@@ -1,0 +1,412 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using CinemaS.Models;
+using CinemaS.Models.Settings;
+using CinemaS.Models.ViewModels;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using QRCoder;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using iText.IO.Image;
+using iText.Kernel.Colors;
+using iText.Kernel.Font;
+using iText.IO.Font.Constants;
+
+namespace CinemaS.Services
+{
+    public interface IQrTicketService
+    {
+        /// <summary>
+        /// Generate QR content for an invoice (containing all tickets)
+        /// </summary>
+        Task<QrTicketContent?> GenerateQrContentAsync(string invoiceId);
+
+        /// <summary>
+        /// Generate QR code image as PNG bytes
+        /// </summary>
+        byte[] GenerateQrImage(string qrContent, int pixelsPerModule = 10);
+
+        /// <summary>
+        /// Generate QR code image as Base64 string
+        /// </summary>
+        Task<string?> GenerateQrImageBase64Async(string invoiceId, int pixelsPerModule = 10);
+
+        /// <summary>
+        /// Validate QR content and return ticket information
+        /// </summary>
+        Task<QrValidationResult> ValidateQrAsync(string qrContent);
+
+        /// <summary>
+        /// Generate PDF ticket with QR code
+        /// </summary>
+        Task<byte[]?> GenerateTicketPdfAsync(string invoiceId);
+    }
+
+    public class QrTicketService : IQrTicketService
+    {
+        private readonly CinemaContext _context;
+        private readonly string _secretKey;
+
+        public QrTicketService(CinemaContext context, IOptions<QrSettings> qrSettings)
+        {
+            _context = context;
+            _secretKey = qrSettings.Value.SecretKey;
+
+            if (string.IsNullOrWhiteSpace(_secretKey))
+                throw new InvalidOperationException("QrSettings:SecretKey is not configured in appsettings.json");
+        }
+
+        #region QR Generation
+
+        public async Task<QrTicketContent?> GenerateQrContentAsync(string invoiceId)
+        {
+            if (string.IsNullOrWhiteSpace(invoiceId))
+                return null;
+
+            var invoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
+            if (invoice == null)
+                return null;
+
+            // Get first ticket to get movie info
+            var firstTicket = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .FirstOrDefaultAsync();
+
+            if (firstTicket == null)
+                return null;
+
+            // Get showtime and movie
+            var showTime = await _context.ShowTimes.AsNoTracking()
+                .FirstOrDefaultAsync(st => st.ShowTimeId == firstTicket.ShowTimeId);
+
+            if (showTime == null)
+                return null;
+
+            var movie = await _context.Movies.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MoviesId == showTime.MoviesId);
+
+            if (movie == null)
+                return null;
+
+            // Get all seat labels
+            var tickets = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoiceId)
+                .ToListAsync();
+
+            var seatIds = tickets.Select(t => t.SeatId).ToList();
+            var seatLabels = await _context.Seats.AsNoTracking()
+                .Where(s => seatIds.Contains(s.SeatId))
+                .Select(s => s.Label ?? s.SeatId)
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            // Create payload for encryption
+            var payload = new QrTicketPayload
+            {
+                TicketId = firstTicket.TicketId,
+                InvoiceId = invoiceId,
+                MovieId = movie.MoviesId,
+                ShowTimeId = showTime.ShowTimeId
+            };
+
+            // Encrypt payload
+            var cipherText = Encrypt(payload);
+
+            return new QrTicketContent
+            {
+                InvoiceId = invoiceId,
+                MovieName = movie.Title ?? "N/A",
+                Seats = string.Join(",", seatLabels),
+                CipherText = cipherText
+            };
+        }
+
+        public byte[] GenerateQrImage(string qrContent, int pixelsPerModule = 10)
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(qrContent, QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            return qrCode.GetGraphic(pixelsPerModule);
+        }
+
+        public async Task<string?> GenerateQrImageBase64Async(string invoiceId, int pixelsPerModule = 10)
+        {
+            var qrContent = await GenerateQrContentAsync(invoiceId);
+            if (qrContent == null)
+                return null;
+
+            var qrBytes = GenerateQrImage(qrContent.ToQrString(), pixelsPerModule);
+            return Convert.ToBase64String(qrBytes);
+        }
+
+        #endregion
+
+        #region QR Validation
+
+        public async Task<QrValidationResult> ValidateQrAsync(string qrContent)
+        {
+            if (string.IsNullOrWhiteSpace(qrContent))
+                return QrValidationResult.Invalid("Nội dung QR trống");
+
+            // Parse QR content
+            var parsed = QrTicketContent.FromQrString(qrContent);
+            if (parsed == null)
+                return QrValidationResult.Invalid("Định dạng QR không hợp lệ");
+
+            // Decrypt and validate
+            var payload = Decrypt(parsed.CipherText);
+            if (payload == null)
+                return QrValidationResult.Invalid("Vé không hợp lệ - Không thể giải mã");
+
+            // Validate invoice
+            var invoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == payload.InvoiceId);
+
+            if (invoice == null)
+                return QrValidationResult.Invalid("Vé không hợp lệ - Không tìm thấy hóa đơn");
+
+            if (payload.InvoiceId != parsed.InvoiceId)
+                return QrValidationResult.Invalid("Vé không hợp lệ - Mã hóa đơn không khớp");
+
+            // Get ticket info
+            var ticket = await _context.Tickets.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TicketId == payload.TicketId && t.InvoiceId == payload.InvoiceId);
+
+            if (ticket == null)
+                return QrValidationResult.Invalid("Vé không hợp lệ - Không tìm thấy vé");
+
+            // Validate showtime
+            var showTime = await _context.ShowTimes.AsNoTracking()
+                .FirstOrDefaultAsync(st => st.ShowTimeId == payload.ShowTimeId);
+
+            if (showTime == null || showTime.ShowTimeId != ticket.ShowTimeId)
+                return QrValidationResult.Invalid("Vé không hợp lệ - Suất chiếu không khớp");
+
+            // Validate movie
+            var movie = await _context.Movies.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.MoviesId == payload.MovieId);
+
+            if (movie == null || movie.MoviesId != showTime.MoviesId)
+                return QrValidationResult.Invalid("Vé không hợp lệ - Phim không khớp");
+
+            // Ensure movie title in QR string also matches to detect tampering
+            if (!string.Equals(parsed.MovieName?.Trim(), movie.Title?.Trim(), StringComparison.OrdinalIgnoreCase))
+                return QrValidationResult.Invalid("Vé không hợp lệ - Tên phim không khớp");
+
+            // Get all tickets for this invoice
+            var allTickets = await _context.Tickets.AsNoTracking()
+                .Where(t => t.InvoiceId == invoice.InvoiceId)
+                .ToListAsync();
+
+            // Get seat labels
+            var seatIds = allTickets.Select(t => t.SeatId).ToList();
+            var seatLabels = await _context.Seats.AsNoTracking()
+                .Where(s => seatIds.Contains(s.SeatId))
+                .Select(s => s.Label ?? s.SeatId)
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            // Get customer info
+            var customer = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserId == invoice.CustomerId);
+
+            // Get theater and room
+            var room = await _context.CinemaTheaters.AsNoTracking()
+                .FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTime.CinemaTheaterId);
+
+            MovieTheaters? theater = null;
+            if (room != null && !string.IsNullOrWhiteSpace(room.MovieTheaterId))
+            {
+                theater = await _context.MovieTheaters.AsNoTracking()
+                    .FirstOrDefaultAsync(mt => mt.MovieTheaterId == room.MovieTheaterId);
+            }
+
+            return new QrValidationResult
+            {
+                IsValid = true,
+                InvoiceId = invoice.InvoiceId,
+                TicketId = ticket.TicketId,
+                MovieTitle = movie.Title,
+                MoviePoster = movie.PosterImage,
+                SeatLabels = seatLabels,
+                CustomerName = customer?.FullName ?? "Khách hàng",
+                CustomerEmail = invoice.Email ?? customer?.Email,
+                CustomerPhone = invoice.PhoneNumber ?? customer?.PhoneNumber,
+                BookingDate = invoice.CreatedAt,
+                ShowDate = showTime.ShowDate,
+                ShowTime = showTime.StartTime,
+                TheaterName = theater?.Name ?? "N/A",
+                RoomName = room?.Name ?? "N/A",
+                TotalPrice = invoice.TotalPrice ?? 0,
+                TicketCount = allTickets.Count,
+                TicketStatus = ticket.Status
+            };
+        }
+
+        #endregion
+
+        #region PDF Generation
+
+        public async Task<byte[]?> GenerateTicketPdfAsync(string invoiceId)
+        {
+            var qrContent = await GenerateQrContentAsync(invoiceId);
+            if (qrContent == null)
+                return null;
+
+            var validation = await ValidateQrAsync(qrContent.ToQrString());
+            if (!validation.IsValid)
+                return null;
+
+            var qrImageBytes = GenerateQrImage(qrContent.ToQrString(), 8);
+
+            using var ms = new MemoryStream();
+            using var writer = new PdfWriter(ms);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf);
+
+            // Set page size
+            pdf.SetDefaultPageSize(iText.Kernel.Geom.PageSize.A5);
+
+            // Title
+            var title = new Paragraph("VÉ XEM PHIM - GL CINEMA")
+                .SetFontSize(18)
+                .SetBold()
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetMarginBottom(20);
+            document.Add(title);
+
+            // QR Code
+            var qrImage = new Image(ImageDataFactory.Create(qrImageBytes))
+                .SetWidth(120)
+                .SetHeight(120)
+                .SetHorizontalAlignment(HorizontalAlignment.CENTER);
+            document.Add(qrImage);
+
+            document.Add(new Paragraph().SetMarginBottom(15));
+
+            // Movie info
+            document.Add(CreateInfoParagraph("PHIM:", validation.MovieTitle ?? "N/A"));
+            document.Add(CreateInfoParagraph("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A"));
+            document.Add(CreateInfoParagraph("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A"));
+            document.Add(CreateInfoParagraph("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A"));
+            document.Add(CreateInfoParagraph("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A"));
+            document.Add(CreateInfoParagraph("RẠP:", validation.TheaterName ?? "N/A"));
+            document.Add(CreateInfoParagraph("PHÒNG:", validation.RoomName ?? "N/A"));
+            document.Add(CreateInfoParagraph("KHÁCH HÀNG:", validation.CustomerName ?? "N/A"));
+            document.Add(CreateInfoParagraph("EMAIL:", validation.CustomerEmail ?? "N/A"));
+            document.Add(CreateInfoParagraph("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A"));
+            document.Add(CreateInfoParagraph("TỔNG TIỀN:", $"{(validation.TotalPrice ?? 0):N0} VNĐ"));
+
+            // Footer note
+            var footer = new Paragraph("Vui lòng mang theo vé điện tử này khi đến rạp. Xuất trình mã QR để được kiểm tra vé.")
+                .SetFontSize(9)
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetMarginTop(20)
+                .SetFontColor(ColorConstants.GRAY);
+            document.Add(footer);
+
+            document.Close();
+            return ms.ToArray();
+        }
+
+        private Paragraph CreateInfoParagraph(string label, string value)
+        {
+            var p = new Paragraph()
+                .SetFontSize(11)
+                .SetMarginBottom(5);
+
+            p.Add(new Text(label + " ").SetBold());
+            p.Add(new Text(value));
+
+            return p;
+        }
+
+        #endregion
+
+        #region Encryption/Decryption
+
+        private string Encrypt(QrTicketPayload payload)
+        {
+            var plainText = $"{payload.TicketId}|{payload.InvoiceId}|{payload.MovieId}|{payload.ShowTimeId}|{_secretKey}";
+
+            using var aes = Aes.Create();
+            aes.Key = DeriveKey(_secretKey);
+            aes.GenerateIV();
+
+            using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            using var msEncrypt = new MemoryStream();
+
+            // Write IV first
+            msEncrypt.Write(aes.IV, 0, aes.IV.Length);
+
+            using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+            using (var swEncrypt = new StreamWriter(csEncrypt))
+            {
+                swEncrypt.Write(plainText);
+            }
+
+            return Convert.ToBase64String(msEncrypt.ToArray());
+        }
+
+        private QrTicketPayload? Decrypt(string cipherText)
+        {
+            try
+            {
+                var fullCipher = Convert.FromBase64String(cipherText);
+
+                using var aes = Aes.Create();
+                aes.Key = DeriveKey(_secretKey);
+
+                // Extract IV from the beginning
+                var iv = new byte[16];
+                Array.Copy(fullCipher, 0, iv, 0, iv.Length);
+                aes.IV = iv;
+
+                using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+                using var msDecrypt = new MemoryStream(fullCipher, iv.Length, fullCipher.Length - iv.Length);
+                using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
+                using var srDecrypt = new StreamReader(csDecrypt);
+
+                var plainText = srDecrypt.ReadToEnd();
+                var parts = plainText.Split('|');
+
+                if (parts.Length < 5)
+                    return null;
+
+                // Validate secret key
+                if (parts[4] != _secretKey)
+                    return null;
+
+                return new QrTicketPayload
+                {
+                    TicketId = parts[0],
+                    InvoiceId = parts[1],
+                    MovieId = parts[2],
+                    ShowTimeId = parts[3]
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static byte[] DeriveKey(string password)
+        {
+            using var sha256 = SHA256.Create();
+            return sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        }
+
+        #endregion
+    }
+}

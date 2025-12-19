@@ -350,7 +350,6 @@
 
 <body>
 	<div id="bg-glow"></div>
-
 	<header class="shell-top">
 		<div class="top-island-wrapper">
 			<div class="top-island">
@@ -376,7 +375,7 @@
 			 ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" &&
 			 ViewContext.RouteData.Values["action"]?.ToString() == "AdminSnacks"
 			 ? "active" : ""
-                                                          		 )"
+                                                          		 		 )"
 							   asp-controller="Admin" asp-action="AdminSnacks">
 								Đặt đồ ăn cho khách
 							</a>
@@ -387,7 +386,7 @@
 			 ViewContext.RouteData.Values["controller"]?.ToString() == "Booking" &&
 			 ViewContext.RouteData.Values["action"]?.ToString() == "Snacks"
 			 ? "active" : ""
-                                                          		 )"
+                                                          		 		 )"
 							   asp-controller="Booking" asp-action="Snacks">
 								Đặt đồ ăn
 							</a>
@@ -416,78 +415,11 @@
 			</div>
 		</div>
 	</header>
-
 	<main class="main-shell" role="main">
 		<div class="main-inner">
 			@RenderBody()
 		</div>
 	</main>
-
-	<footer>
-		<div class="container">
-			<div class="row g-4">
-				<div class="col-md-4">
-					<h6 class="footer-title">Thông tin liên hệ</h6>
-					<ul class="list-unstyled small">
-						<li><i class="fa-solid fa-location-dot me-2"></i> New Ohara Island, Tân Thế Giới</li>
-						<li><i class="fa-solid fa-phone me-2"></i> 0345 974 119</li>
-						<li><i class="fa-regular fa-envelope me-2"></i> tiendatcr712@gmail.com</li>
-					</ul>
-				</div>
-				@* THAY TOÀN BỘ cột "Liên kết nhanh" bằng cột "Cụm rạp" *@
-				<div class="col-md-4">
-					<h6 class="footer-title">Cụm rạp</h6>
-
-					@{
-						// DbSet có thể là Db.MovieTheaters (đúng theo model MovieTheaters).
-						// Nếu CinemaContext đặt tên khác, đổi lại cho đúng DbSet trong CinemaContext.
-						var theaters = await Db.MovieTheaters
-						.AsNoTracking()
-						.Where(t => (t.Status ?? 1) == 1)
-						.OrderBy(t => t.Name)
-						.Select(t => new { t.MovieTheaterId, t.Name })
-						.Take(8)
-						.ToListAsync();
-					}
-
-					@if (theaters == null || theaters.Count == 0)
-					{
-						<div class="small" style="color: var(--muted);">Không có dữ liệu cụm rạp.</div>
-					}
-					else
-					{
-						<ul class="list-unstyled small">
-							@foreach (var t in theaters)
-							{
-								<li class="mb-1">
-									<a class="footer-link"
-									   asp-controller="MovieTheaters"
-									   asp-action="Details"
-									   asp-route-id="@t.MovieTheaterId">
-										@t.Name
-									</a>
-								</li>
-							}
-						</ul>
-					}
-				</div>
-
-				<div class="col-md-4">
-					<h6 class="footer-title">Kết nối với chúng tôi</h6>
-					<div class="d-flex gap-3 fs-4 mb-3">
-						<a href="#" class="footer-link"><i class="fab fa-youtube"></i></a>
-						<a href="#" class="footer-link"><i class="fab fa-facebook-f"></i></a>
-						<a href="#" class="footer-link"><i class="fab fa-tiktok"></i></a>
-						<a href="#" class="footer-link"><i class="fab fa-instagram"></i></a>
-					</div>
-				</div>
-			</div>
-			<div class="footer-bottom d-flex justify-content-between align-items-center">
-				<div>© @DateTime.Now.Year - <strong>CinemaS</strong>. All rights reserved.</div>
-				<div><a class="footer-link" asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a></div>
-			</div>
-		</div>
-	</footer>
 
 	<button id="backToTop"><i class="fa-solid fa-arrow-up"></i></button>
 

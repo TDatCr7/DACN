@@ -1,0 +1,431 @@
+@{
+    ViewData["Title"] = "Quét mã QR vé";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .scanner-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .scanner-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .scanner-header h1 {
+        font-size: 28px;
+        font-weight: 900;
+        background: linear-gradient(120deg, #facc15, #f97316);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+
+    .scanner-header p {
+        color: #9ca3af;
+        font-size: 14px;
+    }
+
+    .scanner-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .scanner-card {
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.18), transparent 55%), rgba(2,6,23,.92);
+        border: 1px solid rgba(148,163,255,.28);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 18px 45px rgba(15,23,42,.85);
+    }
+
+    .scanner-card-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #e5e7eb;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .scanner-card-title i {
+        color: #facc15;
+    }
+
+    .scanner-input-area {
+        margin-bottom: 20px;
+    }
+
+    .scanner-input-area label {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        color: #c7d2fe;
+        margin-bottom: 8px;
+    }
+
+    .scanner-input-area textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,255,.35);
+        background: rgba(15,23,42,.92);
+        color: #e5e7eb;
+        font-size: 14px;
+        font-family: monospace;
+        resize: vertical;
+    }
+
+    .scanner-input-area textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59,130,246,.3);
+    }
+
+    .scanner-btn {
+        width: 100%;
+        padding: 14px 24px;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+        color: #fff;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: all .2s ease;
+    }
+
+    .scanner-btn:hover {
+        filter: brightness(1.1);
+        transform: translateY(-2px);
+    }
+
+    .scanner-btn:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Result area */
+    .result-area {
+        min-height: 400px;
+    }
+
+    .result-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: #6b7280;
+    }
+
+    .result-empty i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: .5;
+    }
+
+    .result-valid {
+        animation: fadeIn .3s ease;
+    }
+
+    .result-invalid {
+        animation: shake .3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @@keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    .result-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 14px;
+        margin-bottom: 20px;
+    }
+
+    .result-status.success {
+        background: rgba(16,185,129,.15);
+        border: 1px solid rgba(16,185,129,.4);
+        color: #10b981;
+    }
+
+    .result-status.error {
+        background: rgba(239,68,68,.15);
+        border: 1px solid rgba(239,68,68,.4);
+        color: #ef4444;
+    }
+
+    .result-status i {
+        font-size: 24px;
+    }
+
+    .result-status-text {
+        font-weight: 800;
+        font-size: 15px;
+    }
+
+    .ticket-info {
+        display: grid;
+        gap: 12px;
+    }
+
+    .ticket-info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: rgba(15,23,42,.55);
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,255,.15);
+    }
+
+    .ticket-info-label {
+        color: #9ca3af;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .ticket-info-value {
+        color: #e5e7eb;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: right;
+        max-width: 60%;
+        word-break: break-word;
+    }
+
+    .ticket-info-value.highlight {
+        color: #facc15;
+    }
+
+    @@media (max-width: 768px) {
+        .scanner-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="scanner-container">
+    <div class="scanner-header">
+        <h1><i class="fas fa-qrcode"></i> QUÉT MÃ QR VÉ</h1>
+        <p>Nhập hoặc quét mã QR từ vé điện tử để xác minh</p>
+    </div>
+
+    <div class="scanner-layout">
+        <!-- Input Area -->
+        <div class="scanner-card">
+            <div class="scanner-card-title">
+                <i class="fas fa-keyboard"></i>
+                Nhập nội dung QR
+            </div>
+
+            <div class="scanner-input-area">
+                <label for="qrInput">Nội dung mã QR (quét hoặc paste vào đây)</label>
+                <textarea id="qrInput" placeholder="INV001|Wukong|A1,A2|ENCRYPTED_CIPHER_TEXT..."></textarea>
+            </div>
+
+            <button type="button" class="scanner-btn" id="btnValidate" onclick="validateQr()">
+                <i class="fas fa-search"></i>
+                Xác minh vé
+            </button>
+
+            <div style="margin-top: 16px; text-align: center;">
+                <span style="color: #6b7280; font-size: 12px;">
+                    Hỗ trợ quét bằng máy quét mã vạch hoặc paste trực tiếp
+                </span>
+            </div>
+        </div>
+
+        <!-- Result Area -->
+        <div class="scanner-card result-area">
+            <div class="scanner-card-title">
+                <i class="fas fa-ticket-alt"></i>
+                Kết quả xác minh
+            </div>
+
+            <div id="resultContent">
+                <div class="result-empty">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Chưa có kết quả</span>
+                    <span style="font-size: 12px; margin-top: 8px;">Nhập mã QR và bấm "Xác minh vé"</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const qrInput = document.getElementById('qrInput');
+        const btnValidate = document.getElementById('btnValidate');
+        const resultContent = document.getElementById('resultContent');
+
+        // Auto-validate when Enter is pressed
+        qrInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                validateQr();
+            }
+        });
+
+        async function validateQr() {
+            const content = qrInput.value.trim();
+            if (!content) {
+                showError('Vui lòng nhập nội dung mã QR');
+                return;
+            }
+
+            btnValidate.disabled = true;
+            btnValidate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xác minh...';
+
+            try {
+                const response = await fetch('/Qr/Validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ qrContent: content })
+                });
+
+                const data = await response.json();
+
+                if (data.isValid) {
+                    showSuccess(data);
+                } else {
+                    showError(data.errorMessage || 'Vé không hợp lệ');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            } finally {
+                btnValidate.disabled = false;
+                btnValidate.innerHTML = '<i class="fas fa-search"></i> Xác minh vé';
+            }
+        }
+
+        function showError(message) {
+            resultContent.innerHTML = `
+                <div class="result-invalid">
+                    <div class="result-status error">
+                        <i class="fas fa-times-circle"></i>
+                        <span class="result-status-text">${message}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showSuccess(data) {
+            const showDate = data.showDate ? new Date(data.showDate).toLocaleDateString('vi-VN') : 'N/A';
+            const showTime = data.showTime ? new Date(data.showTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+            const bookingDate = data.bookingDate ? new Date(data.bookingDate).toLocaleString('vi-VN') : 'N/A';
+            const totalPrice = data.totalPrice ? data.totalPrice.toLocaleString('vi-VN') + ' VNĐ' : 'N/A';
+            const seats = data.seatLabels ? data.seatLabels.join(', ') : 'N/A';
+
+            let statusBadge = '';
+            switch (data.ticketStatus) {
+                case 1:
+                    statusBadge = '<span style="color:#fbbf24;">⏳ Chưa thanh toán</span>';
+                    break;
+                case 2:
+                    statusBadge = '<span style="color:#10b981;">✓ Đã thanh toán</span>';
+                    break;
+                case 3:
+                    statusBadge = '<span style="color:#ef4444;">✗ Đã hủy</span>';
+                    break;
+                case 4:
+                    statusBadge = '<span style="color:#6b7280;">⏰ Hết hạn</span>';
+                    break;
+                default:
+                    statusBadge = '<span style="color:#10b981;">✓ Hợp lệ</span>';
+            }
+
+            resultContent.innerHTML = `
+                <div class="result-valid">
+                    <div class="result-status success">
+                        <i class="fas fa-check-circle"></i>
+                        <span class="result-status-text">VÉ HỢP LỆ</span>
+                    </div>
+
+                    <div class="ticket-info">
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Mã hóa đơn</span>
+                            <span class="ticket-info-value highlight">${data.invoiceId || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Phim</span>
+                            <span class="ticket-info-value">${data.movieTitle || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Ghế</span>
+                            <span class="ticket-info-value highlight">${seats}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Số vé</span>
+                            <span class="ticket-info-value">${data.ticketCount || 0}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Ngày chiếu</span>
+                            <span class="ticket-info-value">${showDate}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Giờ chiếu</span>
+                            <span class="ticket-info-value">${showTime}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Rạp</span>
+                            <span class="ticket-info-value">${data.theaterName || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Phòng</span>
+                            <span class="ticket-info-value">${data.roomName || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Khách hàng</span>
+                            <span class="ticket-info-value">${data.customerName || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Email</span>
+                            <span class="ticket-info-value">${data.customerEmail || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">SĐT</span>
+                            <span class="ticket-info-value">${data.customerPhone || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Ngày đặt</span>
+                            <span class="ticket-info-value">${bookingDate}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Tổng tiền</span>
+                            <span class="ticket-info-value highlight">${totalPrice}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Trạng thái</span>
+                            <span class="ticket-info-value">${statusBadge}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Focus input on page load
+        qrInput.focus();
+    </script>
+}
