@@ -1,9 +1,9 @@
-﻿@model IEnumerable<CinemaS.ViewModels.AdminUsers.AdminUserListItemVm>
+﻿@* Views/AdminUsers/Index.cshtml (FIX: Razor block để hết lỗi CS0103 role/page/totalPages) *@
+@model IEnumerable<CinemaS.ViewModels.AdminUsers.AdminUserListItemVm>
 
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Quản lý tài khoản";
-}
 
     var role = (ViewBag.Role as string) ?? "";
     var page = (int)(ViewBag.CurrentPage ?? 1);
@@ -36,19 +36,17 @@
                   class="admin-search-shell d-flex gap-2 align-items-center"
                   id="adminFilterForm">
 
-                <!-- SEARCH -->
                 <div class="input-group admin-search-compact">
                     <input type="text"
                            name="search"
                            class="form-control admin-search-input"
                            placeholder="Tìm theo tên, email, username"
-                           value="@Context.Request.Query["search"]" />
+                           value="@search" />
                     <button class="admin-search-btn" type="submit">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </div>
 
-                <!-- ROLE FILTER (AUTO LOAD) -->
                 <select name="role"
                         class="form-select admin-role-filter"
                         id="roleFilter">
@@ -57,10 +55,8 @@
                     <option value="User" selected="@(role == "User")">User</option>
                 </select>
 
-                <!-- reset page về 1 khi lọc -->
                 <input type="hidden" name="page" value="1" />
             </form>
-
 
             <div class="d-flex gap-2">
                 <a asp-controller="AdminUsers" asp-action="Create"
@@ -78,7 +74,6 @@
             </div>
         </div>
 
-
         <div class="admin-table-wrap">
             <table class="table admin-table align-middle">
                 <thead>
@@ -87,7 +82,7 @@
                         <th><i class="fa-solid fa-envelope"></i>Email</th>
                         <th><i class="fa-solid fa-user-gear"></i>Role</th>
                         <th><i class="fa-solid fa-shield-halved"></i>Xác thực email</th>
-                        <th style="width:150px;">
+                        <th class="col-actions" style="width:150px;">
                             <i class="fa-solid fa-ellipsis-vertical"></i> Thao tác
                         </th>
                     </tr>
@@ -163,20 +158,49 @@
                 </tbody>
             </table>
         </div>
+
+        @* pager nếu cần (đang có totalPages/page từ ViewBag) *@
+        @if (totalPages > 1)
+        {
+            <div class="history-pager" style="justify-content:center;margin-top:16px;">
+                <a class="history-page-btn @(page <= 1 ? "is-disabled" : "")"
+                   asp-action="Index"
+                   asp-route-search="@search"
+                   asp-route-role="@role"
+                   asp-route-page="@(page - 1)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <a class="history-page-btn @(p == page ? "is-active" : "")"
+                       asp-action="Index"
+                       asp-route-search="@search"
+                       asp-route-role="@role"
+                       asp-route-page="@p">
+                        @p
+                    </a>
+                }
+
+                <a class="history-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                   asp-action="Index"
+                   asp-route-search="@search"
+                   asp-route-role="@role"
+                   asp-route-page="@(page + 1)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+            </div>
+        }
     </div>
 </div>
+
 @section Scripts {
     <script>
         (function () {
             const roleSelect = document.getElementById('roleFilter');
             const form = document.getElementById('adminFilterForm');
-
             if (!roleSelect || !form) return;
-
-            roleSelect.addEventListener('change', function () {
-                form.submit();
-            });
+            roleSelect.addEventListener('change', function () { form.submit(); });
         })();
     </script>
 }
-
