@@ -58,6 +58,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0"><i class="fas fa-ticket-alt"></i> Quản lý Vé</h1>
+
         <div class="d-flex gap-2">
             <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Quay lại
@@ -147,6 +148,15 @@
                         @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()) || !string.IsNullOrEmpty(ViewData["FromDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["ToDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["StatusFilter"]?.ToString()))
                         {
                             <a href="@Url.Action("Index")" class="btn btn-outline-danger"><i class="fas fa-times"></i> Xóa bộ lọc</a>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        @if (Model != null && Model.Any())
+                        {
+                            <div class="text-white">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Tổng số vé: @totalItems</strong>
+                            </div>
                         }
                     </div>
                 </div>
@@ -257,15 +267,6 @@
         </div>
     }
 
-    <div class="d-flex justify-content-between mt-4">
-        @if (Model != null && Model.Any())
-        {
-            <div class="text-white">
-                <i class="fas fa-info-circle"></i>
-                <strong>Tổng số vé: @totalItems</strong>
-            </div>
-        }
-    </div>
 </div>
 
 @section Scripts {

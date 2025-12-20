@@ -3,6 +3,14 @@
 @{
     ViewData["Title"] = "Chi tiết suất chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    
+    // Calculate adjustment display
+    var hasAdjustment = Model.PriceAdjustmentPercent.HasValue && Model.PriceAdjustmentPercent.Value != 0;
+    var adjustmentText = hasAdjustment 
+        ? (Model.PriceAdjustmentPercent > 0 ? $"+{Model.PriceAdjustmentPercent}%" : $"{Model.PriceAdjustmentPercent}%")
+        : "Không điều chỉnh (0%)";
+    
+    var seatTypes = ViewBag.SeatTypes as IEnumerable<dynamic>;
 }
 
 <!-- CSS -->
@@ -64,9 +72,20 @@
                                 </tr>
                                 <tr>
                                     <td style="font-weight: 700;">
-                                        <i class="fa-solid fa-money-bill"></i> Giá gốc
+                                        <i class="fa-solid fa-percent"></i> Điều chỉnh giá
                                     </td>
-                                    <td>@(Model.OriginPrice?.ToString("N0") ?? "N/A") VNĐ</td>
+                                    <td>
+                                        @if (hasAdjustment)
+                                        {
+                                            <span class="badge @(Model.PriceAdjustmentPercent > 0 ? "bg-warning text-dark" : "bg-success")">
+                                                @adjustmentText
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-style: italic;">@adjustmentText</span>
+                                        }
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td style="font-weight: 700;">
@@ -92,3 +111,23 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        function stripFractional(value) {
+            if (!value) return '';
+            // Allow + or - at start
+            const match = value.match(/^([+-]?)(\d+)/);
+            return match ? (match[1] || '') + match[2] : '';
+        }
+
+        // On load, ensure displayed value has no decimals
+        document.addEventListener('DOMContentLoaded', () => {
+            if (priceAdjustmentInput) {
+                priceAdjustmentInput.value = stripFractional(priceAdjustmentInput.value) || '0';
+                updateAdjustedPrices();
+            }
+        });
+	</script>
+    }

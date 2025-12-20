@@ -21,6 +21,16 @@ namespace CinemaS.Models
         [StringLength(10)]
         public string CinemaTheaterId { get; set; }
         public int? OriginPrice { get; set; }
+        
+        /// <summary>
+        /// Price adjustment percentage for this showtime.
+        /// Range: -100 to 100. 
+        /// Example: 10 means +10% price increase, -20 means 20% discount.
+        /// FinalPrice = BasePrice * (1 + PriceAdjustmentPercent / 100)
+        /// </summary>
+        [Column("Price_Adjustment_Percent")]
+        public decimal? PriceAdjustmentPercent { get; set; }
+        
         [Column("Show_Date")]
         public DateTime? ShowDate { get; set; }
         [Column("Start_Time")]

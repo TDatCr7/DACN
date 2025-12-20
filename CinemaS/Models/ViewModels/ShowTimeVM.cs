@@ -13,6 +13,13 @@ namespace CinemaS.Models.ViewModels
         public DateTime? EndTime { get; set; }
         public int? Price { get; set; } // ✅ Thêm giá vé
         public int? OriginPrice { get; set; }
+        
+        /// <summary>
+        /// Price adjustment percentage for this showtime.
+        /// Range: -100 to 100.
+        /// </summary>
+        public decimal? PriceAdjustmentPercent { get; set; }
+        
         public int? TotalSeats { get; set; } // ✅ Thêm tổng ghế
         public int? TotalCinema { get; set; }
         public int? AvailableSeats { get; set; }

@@ -1,6 +1,7 @@
 using CinemaS.Models;
 using CinemaS.Models.Email;
 using CinemaS.Models.Payments;
+using CinemaS.Models.Settings;
 using CinemaS.Services;
 using CinemaS.VNPAY;
 using Microsoft.AspNetCore.Identity;
@@ -38,7 +39,13 @@ builder.Services.AddSingleton<VnPayLibrary>();
 
 // cấu hình EmailSender (dùng Gmail)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-builder.Services.AddTransient<IEmailSender, GmailEmailSender>();
+builder.Services.AddTransient<GmailEmailSender>();
+builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<GmailEmailSender>());
+builder.Services.AddTransient<IEmailSenderWithAttachment>(sp => sp.GetRequiredService<GmailEmailSender>());
+
+// cấu hình QR Ticket Service
+builder.Services.Configure<QrSettings>(builder.Configuration.GetSection("QrSettings"));
+builder.Services.AddScoped<IQrTicketService, QrTicketService>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
