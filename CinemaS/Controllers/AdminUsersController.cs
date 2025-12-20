@@ -28,7 +28,7 @@ namespace CinemaS.Controllers
         private static readonly TimeSpan RoleOtpLifetime = TimeSpan.FromMinutes(5);   // OTP sống 5p (gửi/nhập)
         private static readonly TimeSpan RoleChangeWindow = TimeSpan.FromMinutes(3);  // cửa sổ đổi quyền 3p
         private static readonly TimeSpan RoleOtpCooldown = TimeSpan.FromSeconds(30);  // chống spam gửi lại
-
+        private const int pageSize = 8;
         public AdminUsersController(
         UserManager<AppUser> userManager,
         RoleManager<IdentityRole> roleManager,
@@ -44,6 +44,8 @@ namespace CinemaS.Controllers
 
         public async Task<IActionResult> Index(string? search, string? role, int page = 1)
         {
+            if (page < 1) page = 1;
+
             var query = _userManager.Users.AsQueryable();
 
             // search filter
@@ -55,6 +57,24 @@ namespace CinemaS.Controllers
                     (u.UserName ?? "").Contains(search));
             }
 
+            // ✅ role filter (lọc theo quyền)
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                var userIdsInRole = await (from ur in _context.UserRoles
+                                           join r in _context.Roles on ur.RoleId equals r.RoleId
+                                           where r.Name == role
+                                           select ur.UserId)
+                                         .Distinct()
+                                         .ToListAsync();
+
+                query = query.Where(u => userIdsInRole.Contains(u.Id));
+            }
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            if (totalPages < 1) totalPages = 1;
+            if (page > totalPages) page = totalPages;
+
             var users = await query
                 .OrderBy(u => u.FullName)
                 .Skip((page - 1) * pageSize)
@@ -65,7 +85,7 @@ namespace CinemaS.Controllers
 
             foreach (var user in users)
             {
-                var roles = await _userManager.GetRolesAsync(user);
+                var rolesOfUser = await _userManager.GetRolesAsync(user);
 
                 vms.Add(new AdminUserListItemVm
                 {
@@ -74,9 +94,16 @@ namespace CinemaS.Controllers
                     Email = user.Email,
                     EmailConfirmed = user.EmailConfirmed,
                     LockoutEnabled = user.LockoutEnabled,
-                    Roles = roles
+                    Roles = rolesOfUser
                 });
             }
+
+            // ✅ ViewBag cho Index.cshtml
+            ViewBag.Role = role ?? "";
+            ViewBag.Search = search ?? "";
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
 
             ViewData["Title"] = "Quản lý tài khoản";
             return View(vms);

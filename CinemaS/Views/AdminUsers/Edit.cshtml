@@ -1,13 +1,243 @@
-﻿@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
+﻿@* Views/AdminUsers/Edit.cshtml (FIX: popup center + bỏ nút dưới (Quay lại/Lưu) vì đã có nút trên) *@
+@model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
 @{
     ViewData["Title"] = "Chỉnh sửa tài khoản";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<style>
+    #roleOtpBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2,6,23,.78);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 1050;
+        display: none; /* mở bằng JS */
+        padding: 16px;
+    }
+
+        #roleOtpBackdrop.is-open {
+            display: flex;
+        }
+
+        #roleOtpBackdrop .role-otp-wrap {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+        }
+
+        #roleOtpBackdrop .role-otp-card {
+            width: 100%;
+            max-width: 520px;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(148,163,255,.45);
+            background: radial-gradient(circle at 0 0, rgba(59,92,204,.22), transparent 60%), radial-gradient(circle at 100% 0, rgba(124,58,237,.18), transparent 60%), #020617;
+            box-shadow: 0 22px 60px rgba(15,23,42,.85), 0 0 0 1px rgba(15,23,42,.75);
+            color: #e9ecf6;
+        }
+
+        #roleOtpBackdrop .role-otp-header {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: radial-gradient(circle at 10% 10%, rgba(59,92,204,.35), transparent 60%), radial-gradient(circle at 90% 10%, rgba(124,58,237,.28), transparent 60%), rgba(2,6,23,.95);
+            border-bottom: 1px solid rgba(148,163,255,.18);
+            font-weight: 900;
+            letter-spacing: .2px;
+        }
+
+        #roleOtpBackdrop .role-otp-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            border: 1px solid rgba(148,163,255,.25);
+            background: rgba(15,23,42,.75);
+            color: #e9ecf6;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: .15s ease;
+        }
+
+            #roleOtpBackdrop .role-otp-close:hover {
+                filter: brightness(1.08);
+                transform: translateY(-1px);
+            }
+
+        #roleOtpBackdrop .role-otp-body {
+            padding: 16px 16px 14px;
+        }
+
+        #roleOtpBackdrop .admin-input {
+            background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
+            border-radius: 14px;
+            border: 1px solid rgba(148,163,255,.35);
+            color: #e9ecf6;
+            font-weight: 800;
+        }
+
+            #roleOtpBackdrop .admin-input:focus {
+                outline: none;
+                border-color: rgba(59,92,204,.92);
+                box-shadow: 0 0 0 1px rgba(59,92,204,.35), 0 0 0 6px rgba(59,92,204,.14);
+            }
+
+        #roleOtpBackdrop .otp-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        /* disable button look */
+        #roleOtpBackdrop .btn[disabled],
+        #roleOtpBackdrop button[disabled] {
+            opacity: .55;
+            pointer-events: none;
+        }
+        /* ==== OTP POPUP: tăng độ sáng chữ + tương phản input ==== */
+        #roleOtpBackdrop .role-otp-card {
+            color: #e9ecf6; /* chữ sáng mặc định */
+        }
+
+        #roleOtpBackdrop .role-otp-header {
+            color: #f8fafc;
+        }
+
+            #roleOtpBackdrop .role-otp-header i {
+                color: #c7d2fe;
+            }
+
+        /* đoạn mô tả */
+        #roleOtpBackdrop .role-otp-body {
+            color: rgba(241,245,249,.92);
+        }
+
+            #roleOtpBackdrop .role-otp-body .mb-2 {
+                color: rgba(226,232,240,.92) !important;
+            }
+
+        /* label */
+        #roleOtpBackdrop .form-label {
+            color: #f1f5ff !important;
+            font-weight: 900;
+        }
+
+        /* input OTP: chữ + placeholder sáng hơn */
+        #roleOtpBackdrop .admin-input {
+            color: #f8fafc !important;
+            font-weight: 900 !important;
+        }
+
+            #roleOtpBackdrop .admin-input::placeholder {
+                color: rgba(226,232,240,.55) !important;
+                font-weight: 800;
+            }
+
+        /* dòng message */
+        #roleOtpBackdrop #otpMsg {
+            color: rgba(241,245,249,.92) !important;
+        }
+
+        /* cooldown text */
+        #roleOtpBackdrop #otpCooldownText {
+            color: rgba(226,232,240,.80) !important;
+        }
+
+        /* nút Đóng dạng outline: chữ sáng */
+        #roleOtpBackdrop .btn.btn-outline-light {
+            color: #f8fafc !important;
+            border-color: rgba(226,232,240,.55) !important;
+        }
+
+            #roleOtpBackdrop .btn.btn-outline-light:hover {
+                color: #ffffff !important;
+                border-color: rgba(148,163,255,.75) !important;
+            }
+        /* ==== OTP POPUP – FIX NÚT GỬI OTP & XÁC MINH (DỄ NHÌN, RÕ TRẠNG THÁI) ==== */
+
+        /* nút GỬI OTP */
+        #roleOtpBackdrop #btnSendOtp {
+            background: linear-gradient(120deg,#3b82f6,#6366f1);
+            color: #ffffff !important;
+            font-weight: 900;
+            border: none;
+            box-shadow: 0 6px 18px rgba(59,130,246,.45);
+        }
+
+            #roleOtpBackdrop #btnSendOtp:hover {
+                filter: brightness(1.1);
+            }
+
+            #roleOtpBackdrop #btnSendOtp:disabled {
+                opacity: .45;
+                box-shadow: none;
+                cursor: not-allowed;
+            }
+
+        /* nút XÁC MINH */
+        #roleOtpBackdrop #btnVerifyOtp {
+            background: linear-gradient(120deg,#22c55e,#16a34a);
+            color: #ffffff !important;
+            font-weight: 900;
+            border: none;
+            box-shadow: 0 6px 18px rgba(34,197,94,.45);
+        }
+
+            #roleOtpBackdrop #btnVerifyOtp:hover {
+                filter: brightness(1.1);
+            }
+
+            #roleOtpBackdrop #btnVerifyOtp:disabled {
+                opacity: .45;
+                box-shadow: none;
+                cursor: not-allowed;
+            }
+
+            /* icon trong nút */
+            #roleOtpBackdrop #btnSendOtp i,
+            #roleOtpBackdrop #btnVerifyOtp i {
+                color: #ffffff;
+            }
+
+        /* trạng thái thành công / lỗi */
+        #roleOtpBackdrop #otpMsg.success {
+            color: #4ade80 !important;
+        }
+
+        #roleOtpBackdrop #otpMsg.error {
+            color: #f87171 !important;
+        }
+
+        /* giữ nút Đóng rõ ràng */
+        #roleOtpBackdrop .btn.btn-outline-light {
+            color: #f8fafc !important;
+            border-color: rgba(226,232,240,.55) !important;
+        }
+
+            #roleOtpBackdrop .btn.btn-outline-light:hover {
+                border-color: #c7d2fe !important;
+                color: #ffffff !important;
+            }
+
+    .role-chip.is-disabled {
+        opacity: .55;
+        pointer-events: none;
+        filter: grayscale(.15);
+    }
+</style>
+
 <div class="admin-shell admin-form-wrap">
     <div class="admin-panel">
 
-        @* ONE PANEL: header + content inside, title left, remove subnote *@
         <div class="admin-toolbar" style="margin-bottom:10px;">
             <div style="display:flex;align-items:center;gap:10px;">
                 <h1 style="margin:0;font-weight:900;">
@@ -34,14 +264,13 @@
 
         <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
 
+        @{
+            var isAdminRole = Model.SelectedRoles != null &&
+            Model.SelectedRoles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase));
+            var accountType = isAdminRole ? "Tài khoản siêu cấp" : "Tài khoản người thường";
+        }
+
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
-
-            @{
-                var isAdminRole = Model.SelectedRoles != null &&
-                Model.SelectedRoles.Any(r => string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase));
-                var accountType = isAdminRole ? "Tài khoản siêu cấp" : "Tài khoản người thường";
-            }
-
             <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                 Thông tin tài khoản
                 <span class="ms-2 role-chip" style="cursor:default;">
@@ -76,7 +305,6 @@
 
                     <div class="col-md-6">
                         <label asp-for="DateOfBirth" class="form-label">Ngày sinh</label>
-
                         <div class="cine-input-group">
                             <input asp-for="DateOfBirth" type="date" class="form-control" />
                             <button type="button"
@@ -125,53 +353,48 @@
                     </button>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 mt-2">
                     <div class="field-group">
-                        <label class="form-label">Phân quyền (Roles)</label>
-                        <div class="d-flex flex-wrap">
-                            @foreach (var role in Model.AllRoles)
+                        
+                        <div class="d-flex flex-wrap" id="rolesWrap">
+                            @foreach (var rname in Model.AllRoles)
                             {
-                                var checkedRole = Model.SelectedRoles?.Contains(role) == true;
-                                <label class="role-chip">
+                                var checkedRole = Model.SelectedRoles?.Contains(rname) == true;
+                                <label class="role-chip js-role-chip">
                                     <input type="checkbox"
+                                           class="js-role-checkbox"
                                            name="SelectedRoles"
-                                           value="@role"
+                                           value="@rname"
                                            @(checkedRole ? "checked" : "") />
-                                    <span>@role</span>
+                                    <span>@rname</span>
                                 </label>
                             }
                         </div>
                     </div>
                 </div>
-            </div>
+            </form>
+        </div>
 
-            <div class="mt-4 d-flex justify-content-between align-items-center action-row">
-                <button type="button" class="btn btn-outline-light" onclick="history.back()">
-                    <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
-                </button>
-                <button type="submit" class="btn btn-gradient">
-                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu
-                </button>
-            </div>
-        </form>
     </div>
 </div>
-<div id="roleOtpBackdrop">
-    <div class="role-otp-wrap">
+
+@* OTP Modal *@
+<div id="roleOtpBackdrop" aria-hidden="true">
+    <div class="role-otp-wrap" role="dialog" aria-modal="true" aria-labelledby="otpTitle">
         <div class="role-otp-card">
             <div class="role-otp-header">
-                <span><i class="fa-solid fa-shield-keyhole me-2"></i>Xác minh Gmail để đổi quyền</span>
-                <button type="button" class="role-otp-close" id="btnCloseOtp">
+                <span id="otpTitle"><i class="fa-solid fa-shield-keyhole me-2"></i>Xác minh Gmail để đổi quyền</span>
+                <button type="button" class="role-otp-close" id="btnCloseOtp" aria-label="Đóng">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <div class="role-otp-body">
-                <div class="mb-2" style="color:#9aa5c6;font-size:13px;">
+                <div class="mb-2" style="color:#9aa5c6;font-size:13px;font-weight:800;">
                     OTP sẽ gửi về Gmail của admin đang đăng nhập.
                 </div>
 
-                <div class="d-flex gap-2 flex-wrap mb-3">
+                <div class="d-flex gap-2 flex-wrap mb-3 align-items-center">
                     <button type="button" class="btn btn-gradient" id="btnSendOtp">
                         <i class="fa-solid fa-paper-plane me-1"></i> Gửi OTP
                     </button>
@@ -180,10 +403,16 @@
 
                 <div class="field-group" style="margin-bottom:10px;">
                     <label class="form-label">Nhập OTP</label>
-                    <input type="text" id="otpInput" class="form-control admin-input" placeholder="6 chữ số" maxlength="6" />
+                    <input type="text"
+                           id="otpInput"
+                           class="form-control admin-input"
+                           placeholder="6 chữ số"
+                           maxlength="6"
+                           inputmode="numeric"
+                           autocomplete="one-time-code" />
                 </div>
 
-                <div class="d-flex justify-content-end gap-2">
+                <div class="otp-actions">
                     <button type="button" class="btn btn-outline-light" id="btnCancelOtp">Đóng</button>
                     <button type="button" class="btn btn-gradient" id="btnVerifyOtp">
                         <i class="fa-solid fa-circle-check me-1"></i> Xác minh
@@ -198,6 +427,205 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            const backdrop = document.getElementById('roleOtpBackdrop');
+            const openBtn = document.getElementById('btnOpenOtp');
+            const closeBtn = document.getElementById('btnCloseOtp');
+            const cancelBtn = document.getElementById('btnCancelOtp');
+
+            const btnSend = document.getElementById('btnSendOtp');
+            const btnVerify = document.getElementById('btnVerifyOtp');
+            const otpInput = document.getElementById('otpInput');
+
+            const otpMsg = document.getElementById('otpMsg');
+            const cooldownText = document.getElementById('otpCooldownText');
+
+            const roleCheckboxes = Array.from(document.querySelectorAll('.js-role-checkbox'));
+            const roleChips = Array.from(document.querySelectorAll('.js-role-chip'));
+
+            if (!backdrop || !openBtn || !closeBtn || !cancelBtn || !btnSend || !btnVerify || !otpInput) return;
+
+            const urlSend = '@Url.Action("SendRoleOtp", "AdminUsers")';
+            const urlVerify = '@Url.Action("VerifyRoleOtp", "AdminUsers")';
+
+            const tokenInput = document.querySelector('#adminUserEditForm input[name="__RequestVerificationToken"]');
+            const antiToken = tokenInput ? tokenInput.value : null;
+
+            // ===== 1) CHỈ CHO CHỌN 1 ROLE (checkbox -> hành vi như radio) =====
+            function enforceSingleRole(clicked) {
+                roleCheckboxes.forEach(cb => {
+                    if (cb !== clicked) cb.checked = false;
+                });
+            }
+            roleCheckboxes.forEach(cb => {
+                cb.addEventListener('change', function () {
+                    if (this.checked) enforceSingleRole(this);
+                });
+            });
+
+            // ===== 2) KHÓA ROLE CHO TỚI KHI OTP VERIFY XONG =====
+            // state lưu trong sessionStorage theo tab (reload vẫn còn trong tab)
+            const OTP_OK_KEY = 'AdminRoleOtpVerified';
+            function setRolesEnabled(enabled) {
+                roleCheckboxes.forEach(cb => cb.disabled = !enabled);
+                roleChips.forEach(chip => chip.classList.toggle('is-disabled', !enabled));
+            }
+
+            // mặc định: khóa cho tới khi verify
+            const otpVerified = sessionStorage.getItem(OTP_OK_KEY) === '1';
+            setRolesEnabled(otpVerified);
+
+            function setMsg(text, type) {
+                if (!otpMsg) return;
+                otpMsg.textContent = text || '';
+                otpMsg.classList.remove('success', 'error');
+                if (type) otpMsg.classList.add(type);
+            }
+
+            function openModal() {
+                backdrop.classList.add('is-open');
+                backdrop.setAttribute('aria-hidden', 'false');
+                setMsg('', null);
+                if (cooldownText) cooldownText.textContent = '';
+                setTimeout(() => otpInput.focus(), 0);
+            }
+
+            function closeModal() {
+                backdrop.classList.remove('is-open');
+                backdrop.setAttribute('aria-hidden', 'true');
+                setMsg('', null);
+            }
+
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+
+            backdrop.addEventListener('click', function (e) {
+                if (e.target === backdrop) closeModal();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && backdrop.classList.contains('is-open')) closeModal();
+            });
+
+            // ===== cooldown UI =====
+            let cooldownTimer = null;
+            function startCooldown(seconds) {
+                let remain = Number(seconds || 0);
+                if (!cooldownText) return;
+
+                if (cooldownTimer) clearInterval(cooldownTimer);
+
+                if (remain <= 0) {
+                    cooldownText.textContent = '';
+                    btnSend.disabled = false;
+                    return;
+                }
+
+                btnSend.disabled = true;
+                cooldownText.textContent = `Chờ ${remain}s`;
+
+                cooldownTimer = setInterval(() => {
+                    remain--;
+                    if (remain <= 0) {
+                        clearInterval(cooldownTimer);
+                        cooldownTimer = null;
+                        cooldownText.textContent = '';
+                        btnSend.disabled = false;
+                    } else {
+                        cooldownText.textContent = `Chờ ${remain}s`;
+                    }
+                }, 1000);
+            }
+
+            async function postForm(url, formData) {
+                const headers = {};
+                if (antiToken) headers['RequestVerificationToken'] = antiToken;
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                const ct = (res.headers.get('content-type') || '').toLowerCase();
+                if (!ct.includes('application/json')) {
+                    throw new Error('Server không trả JSON (có thể do thiếu session hoặc anti-forgery).');
+                }
+                return await res.json();
+            }
+
+            btnSend.addEventListener('click', async function () {
+                try {
+                    setMsg('', null);
+                    btnSend.disabled = true;
+
+                    const fd = new FormData();
+                    if (antiToken) fd.append('__RequestVerificationToken', antiToken);
+
+                    const data = await postForm(urlSend, fd);
+
+                    if (!data || data.ok !== true) {
+                        setMsg((data && data.message) ? data.message : 'Gửi OTP thất bại.', 'error');
+                        btnSend.disabled = false;
+                        if (data && data.cooldown) startCooldown(data.cooldown);
+                        return;
+                    }
+
+                    setMsg(data.message || 'Đã gửi OTP.', 'success');
+                    startCooldown(30);
+                } catch (e) {
+                    setMsg(e && e.message ? e.message : 'Gửi OTP lỗi.', 'error');
+                    btnSend.disabled = false;
+                }
+            });
+
+            btnVerify.addEventListener('click', async function () {
+                const otp = (otpInput.value || '').trim();
+
+                if (!/^\d{6}$/.test(otp)) {
+                    setMsg('OTP phải gồm 6 chữ số.', 'error');
+                    return;
+                }
+
+                try {
+                    setMsg('', null);
+                    btnVerify.disabled = true;
+
+                    const fd = new FormData();
+                    if (antiToken) fd.append('__RequestVerificationToken', antiToken);
+                    fd.append('otp', otp);
+
+                    const data = await postForm(urlVerify, fd);
+
+                    if (!data || data.ok !== true) {
+                        setMsg((data && data.message) ? data.message : 'Xác minh thất bại.', 'error');
+                        return;
+                    }
+
+                    // verify OK -> mở role + lưu state + auto đóng popup
+                    sessionStorage.setItem(OTP_OK_KEY, '1');
+                    setRolesEnabled(true);
+
+                    setMsg(data.message || 'Xác minh thành công.', 'success');
+                    closeModal(); // yêu cầu: bấm xác minh xong tự động ẩn popup
+                } catch (e) {
+                    setMsg(e && e.message ? e.message : 'Xác minh OTP lỗi.', 'error');
+                } finally {
+                    btnVerify.disabled = false;
+                }
+            });
+        })();
+    </script>
 }
+
+
+
+
+
+
 
 
