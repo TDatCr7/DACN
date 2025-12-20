@@ -1,6 +1,6 @@
-﻿/* =========================
-   01) GLOBAL / BASE
-   ========================= */
+﻿/* wwwroot/css/site.css (phần còn lại, bỏ booking/snack/promo/toast/modal ra) */
+
+/* GLOBAL / BASE */
 html {
     font-size: 14px;
     position: relative;
@@ -1769,3 +1769,117 @@ body {
     .admin-form-card { padding: 18px 16px; }
     .admin-user-detail-hero { padding: 14px 14px; }
 }
+/* =========================
+   PAGINATION (shared)
+   ========================= */
+.cine-pager {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.cine-page-btn {
+    min-width: 40px;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,255,.45);
+    background: rgba(15,23,42,.88);
+    color: #e9ecf6;
+    font-weight: 800;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+    .cine-page-btn:hover {
+        filter: brightness(1.08);
+        color: #fff;
+    }
+
+    .cine-page-btn.is-active {
+        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+        border-color: transparent;
+        color: #fff;
+    }
+
+    .cine-page-btn.is-disabled {
+        opacity: .45;
+        pointer-events: none;
+    }
+.history-pager {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.history-page-btn {
+    min-width: 40px;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,255,.45);
+    background: rgba(15,23,42,.88);
+    color: #e9ecf6;
+    font-weight: 800;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+    .history-page-btn:hover {
+        filter: brightness(1.08);
+        color: #fff;
+    }
+
+    .history-page-btn.is-active {
+        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
+        border-color: transparent;
+        color: #fff;
+    }
+
+    .history-page-btn.is-disabled {
+        opacity: .45;
+        pointer-events: none;
+    }
+/* =========================
+   ROLE GATE (lock roles until Gmail verified)
+   ========================= */
+.role-gate {
+    position: relative;
+    transition: opacity .2s ease, filter .2s ease;
+}
+
+    .role-gate.is-locked {
+        opacity: .45;
+        filter: grayscale(1);
+        pointer-events: none; /* khóa toàn bộ click trong khu vực roles */
+        user-select: none;
+    }
+
+        .role-gate.is-locked::after {
+            content: "Chưa xác minh Gmail - không thể chọn phân quyền";
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 10px 14px;
+            border-radius: 18px;
+            background: rgba(2,6,23,.55);
+            border: 1px dashed rgba(148,163,255,.35);
+            color: #cbd5e1;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: .4px;
+            text-align: center;
+        }

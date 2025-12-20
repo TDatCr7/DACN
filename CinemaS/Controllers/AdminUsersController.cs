@@ -44,12 +44,6 @@ namespace CinemaS.Controllers
 
         public async Task<IActionResult> Index(string? search, string? role, int page = 1)
         {
-            const int pageSize = 8;
-
-            // normalize input
-            search = (search ?? "").Trim();
-            role = (role ?? "").Trim();
-
             var query = _userManager.Users.AsQueryable();
 
             // search filter
@@ -60,49 +54,6 @@ namespace CinemaS.Controllers
                     (u.Email ?? "").Contains(search) ||
                     (u.UserName ?? "").Contains(search));
             }
-
-            // role filter (Admin/User)
-            if (!string.IsNullOrWhiteSpace(role))
-            {
-                // chỉ cho phép 2 giá trị này để tránh nhập bậy
-                var roleNormalized = role.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? "Admin"
-                                   : role.Equals("User", StringComparison.OrdinalIgnoreCase) ? "User"
-                                   : "";
-
-                if (!string.IsNullOrWhiteSpace(roleNormalized))
-                {
-                    // lấy danh sách user thuộc role -> lọc theo Id
-                    var usersInRole = await _userManager.GetUsersInRoleAsync(roleNormalized);
-                    var roleUserIds = usersInRole.Select(u => u.Id).ToList();
-
-                    // nếu role không có ai -> trả rỗng luôn
-                    if (roleUserIds.Count == 0)
-                    {
-                        ViewBag.CurrentPage = 1;
-                        ViewBag.TotalPages = 1;
-                        ViewBag.Search = search;
-                        ViewBag.Role = roleNormalized;
-                        return View(new List<AdminUserListItemVm>());
-                    }
-
-                    query = query.Where(u => roleUserIds.Contains(u.Id));
-                    role = roleNormalized;
-                }
-                else
-                {
-                    // role không hợp lệ -> coi như không lọc
-                    role = "";
-                }
-            }
-
-            // chống page vượt
-            if (page < 1) page = 1;
-
-            var totalItems = await query.CountAsync();
-
-            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-            if (totalPages < 1) totalPages = 1;
-            if (page > totalPages) page = totalPages;
 
             var users = await query
                 .OrderBy(u => u.FullName)
@@ -127,15 +78,9 @@ namespace CinemaS.Controllers
                 });
             }
 
-            ViewBag.CurrentPage = page;
-            ViewBag.TotalPages = totalPages;
-            ViewBag.Search = search;
-            ViewBag.Role = role ?? "";
-
+            ViewData["Title"] = "Quản lý tài khoản";
             return View(vms);
         }
-
-
 
         // GET: /AdminUsers/Details/5
         public async Task<IActionResult> Details(string id)
@@ -255,7 +200,7 @@ namespace CinemaS.Controllers
                     ModelState.AddModelError(string.Empty, error.Description);
 
                 ViewData["Title"] = "Thêm tài khoản";
-                return View("Create", vm);
+                return View("Edit", vm);
             }
 
             var selectedRole = vm.SelectedRoles?.FirstOrDefault();
@@ -267,16 +212,8 @@ namespace CinemaS.Controllers
                 return View("Create", vm);
             }
 
-            var rr = await SetSingleRoleAsync(user, selectedRole);
-            if (!rr.Succeeded)
-            {
-                foreach (var e in rr.Errors)
-                    ModelState.AddModelError(string.Empty, e.Description);
-
-                ViewData["Title"] = "Thêm tài khoản";
-                return View("Create", vm);
-            }
-
+            if (vm.SelectedRoles != null && vm.SelectedRoles.Any())
+                await _userManager.AddToRolesAsync(user, vm.SelectedRoles);
 
             return RedirectToAction(nameof(Index));
         }

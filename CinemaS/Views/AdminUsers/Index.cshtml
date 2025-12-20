@@ -3,6 +3,7 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Quản lý tài khoản";
+}
 
     var role = (ViewBag.Role as string) ?? "";
     var page = (int)(ViewBag.CurrentPage ?? 1);
@@ -41,8 +42,8 @@
                            name="search"
                            class="form-control admin-search-input"
                            placeholder="Tìm theo tên, email, username"
-                           value="@search" />
-                    <button class="admin-search-btn" type="submit" title="Tìm kiếm">
+                           value="@Context.Request.Query["search"]" />
+                    <button class="admin-search-btn" type="submit">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </div>
@@ -162,41 +163,6 @@
                 </tbody>
             </table>
         </div>
-
-        @if (totalPages > 1)
-        {
-            <div class="cine-pager">
-                <a class="cine-page-btn @(page <= 1 ? "is-disabled" : "")"
-                   asp-controller="AdminUsers"
-                   asp-action="Index"
-                   asp-route-search="@search"
-                   asp-route-role="@role"
-                   asp-route-page="@(page - 1)">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </a>
-
-                @for (int p = 1; p <= totalPages; p++)
-                {
-                    <a class="cine-page-btn @(p == page ? "is-active" : "")"
-                       asp-controller="AdminUsers"
-                       asp-action="Index"
-                       asp-route-search="@search"
-                       asp-route-role="@role"
-                       asp-route-page="@p">
-                        @p
-                    </a>
-                }
-
-                <a class="cine-page-btn @(page >= totalPages ? "is-disabled" : "")"
-                   asp-controller="AdminUsers"
-                   asp-action="Index"
-                   asp-route-search="@search"
-                   asp-route-role="@role"
-                   asp-route-page="@(page + 1)">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </a>
-            </div>
-        }
     </div>
 </div>
 @section Scripts {
