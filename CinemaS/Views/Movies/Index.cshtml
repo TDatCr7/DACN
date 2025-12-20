@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Danh sách phim";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
     bool isAdmin = User.IsInRole("Admin");
     bool isLoggedIn = User.Identity?.IsAuthenticated ?? false;
 
@@ -13,260 +14,278 @@
 
     var currentSearch = Context.Request.Query["q"].ToString() ?? "";
 }
+@functions {
+    private static string NormalizeAgeCode(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        var s = raw.Trim().ToUpperInvariant();
 
-<section class="movies-page-shell">
-    <div class="movies-hero">
-        <div class="hero-badge">
-            <i class="fa-solid fa-film"></i>
-            <span>Danh sách phim</span>
-        </div>
-        <div class="hero-sub">
-            <i class="fa-solid fa-star"></i>
-            <span>Kho tàng điện ảnh – Kết nối cảm xúc.</span>
-        </div>
-    </div>
+        if (s == "P" || s == "K" || s == "C" || s == "T13" || s == "T16" || s == "T18") return s;
 
-    <div class="container p-0">
-        <!-- Toolbar -->
-        <form method="get" asp-action="Index" class="movie-toolbar">
-            <div class="toolbar-top row g-2 align-items-center">
-                <div class="col-md-8 d-flex flex-wrap align-items-center gap-2">
-                    @if (isAdmin)
-                    {
-                        <a asp-controller="Admin" asp-action="Index"
-                           class="btn btn-sm btn-outline-light-rounded">
-                            <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
-                        </a>
+<h1 style="text-align: center;">
+    <i class="fas fa-film"></i> Danh sách Phim
+</h1>
+<marquee style="
+    color:#e5e7f5;
+    font-style:italic;
+    margin-bottom:14px;
+    padding:10px 14px;
+    border-radius:12px;
+    background: radial-gradient(circle at 0% 0%,
+                rgba(59,130,246,0.25),
+                rgba(30,41,59,0.85)),
+                radial-gradient(circle at 100% 0%,
+                rgba(124,58,237,0.25),
+                rgba(30,41,59,0.85));
+    border: 1px solid rgba(148,163,255,0.4);
+    backdrop-filter: blur(12px);
+">
+    <i class="fas fa-star" style="color:#facc15;"></i>
+    Kho tàng điện ảnh – Kết nối cảm xúc.
+</marquee>
 
-                        <a asp-action="Create" class="btn btn-sm btn-primary btn-sweep px-3">
-                            <i class="fa-solid fa-circle-plus me-1"></i> Thêm phim
-                        </a>
-
-                        <button type="button" id="deleteButton"
-                                class="btn btn-sm btn-danger px-3"
-                                onclick="toggleDeleteMode()">
-                            <i class="fa-solid fa-trash-can me-1"></i> Xóa phim
-                        </button>
-
-                        <button type="button" id="confirmDeleteButton"
-                                class="btn btn-sm btn-primary btn-sweep px-3"
-                                style="display:none;"
-                                onclick="deleteSelectedMovies()">
-                            <i class="fa-solid fa-circle-check me-1"></i> Xác nhận xóa
-                        </button>
-
-                        <button type="button" id="cancelDeleteButton"
-                                class="btn btn-sm btn-outline-light-rounded px-3"
-                                style="display:none;"
-                                onclick="cancelDeleteMode()">
-                            <i class="fa-solid fa-circle-xmark me-1"></i> Hủy
-                        </button>
-                    }
-                </div>
-
-                <div class="col-md-4 d-flex justify-content-md-end">
-                    @if (isAdmin)
-                    {
-                        <a asp-controller="Genres" asp-action="Index"
-                           class="btn btn-sm btn-outline-light-rounded">
-                            <i class="fa-solid fa-layer-group me-1"></i> Quản lý thể loại
-                        </a>
-                    }
-                </div>
-            </div>
-
-            <div class="toolbar-bottom">
-                <div class="toolbar-block">
-                    <span class="toolbar-label"><i class="fa-solid fa-filter me-1"></i> Thể loại</span>
-                    <select id="categoryFilter"
-                            name="genre"
-                            class="form-select form-select-sm movie-filter-select"
-                            onchange="this.form.submit()">
-                        <option value="all" selected="@(currentGenre == "all" ? "selected" : null)">Tất cả</option>
-                        @foreach (var cat in Model.Genres)
-                        {
-                            <option value="@cat" selected="@(currentGenre == cat ? "selected" : null)">@cat</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="toolbar-block">
-                    <span class="toolbar-label"><i class="fa-solid fa-clock me-1"></i> Trạng thái</span>
-                    <select id="statusFilter"
-                            name="status"
-                            class="form-select form-select-sm movie-filter-select"
-                            onchange="this.form.submit()">
-                        <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả</option>
-                        <option value="RELEASED" selected="@(currentStatus == "RELEASED" ? "selected" : null)">Đang chiếu</option>
-                        <option value="COMING" selected="@(currentStatus == "COMING" ? "selected" : null)">Sắp chiếu</option>
-                        <option value="ENDED" selected="@(currentStatus == "ENDED" ? "selected" : null)">Không còn chiếu</option>
-                    </select>
-                </div>
-
-                <div class="toolbar-block flex-grow-1 justify-content-end">
-                    <span class="toolbar-label"><i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm</span>
-                    <input type="text"
-                           id="searchInput"
-                           name="q"
-                           value="@currentSearch"
-                           placeholder="Nhập tên phim..."
-                           class="form-control form-control-sm movie-search-input"
-                           onkeypress="if(event.key==='Enter'){this.form.submit();}" />
-                </div>
-            </div>
-        </form>
-
-        <!-- Message -->
-        @if (!string.IsNullOrEmpty(Model.Message))
-        {
-            <div id="messageBox" class="cine-alert cine-alert-success" role="alert">
-                <i class="fa-solid fa-circle-check"></i>
-                <span>@Model.Message</span>
-            </div>
-            <script>setTimeout(() => document.getElementById('messageBox').style.display = 'none', 2000);</script>
-        }
-        @if (!string.IsNullOrEmpty(Model.Error))
-        {
-            <div id="errorBox" class="cine-alert cine-alert-danger" role="alert">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <span>@Model.Error</span>
-            </div>
-            <script>setTimeout(() => document.getElementById('errorBox').style.display = 'none', 2500);</script>
-        }
-
-        <!-- Grid -->
-        <form id="deleteMoviesForm" asp-action="DeleteMultiple" method="POST" class="mt-3">
-            @Html.AntiForgeryToken()
-
-            <div class="movie-grid" id="movieList">
-                @if (Model.Movies.Any())
+<div class="container movies-page-shell">
+    <!-- Thanh công cụ -->
+    <form method="get" asp-action="Index" class="movie-toolbar mb-3">
+        <div class="toolbar-top row g-2 align-items-center mb-2">
+            <div class="col-md-8 d-flex flex-wrap align-items-center gap-2">
+                @if (isAdmin)
                 {
-                    @foreach (var mv in Model.Movies)
+                    <a asp-controller="Admin" asp-action="Index"
+                       class="btn btn-sm btn-secondary px-3">
+                        <i class="fas fa-arrow-left me-1"></i> Quay lại
+                    </a>
+
+                    <a asp-action="Create" class="btn btn-sm btn-primary px-3">
+                        <i class="fas fa-plus-circle me-1"></i> Thêm phim
+                    </a>
+
+                    <button type="button" id="deleteButton"
+                            class="btn btn-sm btn-danger simple px-3"
+                            onclick="toggleDeleteMode()">
+                        <i class="fas fa-trash-alt me-1"></i> Xóa phim
+                    </button>
+
+                    <button type="button" id="confirmDeleteButton"
+                            class="btn btn-sm btn-primary simple px-3"
+                            style="display:none;"
+                            onclick="deleteSelectedMovies()">
+                        <i class="fas fa-check-circle me-1"></i> Xác nhận xóa
+                    </button>
+
+                    <button type="button" id="cancelDeleteButton"
+                            class="btn btn-sm btn-secondary px-3"
+                            style="display:none;"
+                            onclick="cancelDeleteMode()">
+                        <i class="fas fa-times-circle me-1"></i> Hủy
+                    </button>
+                }
+            </div>
+
+            <div class="col-md-4 d-flex justify-content-md-end mt-2 mt-md-0">
+                @if (isAdmin)
+                {
+                    <a asp-controller="Genres" asp-action="Index"
+                       class="btn btn-sm btn-outline-light px-3">
+                        <i class="fa-solid fa-layer-group me-1"></i> Quản lý thể loại
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div class="toolbar-bottom d-flex flex-wrap align-items-center gap-3">
+            <div class="toolbar-block">
+                <span class="toolbar-label">
+                    <i class="fas fa-filter me-1"></i> Thể loại
+                </span>
+                <select id="categoryFilter"
+                        name="genre"
+                        class="form-select form-select-sm movie-filter-select"
+                        onchange="this.form.submit()">
+                    <option value="all"
+                            selected="@(currentGenre == "all" ? "selected" : null)">
+                        Tất cả
+                    </option>
+                    @foreach (var cat in Model.Genres)
                     {
-                        var poster = string.IsNullOrWhiteSpace(mv.PosterImage) ? "/images/no-poster.png" : mv.PosterImage;
+                        <option value="@cat"
+                                selected="@(currentGenre == cat ? "selected" : null)">
+                            @cat
+                        </option>
+                    }
+                </select>
+            </div>
 
-                        <div class="movie-item"
-                             data-category="@mv.GenreName"
-                             data-status="@mv.StatusId">
-                            @* ===== THAY TOÀN BỘ KHỐI CARD TRONG foreach (từ <article class="movie-card"> ... </article>) ===== *@
-                            <article class="movie-card">
-                                <div class="movie-flip">
-                                    <!-- FRONT: CHỈ ẢNH -->
-                                    <div class="movie-face movie-front">
-                                        <div class="movie-poster">
-                                            <img src="@poster" alt="@mv.Title" title="@mv.Title" />
-                                        </div>
-                                    </div>
+            <div class="toolbar-block">
+                <span class="toolbar-label">
+                    <i class="fas fa-clock me-1"></i> Trạng thái
+                </span>
+                <select id="statusFilter"
+                        name="status"
+                        class="form-select form-select-sm movie-filter-select"
+                        onchange="this.form.submit()">
+                    <option value="all"
+                            selected="@(currentStatus == "all" ? "selected" : null)">
+                        Tất cả
+                    </option>
+                    <option value="RELEASED"
+                            selected="@(currentStatus == "RELEASED" ? "selected" : null)">
+                        Đang chiếu
+                    </option>
+                    <option value="COMING"
+                            selected="@(currentStatus == "COMING" ? "selected" : null)">
+                        Sắp chiếu
+                    </option>
+                    <option value="ENDED"
+                            selected="@(currentStatus == "ENDED" ? "selected" : null)">
+                        Không còn chiếu
+                    </option>
+                </select>
+            </div>
 
-                                    <!-- BACK: THÔNG TIN THEO THỨ TỰ -->
-                                    <div class="movie-face movie-back">
-                                        <div class="movie-back-content">
-                                            <!-- 1) Tên phim -->
-                                            <div class="movie-back-title" title="@mv.Title">
-                                                @mv.Title
-                                            </div>
+            <div class="toolbar-block flex-grow-1 justify-content-end">
+                <span class="toolbar-label">
+                    <i class="fas fa-search me-1"></i> Tìm kiếm
+                </span>
+                <input type="text"
+                       id="searchInput"
+                       name="q"
+                       value="@currentSearch"
+                       placeholder="Nhập tên phim..."
+                       class="form-control form-control-sm movie-search-input"
+                       onkeypress="if(event.key==='Enter'){this.form.submit();}" />
+            </div>
+        </div>
+    </form>
 
-                                            <!-- 2) Summary -->
-                                            @if (!string.IsNullOrWhiteSpace(mv.Summary))
-                                            {
-                                                <p class="movie-desc">@mv.Summary</p>
-                                            }
-                                            else
-                                            {
-                                                <p class="movie-desc is-empty">Không có mô tả.</p>
-                                            }
+    <!-- Thông báo -->
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div id="messageBox" class="alert alert-success text-center" role="alert">
+            <i class="fas fa-check-circle"></i> @Model.Message
+        </div>
+        <script>setTimeout(() => document.getElementById('messageBox').style.display = 'none', 2000);</script>
+    }
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div id="errorBox" class="alert alert-danger text-center" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @Model.Error
+        </div>
+        <script>setTimeout(() => document.getElementById('errorBox').style.display = 'none', 2000);</script>
+    }
 
-                                            <!-- 3) Thể loại + Độ tuổi -->
-                                            <div class="movie-meta-col">
-                                                <span class="meta-pill meta-genre" title="@mv.GenreName">
-                                                    <i class="fa-solid fa-tags me-1"></i>
-                                                    @(!string.IsNullOrWhiteSpace(mv.GenreName) ? mv.GenreName : "Khác")
-                                                </span>
-
-                                                <span class="meta-pill meta-age">
-                                                    <i class="fa-solid fa-user-shield me-1"></i>
-                                                    @(string.IsNullOrWhiteSpace(mv.Age) ? "Chưa phân loại" : $"C{mv.Age}+")
-                                                </span>
-                                            </div>
-
-
-
-                                            <!-- 4) Thời gian chiếu -->
-                                            <div class="movie-meta-col">
-                                                <span class="meta-pill meta-time">
-                                                    <i class="fa-regular fa-calendar me-1"></i>
-                                                    @(mv.ReleaseDate.HasValue? mv.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Chưa có ngày chiếu")
-                                                </span>
-                                            </div>
-
-                                            @if (isAdmin)
-                                            {
-                                                <label class="delete-checkbox" style="display:none;">
-                                                    <input type="checkbox"
-                                                           class="form-check-input movie-checkbox"
-                                                           name="movie_ids"
-                                                           value="@mv.MoviesId" />
-                                                    <span>Chọn để xóa</span>
-                                                </label>
-                                            }
-                                            <!-- 4.1) Rating -->
-                                            <div class="movie-meta-col">
-                                                <span class="meta-pill meta-rating">
-                                                    <i class="fa-solid fa-star"></i>
-                                                    @(string.IsNullOrWhiteSpace(mv.Rating) ? "NR" : mv.Rating)
-                                                </span>
-                                            </div>
-
-
-                                            <!-- 5) Nút vào xem detail -->
-                                            <div class="movie-actions">
-                                                @if (isLoggedIn)
-                                                {
-                                                    <a asp-action="Details" asp-route-id="@mv.MoviesId"
-                                                       class="btn btn-sm btn-primary btn-sweep movie-action-btn">
-                                                        <i class="fa-solid fa-eye me-1"></i> Xem chi tiết
-                                                    </a>
-                                                }
-                                                else
-                                                {
-                                                    <a asp-area="Identity" asp-page="/Account/Login"
-                                                       class="btn btn-sm btn-outline-light-rounded movie-action-btn">
-                                                        <i class="fa-solid fa-right-to-bracket me-1"></i> Đăng nhập
-                                                    </a>
-                                                }
-                                            </div>
-                                        </div>
+    <!-- GRID PHIM: chỉ sửa phần này để canh giữa card -->
+    <form id="deleteMoviesForm" asp-action="DeleteMultiple" method="POST">
+        @Html.AntiForgeryToken()
+        <div class="movie-grid" id="movieList">
+            @if (Model.Movies.Any())
+            {
+                @foreach (var mv in Model.Movies)
+                {
+                    <div class="movie-item"
+                         data-category="@mv.GenreName"
+                         data-status="@mv.StatusId">
+                        <div class="card">
+                            <div class="content">
+                                <div class="front">
+                                    <div class="image-container">
+                                        @{
+                                            var poster = string.IsNullOrWhiteSpace(mv.PosterImage)
+                                            ? "/images/no-poster.png"
+                                            : mv.PosterImage;
+                                        }
+                                        <img src="@poster" alt="@mv.Title"
+                                             class="card-img-top" title="@mv.Title" />
                                     </div>
                                 </div>
-                            </article>
+                                <div class="back">
+                                    <div class="back-content">
+                                        <h5 class="card-title">
+                                            <a asp-action="Details" asp-route-id="@mv.MoviesId"
+                                               class="movie-link movie-title"
+                                               title="@mv.Title">
+                                                <i class="fas fa-tag"></i> @mv.Title
+                                            </a>
+                                        </h5>
 
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="movie-empty">
-                        <div class="empty-card">
-                            <div class="empty-ic"><i class="fa-regular fa-face-frown"></i></div>
-                            <div class="empty-text">Không có phim để hiển thị.</div>
+                                        @if (!string.IsNullOrWhiteSpace(mv.Summary))
+                                        {
+                                            <p class="card-text movie-description">
+                                                <i class="fas fa-info-circle"></i> @mv.Summary
+                                            </p>
+                                        }
+
+                                        @if (mv.ReleaseDate.HasValue)
+                                        {
+                                            <p class="card-text movie-release">
+                                                <strong><i class="fas fa-calendar-day"></i></strong>
+                                                @mv.ReleaseDate.Value.ToString("dd/MM/yyyy")
+                                            </p>
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(mv.StatusName))
+                                        {
+                                            <span class="badge bg-success"
+                                                  style="margin-bottom:6px;">
+                                                @mv.StatusName
+                                            </span>
+                                        }
+
+                                        @if (isAdmin)
+                                        {
+                                            <div class="form-check delete-checkbox" style="display: none;">
+                                                <input type="checkbox"
+                                                       class="form-check-input movie-checkbox"
+                                                       name="movie_ids"
+                                                       value="@mv.MoviesId" />
+                                                <label class="form-check-label">Chọn để xóa</label>
+                                            </div>
+                                        }
+
+                                        @if (isLoggedIn)
+                                        {
+                                            <a asp-action="Details" asp-route-id="@mv.MoviesId"
+                                               class="btn-sm action-btn">
+                                                <button type="button"><span>Xem chi tiết</span></button>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a asp-area="Identity" asp-page="/Account/Login"
+                                               class="btn-sm action-btn">
+                                                <button type="button"><span>Đăng nhập</span></button>
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 }
-            </div>
-        </form>
+            }
+            else
+            {
+                <div class="movie-empty text-center">
+                    <p>Không có phim để hiển thị.</p>
+                </div>
+            }
+        </div>
+    </form>
 
-        <!-- Pager -->
-        @if (Model.TotalPages > 1)
-        {
-            <nav aria-label="Phân trang phim" class="cine-pager" style="justify-content:center;">
-                <a class="cine-page-btn @(Model.HasPreviousPage ? "" : "is-disabled")"
-                   asp-action="Index"
-                   asp-route-page="@(Model.PageIndex - 1)"
-                   asp-route-genre="@currentGenre"
-                   asp-route-status="@currentStatus"
-                   asp-route-q="@currentSearch">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </a>
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Phân trang phim" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-page="@(Model.PageIndex - 1)"
+                       asp-route-genre="@currentGenre"
+                       asp-route-status="@currentStatus"
+                       asp-route-q="@currentSearch">
+                        «
+                    </a>
+                </li>
 
                 @for (var i = 1; i <= Model.TotalPages; i++)
                 {
@@ -280,88 +299,38 @@
                     </a>
                 }
 
-                <a class="cine-page-btn @(Model.HasNextPage ? "" : "is-disabled")"
-                   asp-action="Index"
-                   asp-route-page="@(Model.PageIndex + 1)"
-                   asp-route-genre="@currentGenre"
-                   asp-route-status="@currentStatus"
-                   asp-route-q="@currentSearch">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </a>
-            </nav>
-        }
-    </div>
-</section>
+                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-page="@(Model.PageIndex + 1)"
+                       asp-route-genre="@currentGenre"
+                       asp-route-status="@currentStatus"
+                       asp-route-q="@currentSearch">
+                        »
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
 
 <style>
-    /* ===== Scoped styles: Movies/Index only ===== */
-    .movies-page-shell {
-        padding: 6px 0 22px;
-    }
-
-    .movies-hero {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin: 6px 0 14px;
-        flex-wrap: wrap;
-    }
-
-    .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.45);
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.25), transparent 60%), rgba(15,23,42,.9);
-        box-shadow: 0 14px 30px rgba(0,0,0,.35);
-        font-weight: 1000;
-        letter-spacing: .3px;
-        color: var(--text);
-    }
-
-        .hero-badge i {
-            font-size: 18px;
-        }
-
-    .hero-sub {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.25);
-        background: rgba(2,6,23,.55);
-        color: #cbd5e1;
-        font-weight: 800;
-        font-size: 13px;
-    }
-
-        .hero-sub i {
-            color: #fbbf24;
-        }
-
     .movie-toolbar {
-        background: rgba(15,23,42,0.92);
-        border-radius: 18px;
-        border: 1px solid rgba(148,163,255,0.45);
-        padding: 12px 14px;
-        box-shadow: 0 12px 30px rgba(15,23,42,0.85);
+        background: rgba(15, 23, 42, 0.92);
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 255, 0.45);
+        padding: 10px 16px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.85);
     }
 
     .toolbar-top {
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(148,163,255,0.18);
+        border-bottom: 1px solid rgba(148, 163, 255, 0.25);
+        padding-bottom: 4px;
+        margin-bottom: 4px;
     }
 
     .toolbar-bottom {
-        margin-top: 10px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px 14px;
-        align-items: center;
+        margin-top: 2px;
     }
 
     .toolbar-block {
@@ -375,327 +344,221 @@
         font-size: 13px;
         color: var(--muted);
         white-space: nowrap;
-        font-weight: 800;
     }
 
     .movie-filter-select {
-        min-width: 170px;
+        min-width: 160px;
         background-color: #020617;
         color: #e6ebff;
         border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.4);
+        border: 1px solid rgba(148, 163, 255, 0.4);
     }
 
     .movie-search-input {
-        min-width: 260px;
+        min-width: 220px;
         background-color: #020617;
         color: #e6ebff;
         border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.4);
+        border: 1px solid rgba(148, 163, 255, 0.4);
     }
 
         .movie-search-input::placeholder {
-            color: rgba(148,163,255,.75);
+            color: rgba(148, 163, 255, 0.75);
         }
 
-    .cine-alert {
-        margin-top: 12px;
-        padding: 12px 14px;
-        border-radius: 16px;
-        border: 1px solid rgba(148,163,255,.25);
-        background: rgba(15,23,42,.65);
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        font-weight: 800;
-    }
-
-    .cine-alert-success {
-        border-color: rgba(16,185,129,.35);
-    }
-
-        .cine-alert-success i {
-            color: #10b981;
+    @@media (max-width: 767.98px) {
+        .movie-toolbar {
+            border-radius: 12px;
         }
 
-    .cine-alert-danger {
-        border-color: rgba(239,68,68,.35);
-    }
-
-        .cine-alert-danger i {
-            color: #ef4444;
+        .toolbar-block {
+            width: 100%;
+            justify-content: flex-start;
         }
 
-    /* ===== Grid ===== */
+        .movie-search-input {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+
+    /* ====== CARD / GRID (chỉ chỉnh phần card) ====== */
     .movie-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 260px); 
-        justify-content: center; 
-        gap: 18px; 
-        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 52px 90px; /* hàng, cột */
+        margin-top: 8px;
     }
-
-    /* giảm dần theo màn */
-    @@media (max-width: 1199px) {
-        .movie-grid {
-            grid-template-columns: repeat(3, 260px);
-        }
-    }
-    @@media (max-width: 899px) {
-        .movie-grid {
-            grid-template-columns: repeat(2, 260px);
-        }
-    }
-    @@media (max-width: 575px) {
-        .movie-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .movie-item {
-            display: flex;
-            justify-content: center;
-        }
-
-        .movie-card {
-            width: 260px;
-        }
-    }
-
 
     .movie-item {
+        flex: 0 0 auto;
+        width: 220px; /* card rộng cố định => luôn canh giữa đẹp */
+    }
+
+    .movie-empty {
         width: 100%;
+        padding: 24px 0;
     }
 
-    /* ===== Card flip: dark, consistent with layout ===== */
-    /* ===== THAY / GHI ĐÈ CSS PHẦN CARD (giữ nguyên các phần toolbar/grid khác) ===== */
-
-    /* card wrapper */
-    .movie-card {
-        height: 320px;
-        perspective: 1200px;
-        border-radius: 24px;
+    .card {
+        overflow: visible;
+        width: 100%; /* full theo movie-item */
+        height: 250px;
+        perspective: 1000px;
     }
 
-        /* glow border (hài hòa layout) */
-        .movie-card .movie-flip {
-            height: 100%;
-            width: 100%;
-            position: relative;
-            transform-style: preserve-3d;
-            transition: transform .55s ease;
-            border-radius: 24px;
-        }
-
-            .movie-card .movie-flip::before {
-                content: "";
-                position: absolute;
-                inset: -1px;
-                border-radius: 26px;
-                background: linear-gradient(135deg, rgba(59,130,246,.55), rgba(124,58,237,.45), rgba(162,28,175,.35));
-                filter: blur(10px);
-                opacity: .55;
-                z-index: 0;
-                pointer-events: none;
-            }
-
-            .movie-card .movie-flip::after {
-                content: "";
-                position: absolute;
-                inset: 0;
-                border-radius: 24px;
-                border: 1px solid rgba(148,163,255,.22);
-                box-shadow: 0 22px 60px rgba(15,23,42,.85), 0 0 0 1px rgba(15,23,42,.7);
-                z-index: 0;
-                pointer-events: none;
-            }
-
-        .movie-card:hover .movie-flip {
-            transform: rotateY(180deg);
-        }
-
-    /* faces */
-    .movie-face {
-        position: absolute;
-        inset: 0;
-        border-radius: 24px;
-        overflow: hidden;
-        backface-visibility: hidden;
-        background: rgba(2,6,23,.88);
-        z-index: 1; /* nằm trên glow */
-    }
-
-    .movie-front {
-        transform: rotateY(0deg);
-    }
-
-    .movie-back {
-        transform: rotateY(180deg);
-    }
-
-    /* front: chỉ ảnh */
-    .movie-poster {
-        width: 100%;
-        height: 100%;
-    }
-
-        .movie-poster img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: saturate(1.05) contrast(1.05);
-        }
-
-    /* back content layout */
-    .movie-back-content {
-        height: 100%;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.18), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.14), transparent 55%), rgba(2,6,23,.92);
-    }
-
-    .movie-back-title {
-        font-weight: 1000;
+    .movie-description {
         font-size: 16px;
-        color: #e9ecf6;
-        line-height: 1.25;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
+        height: 3.0em;
     }
-    /* ===== TRÁNH TRÀN TEXT ===== */
 
-    /* genre pill: 1 dòng + ... */
-    .meta-genre {
-        max-width: 100%;
+    .movie-title {
+        font-size: 20px;
+        font-weight: 500;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        height: 2.5em;
+        cursor: default;
     }
 
-
-
-    /* title: tối đa 2 dòng */
-    .movie-back-title {
-        -webkit-line-clamp: 2;
-    }
-
-    /* rating */
-    .meta-rating {
-        border-color: rgba(251,191,36,.35);
-        background: radial-gradient(circle at 0 0, rgba(251,191,36,.18), transparent 60%), rgba(15,23,42,.55);
-        color: #facc15;
-        font-weight: 1000;
-    }
-
-    /* summary: tối đa 3 dòng */
-    .movie-desc {
-        -webkit-line-clamp: 3;
-        line-height: 1.35;
-    }
-
-        .movie-desc.is-empty {
-            color: #9aa5c6;
-        }
-
-    /* meta rows */
-    .movie-meta-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .meta-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 7px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.20);
-        background: rgba(15,23,42,.55);
-        color: #e5e7eb;
-        font-size: 12px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .meta-age {
-        border-color: rgba(251,191,36,.22);
-        background: radial-gradient(circle at 0 0, rgba(251,191,36,.12), transparent 60%), rgba(15,23,42,.55);
-    }
-
-    .meta-time {
-        border-color: rgba(59,130,246,.22);
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.14), transparent 60%), rgba(15,23,42,.55);
-    }
-
-    /* actions pinned to bottom */
-    .movie-actions {
-        margin-top: auto;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .movie-action-btn {
+    .content {
         width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 300ms;
+        box-shadow: 0px 0px 10px 1px #000000ee;
+        border-radius: 5px;
+        position: relative;
+    }
+
+    .front, .back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .front {
+        background-color: #90EE90;
+    }
+
+    .back {
+        background-color: rgba(220, 253, 250, 0.91);
+        transform: rotateY(180deg);
+        display: flex;
         justify-content: center;
+        align-items: center;
     }
 
-    /* delete selection */
-    .selected-for-delete .movie-flip::after {
-        border-color: rgba(239,68,68,.65);
-        box-shadow: 0 22px 60px rgba(15,23,42,.85), 0 0 0 2px rgba(239,68,68,.45);
+    .back-content {
+        width: 100%;
+        height: 100%;
+        background-color: rgba(220, 253, 250, 0.91);
+        color: black;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
     }
 
-
-    /* empty */
-    .movie-empty {
-        grid-column: 1 / -1;
+    .card:hover .content {
+        transform: rotateY(180deg);
     }
 
-    .empty-card {
-        border-radius: 18px;
-        border: 1px dashed rgba(148,163,255,.25);
-        background: rgba(15,23,42,.55);
-        padding: 26px 16px;
-        text-align: center;
+    .image-container {
+        width: 100%;
+        height: 100%;
     }
 
-    .empty-ic {
-        font-size: 34px;
-        color: rgba(148,163,255,.8);
-        margin-bottom: 8px;
-    }
-
-    .empty-text {
-        color: #cbd5e1;
-        font-weight: 800;
-    }
-
-    @@media (max-width: 767.98px) {
-        .movie-search-input {
-            min-width: 0;
+        .image-container img {
             width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .toolbar-bottom {
-            flex-direction: column;
-            align-items: stretch;
+    .movie-link {
+        color: black;
+        text-decoration: none;
+    }
+
+    button {
+        display: inline-block;
+        width: 120px;
+        height: 40px;
+        border-radius: 10px;
+        border: 1px solid #03045e;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.5s ease-in;
+        z-index: 1;
+    }
+
+        button::before, button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 0;
+            height: 100%;
+            transform: skew(15deg);
+            transition: all 0.5s;
+            overflow: hidden;
+            z-index: -1;
         }
 
-        .toolbar-block {
-            width: 100%;
-            justify-content: space-between;
+        button::before {
+            left: -10px;
+            background: #240046;
         }
 
-        .movie-filter-select {
-            width: 100%;
+        button::after {
+            right: -10px;
+            background: #5a189a;
         }
+
+        button:hover::before, button:hover::after {
+            width: 58%;
+        }
+
+        button:hover span {
+            color: #e0aaff;
+            transition: 0.3s;
+        }
+
+        button span {
+            color: #03045e;
+            font-size: 16px;
+            transition: all 0.3s ease-in;
+        }
+
+    .movie-description, .movie-release {
+        margin: 5px 0;
+    }
+
+    .selected-for-delete {
+        border: 3px solid red !important;
+        transition: border 0.3s ease;
+    }
+
+    .simple:hover {
+        background-color: #c82333;
+        color: white;
+    }
+
+    .simple::before, .simple::after {
+        display: none !important;
     }
 </style>
 
