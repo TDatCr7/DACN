@@ -42,22 +42,18 @@ namespace CinemaS.Controllers
         }
 
 
-        public async Task<IActionResult> Index(string? search, int page = 1)
+        public async Task<IActionResult> Index(string? search, string? role, int page = 1)
         {
-            const int pageSize = 8;
-
             var query = _userManager.Users.AsQueryable();
 
+            // search filter
             if (!string.IsNullOrWhiteSpace(search))
             {
-                search = search.Trim();
                 query = query.Where(u =>
                     (u.FullName ?? "").Contains(search) ||
                     (u.Email ?? "").Contains(search) ||
                     (u.UserName ?? "").Contains(search));
             }
-
-            var totalItems = await query.CountAsync();
 
             var users = await query
                 .OrderBy(u => u.FullName)
@@ -82,13 +78,9 @@ namespace CinemaS.Controllers
                 });
             }
 
-            ViewBag.CurrentPage = page;
-            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-            ViewBag.Search = search;
-
+            ViewData["Title"] = "Quản lý tài khoản";
             return View(vms);
         }
-
 
         // GET: /AdminUsers/Details/5
         public async Task<IActionResult> Details(string id)
@@ -166,7 +158,7 @@ namespace CinemaS.Controllers
             };
 
             ViewData["Title"] = "Thêm tài khoản";
-            return View("Edit", vm);
+            return View("Create", vm);
         }
 
         // POST: /AdminUsers/Create
@@ -182,7 +174,7 @@ namespace CinemaS.Controllers
             if (!ModelState.IsValid)
             {
                 ViewData["Title"] = "Thêm tài khoản";
-                return View("Edit", vm);
+                return View("Create", vm);
             }
 
             var user = new AppUser
@@ -217,19 +209,11 @@ namespace CinemaS.Controllers
             {
                 ModelState.AddModelError("SelectedRoles", "Vui lòng chọn 1 quyền.");
                 ViewData["Title"] = "Thêm tài khoản";
-                return View("Edit", vm);
+                return View("Create", vm);
             }
 
-            var rr = await SetSingleRoleAsync(user, selectedRole);
-            if (!rr.Succeeded)
-            {
-                foreach (var e in rr.Errors)
-                    ModelState.AddModelError(string.Empty, e.Description);
-
-                ViewData["Title"] = "Thêm tài khoản";
-                return View("Edit", vm);
-            }
-
+            if (vm.SelectedRoles != null && vm.SelectedRoles.Any())
+                await _userManager.AddToRolesAsync(user, vm.SelectedRoles);
 
             return RedirectToAction(nameof(Index));
         }

@@ -7,339 +7,186 @@
     var genres = (List<CinemaS.Models.Genres>)ViewBag.Genres ?? new();
 }
 
-<style>
-    :root {
-        --bg: #0b0f27;
-        --panel: #10163c;
-        --text: #e9ecf6;
-        --muted: #a9b1c7;
-        --blue: #3b5ccc;
-        --purple: #7c3aed;
-        --accent: #ffd54d;
-        --line: rgba(255,255,255,.12);
-    }
+<div class="admin-shell movies-admin movies-crud movies-create">
+    <div class="admin-panel">
+        <div class="crud-head">
+            <h1 class="crud-title">
+                <i class="fa-solid fa-film"></i>
+                Tạo phim
+            </h1>
 
-    .page-create-movie {
-        padding: 34px 0 60px;
-    }
-
-    .movie-create-card {
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.3), transparent 55%), linear-gradient(145deg, #020617, #020617);
-        border: 1px solid rgba(148,163,255,.55);
-        border-radius: 24px;
-        padding: 24px 26px;
-        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
-        color: var(--text);
-    }
-
-        .movie-create-card h3 {
-            font-weight: 900;
-            margin-bottom: 16px;
-        }
-
-    .form-label {
-        font-weight: 700;
-        font-size: 13px;
-        color: #c7d2fe;
-    }
-
-    .movie-input,
-    .movie-select,
-    .form-control,
-    .form-select {
-        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
-        border-radius: 14px;
-        border: 1px solid rgba(148,163,255,.35);
-        color: #e5e7f5;
-        font-size: 14px;
-    }
-
-        .movie-input::placeholder {
-            color: #6b7280;
-            font-size: 13px;
-        }
-
-        .movie-input:focus,
-        .movie-select:focus,
-        .form-control:focus,
-        .form-select:focus {
-            background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(2,6,23,1));
-            color: #e5e7f5;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.35);
-        }
-
-        .movie-select option,
-        .form-select option {
-            background: #020617;
-            color: #e5e7f5;
-        }
-
-    .section-title {
-        font-size: 16px;
-        font-weight: 700;
-        margin-top: 18px;
-        margin-bottom: 8px;
-    }
-
-    .preview-img {
-        max-height: 160px;
-        border-radius: 14px;
-        border: 1px solid rgba(148,163,255,.4);
-        box-shadow: 0 12px 30px rgba(15,23,42,.8);
-        object-fit: cover;
-        width: 100%;
-    }
-
-    .btn-primary {
-        background: linear-gradient(90deg,var(--blue),var(--purple));
-        border: none;
-        font-weight: 800;
-        border-radius: 999px;
-        padding-inline: 24px;
-    }
-
-    .btn-outline-light {
-        border-radius: 999px;
-        padding-inline: 20px;
-        border-color: rgba(148,163,255,.75);
-        color: #e5e7ff;
-        background: rgba(15,23,42,.9);
-    }
-
-        .btn-outline-light:hover {
-            background: rgba(37,99,235,.9);
-            border-color: rgba(129,140,248,1);
-            color: #fff;
-        }
-
-    /* Select2 giống layout */
-    .select2-container--default .select2-selection--multiple,
-    .select2-container--default .select2-selection--single {
-        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
-        border-radius: 14px;
-        border: 1px solid rgba(148,163,255,.35);
-        min-height: 42px;
-        padding: 2px 6px;
-        color: #e5e7f5;
-        font-size: 14px;
-    }
-
-        .select2-container--default .select2-selection--multiple .select2-selection__rendered {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-
-        .select2-container--default .select2-selection--multiple .select2-selection__choice {
-            background: linear-gradient(120deg, #2563eb, #7c3aed);
-            border: none;
-            border-radius: 999px;
-            color: #f9fafb;
-            padding: 2px 10px;
-            font-size: 12px;
-        }
-
-        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-            color: #e5e7f5;
-            margin-right: 4px;
-        }
-
-    .select2-dropdown {
-        background-color: #020617;
-        border: 1px solid rgba(148,163,255,.35);
-        border-radius: 14px;
-        overflow: hidden;
-    }
-
-    .select2-search--dropdown .select2-search__field {
-        background-color: #020617;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.55);
-        color: #e5e7f5;
-        padding-inline: 10px;
-        font-size: 13px;
-    }
-
-    .select2-results__option {
-        padding: 6px 10px;
-        font-size: 14px;
-        color: #e5e7f5;
-    }
-
-    .select2-results__option--highlighted.select2-results__option--selectable {
-        background: linear-gradient(120deg, #2563eb, #7c3aed);
-        color: #fff;
-    }
-
-    @@media (max-width: 767.98px) {
-        .movie-create-card {
-            padding-inline: 18px;
-        }
-    }
-</style>
-
-<div class="container page-create-movie">
-    <div class="row g-4 justify-content-center">
-        <div class="col-lg-9 col-md-11">
-            <div class="movie-create-card">
-                <h3>Tạo phim</h3>
-                <form asp-action="Create" enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="MoviesId" class="form-label">Mã</label>
-                            <input asp-for="MoviesId" class="form-control movie-input" />
-                        </div>
-                        <div class="col-md-8 mb-2">
-                            <label asp-for="Title" class="form-label">Tên phim</label>
-                            <input asp-for="Title" class="form-control movie-input" />
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-2">
-                            <label asp-for="StatusId" class="form-label">Trạng thái</label>
-                            <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-select movie-select"></select>
-                        </div>
-                        <div class="col-md-6 mb-2">
-                            <label asp-for="ReleaseDate" class="form-label">Khởi chiếu</label>
-                            <input asp-for="ReleaseDate" type="date" class="form-control movie-input" />
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Duration" class="form-label">Thời lượng (phút)</label>
-                            <input asp-for="Duration" class="form-control movie-input" />
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Age" class="form-label">Độ tuổi</label>
-                            <input asp-for="Age" class="form-control movie-input" />
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Rating" class="form-label">Điểm IMDb /10</label>
-                            <input asp-for="Rating" type="number" step="0.1" min="0" max="10" class="form-control movie-input" />
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Language" class="form-label">Ngôn ngữ</label>
-                            <input asp-for="Language" class="form-control movie-input" />
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="Country" class="form-label">Quốc gia</label>
-                            <input asp-for="Country" class="form-control movie-input" />
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <label asp-for="AudioOption" class="form-label">Âm thanh</label>
-                            <input asp-for="AudioOption" class="form-control movie-input" />
-                        </div>
-                    </div>
-
-                    <div class="mb-2">
-                        <label asp-for="TrailerLink" class="form-label">Trailer (YouTube)</label>
-                        <input asp-for="TrailerLink" class="form-control movie-input" />
-                    </div>
-                    <div class="mb-2">
-                        <label asp-for="Summary" class="form-label">Mô tả ngắn</label>
-                        <textarea asp-for="Summary" class="form-control movie-input" rows="2"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label asp-for="DetailDescription" class="form-label">Nội dung</label>
-                        <textarea asp-for="DetailDescription" class="form-control movie-input" rows="5"></textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="posterFile" class="form-label">Poster</label>
-                            <div class="mb-2">
-                                <img id="posterPreview" class="preview-img d-none" alt="Poster preview" />
-                                <div id="posterPlaceholder" class="text-muted small">Chưa chọn ảnh</div>
-                            </div>
-                            <input type="file" name="posterFile" id="posterFile" accept="image/*" class="form-control movie-input" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="bannerFile" class="form-label">Banner</label>
-                            <div class="mb-2">
-                                <img id="bannerPreview" class="preview-img d-none" alt="Banner preview" />
-                                <div id="bannerPlaceholder" class="text-muted small">Chưa chọn ảnh</div>
-                            </div>
-                            <input type="file" name="bannerFile" id="bannerFile" accept="image/*" class="form-control movie-input" />
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="section-title mb-0">Thể loại</div>
-                        <a asp-controller="Genres" asp-action="Index" class="btn btn-sm btn-outline-light">
-                            <i class="fa-solid fa-layer-group me-1"></i> Quản lý thể loại
-                        </a>
-                    </div>
-
-                    <label class="form-label">Chọn thể loại</label>
-                    <select id="genresSelect"
-                            name="selectedGenres"
-                            class="form-select movie-input"
-                            multiple="multiple">
-                        @foreach (var g in genres)
-                        {
-                            <option value="@g.GenresId">@g.Name</option>
-                        }
-                    </select>
-
-                    <div class="section-title">Người tham gia</div>
-
-                    <label class="form-label">Đạo diễn</label>
-                    <select id="directorsSelect"
-                            name="selectedDirectors"
-                            class="form-select movie-input"
-                            multiple="multiple">
-                        @foreach (var p in participants)
-                        {
-                            var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
-                            <option value="@p.ParticipantsId">@name</option>
-                        }
-                    </select>
-
-                    <small class="form-label d-block mt-3">Thêm đạo diễn mới (cách nhau bằng dấu phẩy):</small>
-                    <input type="text"
-                           name="newDirectors"
-                           class="form-control movie-input"
-                           placeholder="Ví dụ: Christopher Nolan, Denis Villeneuve" />
-
-                    <div class="mt-4">
-                        <label class="form-label">Diễn viên</label>
-                        <select id="actorsSelect"
-                                name="selectedActors"
-                                class="form-select movie-input"
-                                multiple="multiple">
-                            @foreach (var p in participants)
-                            {
-                                var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
-                                <option value="@p.ParticipantsId">@name</option>
-                            }
-                        </select>
-
-                        <small class="form-label d-block mt-3">Thêm diễn viên mới (cách nhau bằng dấu phẩy):</small>
-                        <input type="text"
-                               name="newActors"
-                               class="form-control movie-input"
-                               placeholder="Ví dụ: Tom Cruise, Emily Blunt" />
-                    </div>
-
-                    <div class="mt-4 d-flex justify-content-between align-items-center">
-                        <button type="button" class="btn btn-outline-light" onclick="history.back()">
-                            <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa-solid fa-plus me-1"></i> Tạo
-                        </button>
-                    </div>
-                </form>
+            <div class="crud-actions">
+                <button type="button" class="btn btn-outline-light-rounded btn-sweep px-3" onclick="history.back()">
+                    <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+                </button>
+                <button type="submit" form="movieCreateForm" class="btn btn-primary btn-sweep px-3">
+                    <i class="fa-solid fa-plus me-1"></i> Tạo
+                </button>
             </div>
+        </div>
+
+        <div class="crud-divider"></div>
+
+        <div class="crud-body">
+            <form id="movieCreateForm" asp-action="Create" enctype="multipart/form-data" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <!-- LEFT -->
+                    <div class="col-lg-8">
+                        <div class="create-panel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label asp-for="MoviesId" class="form-label">Mã</label>
+                                    <input asp-for="MoviesId" class="form-control movie-input" required />
+                                    <span asp-validation-for="MoviesId" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-8">
+                                    <label asp-for="Title" class="form-label">Tên phim</label>
+                                    <input asp-for="Title" class="form-control movie-input" required />
+                                    <span asp-validation-for="Title" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label asp-for="StatusId" class="form-label">Trạng thái</label>
+                                    <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-select movie-select" required></select>
+                                    <span asp-validation-for="StatusId" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ReleaseDate" class="form-label">Khởi chiếu</label>
+                                    <input asp-for="ReleaseDate" type="date" class="form-control movie-input" required />
+                                    <span asp-validation-for="ReleaseDate" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label asp-for="Duration" class="form-label">Thời lượng (phút)</label>
+                                    <input asp-for="Duration" type="number" min="1" class="form-control movie-input" required />
+                                    <span asp-validation-for="Duration" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Age" class="form-label">Độ tuổi</label>
+                                    <input asp-for="Age" type="number" min="0" class="form-control movie-input" required />
+                                    <span asp-validation-for="Age" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Rating" class="form-label">Điểm IMDb /10</label>
+                                    <input asp-for="Rating" type="number" step="0.1" min="0" max="10" class="form-control movie-input" required />
+                                    <span asp-validation-for="Rating" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label asp-for="Language" class="form-label">Ngôn ngữ</label>
+                                    <input asp-for="Language" class="form-control movie-input" required />
+                                    <span asp-validation-for="Language" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="Country" class="form-label">Quốc gia</label>
+                                    <input asp-for="Country" class="form-control movie-input" required />
+                                    <span asp-validation-for="Country" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="AudioOption" class="form-label">Âm thanh</label>
+                                    <input asp-for="AudioOption" class="form-control movie-input" required />
+                                    <span asp-validation-for="AudioOption" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12">
+                                    <label asp-for="TrailerLink" class="form-label">Trailer (YouTube)</label>
+                                    <input asp-for="TrailerLink" class="form-control movie-input" required />
+                                    <span asp-validation-for="TrailerLink" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12">
+                                    <label asp-for="Summary" class="form-label">Mô tả ngắn</label>
+                                    <textarea asp-for="Summary" class="form-control movie-input" rows="2" required></textarea>
+                                    <span asp-validation-for="Summary" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12">
+                                    <label asp-for="DetailDescription" class="form-label">Nội dung</label>
+                                    <textarea asp-for="DetailDescription" class="form-control movie-input" rows="5" required></textarea>
+                                    <span asp-validation-for="DetailDescription" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <hr class="create-divider" />
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="movie-section-title mb-0">Thể loại</div>
+                                <a asp-controller="Genres" asp-action="Index" class="btn btn-sm btn-outline-light-rounded btn-sweep px-3">
+                                    <i class="fa-solid fa-layer-group me-1"></i> Quản lý thể loại
+                                </a>
+                            </div>
+
+                            <label class="form-label mt-2">Chọn thể loại</label>
+                            <select id="genresSelect" name="selectedGenres" class="form-select movie-input" multiple="multiple" required>
+                                @foreach (var g in genres)
+                                {
+                                    <option value="@g.GenresId">@g.Name</option>
+                                }
+                            </select>
+                            <div class="text-danger mt-1 d-none" id="genresRequiredMsg">Vui lòng chọn ít nhất 1 thể loại.</div>
+
+                            <hr class="create-divider" />
+
+                            <div class="movie-section-title">Người tham gia</div>
+
+                            <label class="form-label">Đạo diễn</label>
+                            <select id="directorsSelect" name="selectedDirectors" class="form-select movie-input" multiple="multiple" required>
+                                @foreach (var p in participants)
+                                {
+                                    var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
+                                    <option value="@p.ParticipantsId">@name</option>
+                                }
+                            </select>
+                            <div class="text-danger mt-1 d-none" id="directorsRequiredMsg">Vui lòng chọn ít nhất 1 đạo diễn.</div>
+
+                            <small class="form-label d-block mt-3">Thêm đạo diễn mới (cách nhau bằng dấu phẩy):</small>
+                            <input type="text" name="newDirectors" class="form-control movie-input"
+                                   placeholder="Ví dụ: Christopher Nolan, Denis Villeneuve" />
+
+                            <div class="mt-4">
+                                <label class="form-label">Diễn viên</label>
+                                <select id="actorsSelect" name="selectedActors" class="form-select movie-input" multiple="multiple" required>
+                                    @foreach (var p in participants)
+                                    {
+                                        var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
+                                        <option value="@p.ParticipantsId">@name</option>
+                                    }
+                                </select>
+                                <div class="text-danger mt-1 d-none" id="actorsRequiredMsg">Vui lòng chọn ít nhất 1 diễn viên.</div>
+
+                                <small class="form-label d-block mt-3">Thêm diễn viên mới (cách nhau bằng dấu phẩy):</small>
+                                <input type="text" name="newActors" class="form-control movie-input"
+                                       placeholder="Ví dụ: Tom Cruise, Emily Blunt" />
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- RIGHT: NOT sticky -->
+                    <div class="col-lg-4 movies-crud-col movie-media-sticky">
+                        <div class="media-card">
+                            <div class="media-label">Poster</div>
+                            <img id="posterPreview" class="poster-img d-none" alt="Poster preview" />
+                            <div id="posterPlaceholder" class="media-placeholder">Chưa chọn ảnh</div>
+                            <input type="file" name="posterFile" id="posterFile" accept="image/*"
+                                   class="form-control movie-input file-input" required />
+                            <div class="text-danger mt-1 d-none" id="posterRequiredMsg">Vui lòng chọn ảnh poster.</div>
+                        </div>
+
+                        <div class="media-card">
+                            <div class="media-label">Banner</div>
+                            <img id="bannerPreview" class="banner-img d-none" alt="Banner preview" />
+                            <div id="bannerPlaceholder" class="media-placeholder">Chưa chọn ảnh</div>
+                            <input type="file" name="bannerFile" id="bannerFile" accept="image/*"
+                                   class="form-control movie-input file-input" required />
+                            <div class="text-danger mt-1 d-none" id="bannerRequiredMsg">Vui lòng chọn ảnh banner.</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -373,6 +220,75 @@
             });
         }
 
+        function toggleMsg(id, show) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.toggle('d-none', !show);
+        }
+
+        // =========================
+        // CHỈ CHO NHẬP: chữ + khoảng trắng + dấu phẩy
+        // =========================
+        function sanitizeCommaNames(raw) {
+            if (raw == null) return "";
+
+            // 1) Xoá ký tự không hợp lệ: chỉ giữ chữ (Unicode), dấu chữ (combining marks), khoảng trắng, dấu phẩy
+            //    - \p{L}: letter; \p{M}: marks (dấu tiếng Việt dạng tổ hợp); \s: whitespace
+            let v = raw.replace(/[^\p{L}\p{M}\s,]/gu, "");
+
+            // 2) Chuẩn hoá dấu phẩy: bỏ khoảng trắng thừa quanh dấu phẩy -> ", "
+            v = v.replace(/\s*,\s*/g, ", ");
+
+            // 3) Gộp nhiều dấu phẩy liên tiếp -> 1 dấu phẩy
+            v = v.replace(/,{2,}/g, ",");
+
+            // 4) Gộp nhiều space -> 1 space
+            v = v.replace(/\s{2,}/g, " ");
+
+            // 5) Không cho bắt đầu bằng dấu phẩy
+            v = v.replace(/^\s*,+\s*/g, "");
+
+            return v;
+        }
+
+        function isValidCommaNames(v) {
+            // cho phép rỗng (user có thể không nhập thêm mới)
+            const s = (v || "").trim();
+            if (s.length === 0) return true;
+
+            // không được kết thúc bằng dấu phẩy
+            if (/,(\s*)$/.test(s)) return false;
+
+            // tách theo dấu phẩy: mỗi token phải có ít nhất 1 chữ
+            const parts = s.split(",").map(x => x.trim()).filter(x => x.length > 0);
+            if (parts.length === 0) return false;
+
+            // mỗi token phải có chữ (Unicode letter). (tránh token chỉ có space)
+            for (const p of parts) {
+                if (!/\p{L}/u.test(p)) return false;
+            }
+            return true;
+        }
+
+        function bindCommaNameInput(selector) {
+            const el = document.querySelector(selector);
+            if (!el) return;
+
+            // chặn nhập/paste ký tự lạ bằng sanitize realtime
+            el.addEventListener("input", function () {
+                const cleaned = sanitizeCommaNames(this.value);
+                if (this.value !== cleaned) this.value = cleaned;
+            });
+
+            el.addEventListener("paste", function () {
+                // để paste xong mới sanitize
+                setTimeout(() => {
+                    const cleaned = sanitizeCommaNames(el.value);
+                    if (el.value !== cleaned) el.value = cleaned;
+                }, 0);
+            });
+        }
+
         $(document).ready(function () {
             function initMulti(selector, placeholder) {
                 $(selector).select2({
@@ -388,6 +304,59 @@
 
             bindImagePreview('posterFile', 'posterPreview', 'posterPlaceholder');
             bindImagePreview('bannerFile', 'bannerPreview', 'bannerPlaceholder');
+
+            // áp dụng cho 2 ô thêm mới (CHỈ create)
+            bindCommaNameInput('input[name="newDirectors"]');
+            bindCommaNameInput('input[name="newActors"]');
+
+            $('#movieCreateForm').on('submit', function (e) {
+                // 1) Let unobtrusive validate chạy trước
+                if (!$(this).valid()) {
+                    e.preventDefault();
+                    return;
+                }
+
+                // 2) Validate riêng cho select2 multiple
+                const genresOk = ($('#genresSelect').val() || []).length > 0;
+                const directorsOk = ($('#directorsSelect').val() || []).length > 0;
+                const actorsOk = ($('#actorsSelect').val() || []).length > 0;
+
+                toggleMsg('genresRequiredMsg', !genresOk);
+                toggleMsg('directorsRequiredMsg', !directorsOk);
+                toggleMsg('actorsRequiredMsg', !actorsOk);
+
+                // 3) Validate file bắt buộc
+                const posterOk = ($('#posterFile')[0].files || []).length > 0;
+                const bannerOk = ($('#bannerFile')[0].files || []).length > 0;
+
+                toggleMsg('posterRequiredMsg', !posterOk);
+                toggleMsg('bannerRequiredMsg', !bannerOk);
+
+                // 4) Validate 2 ô thêm mới: chỉ chữ + space + dấu phẩy
+                const nd = document.querySelector('input[name="newDirectors"]')?.value || "";
+                const na = document.querySelector('input[name="newActors"]')?.value || "";
+
+                const newDirectorsOk = isValidCommaNames(nd);
+                const newActorsOk = isValidCommaNames(na);
+
+                if (!newDirectorsOk || !newActorsOk) {
+                    // không tạo thêm UI mới; chặn submit
+                    e.preventDefault();
+                    return;
+                }
+
+                if (!genresOk || !directorsOk || !actorsOk || !posterOk || !bannerOk) {
+                    e.preventDefault();
+                }
+            });
+
+            // Hide msg realtime
+            $('#genresSelect').on('change', () => toggleMsg('genresRequiredMsg', ((($('#genresSelect').val() || []).length === 0))));
+            $('#directorsSelect').on('change', () => toggleMsg('directorsRequiredMsg', ((($('#directorsSelect').val() || []).length === 0))));
+            $('#actorsSelect').on('change', () => toggleMsg('actorsRequiredMsg', ((($('#actorsSelect').val() || []).length === 0))));
+            $('#posterFile').on('change', () => toggleMsg('posterRequiredMsg', ((($('#posterFile')[0].files || []).length === 0))));
+            $('#bannerFile').on('change', () => toggleMsg('bannerRequiredMsg', ((($('#bannerFile')[0].files || []).length === 0))));
         });
     </script>
 }
+

@@ -1,6 +1,4 @@
 
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
 using System;
@@ -100,9 +98,6 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
         // =========================
         // 7) Helper: tính giảm giá theo rule
-        //    - 0 < d <= 1    : tỉ lệ (0.1 = 10%)
-        //    - 1 < d <= 100  : % (10 = 10%)
-        //    - d > 100       : trừ thẳng tiền
         // =========================
         private static (decimal discountAmount, decimal totalAfterDiscount) CalcDiscount(decimal baseTotal, double discountValue)
         {
@@ -253,8 +248,8 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
             // ===== Điểm: tính theo GIÁ GỐC (BaseTotal) của invoice đã thanh toán (Status == 1) =====
             var paidInvoices = invoices
-    .Where(i => i.Status == 1)
-    .ToList();
+                .Where(i => i.Status == 1)
+                .ToList();
 
             // Điểm: luôn theo GIÁ GỐC (OriginalTotal); fallback sum line items nếu thiếu
             var computedPoint = 0;
@@ -483,7 +478,6 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
             // =========================
             // A) TÍNH GIÁ: base / discount / paid
-            //    Ưu tiên PaymentTransactions SUCCESS; nếu không có, fallback promo; nếu không có => base
             // =========================
             decimal baseTotal;
 
@@ -624,75 +618,73 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
                 // ---- HTML content (giữ bố cục cũ + thêm giá gốc/giảm/đã thanh toán) ----
                 string html = $@"
-<div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
+                        <div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
 
-  <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
-    {typeLabel}
-  </div>
+                            <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
+                            {typeLabel}
+                            </div>
 
-  <div style='font-size:14px; font-weight:800; text-transform:uppercase; color:#fde047;'>TÊN PHIM</div>
-  <div style='font-size:22px; font-weight:900; margin-bottom:20px;'>{movieTitle}</div>
+                            <div style='font-size:14px; font-weight:800; text-transform:uppercase; color:#fde047;'>TÊN PHIM</div>
+                            <div style='font-size:22px; font-weight:900; margin-bottom:20px;'>{movieTitle}</div>
 
-  <div style='display:grid; grid-template-columns:1fr 1fr; gap:22px;'>
-    <div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Mã hóa đơn</div>
-        <div>{invoice.InvoiceId}</div>
-      </div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Phòng chiếu</div>
-        <div>{roomLabel}</div>
-      </div>
-      <div>
-        <div style='font-weight:700; color:#fde047;'>Số ghế</div>
-        <div>{seatText}</div>
-      </div>
-    </div>
+                            <div style='display:grid; grid-template-columns:1fr 1fr; gap:22px;'>
+                            <div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Mã hóa đơn</div>
+                                <div>{invoice.InvoiceId}</div>
+                                </div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Phòng chiếu</div>
+                                <div>{roomLabel}</div>
+                                </div>
+                                <div>
+                                <div style='font-weight:700; color:#fde047;'>Số ghế</div>
+                                <div>{seatText}</div>
+                                </div>
+                            </div>
 
-    <div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Thời gian chiếu</div>
-        <div>{timeText} {dateText}</div>
-      </div>
-      <div style='margin-bottom:14px;'>
-        <div style='font-weight:700; color:#fde047;'>Số vé</div>
-        <div>{tickets.Count}</div>
-      </div>
-      <div>
-        <div style='font-weight:700; color:#fde047;'>Bắp nước</div>
-        <div>{snackLinesHtml}</div>
-      </div>
-    </div>
-  </div>
+                            <div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Thời gian chiếu</div>
+                                <div>{timeText} {dateText}</div>
+                                </div>
+                                <div style='margin-bottom:14px;'>
+                                <div style='font-weight:700; color:#fde047;'>Số vé</div>
+                                <div>{tickets.Count}</div>
+                                </div>
+                                <div>
+                                <div style='font-weight:700; color:#fde047;'>Bắp nước</div>
+                                <div>{snackLinesHtml}</div>
+                                </div>
+                            </div>
+                            </div>
 
-  <div style='margin-top:22px;'>
-    <div style='font-weight:700; color:#fde047;'>Rạp</div>
-    <div style='font-size:16px; font-weight:700;'>{cinemaName}</div>
-    <div style='font-size:13px; opacity:.9;'>{cinemaAddr}</div>
-  </div>
+                            <div style='margin-top:22px;'>
+                            <div style='font-weight:700; color:#fde047;'>Rạp</div>
+                            <div style='font-size:16px; font-weight:700;'>{cinemaName}</div>
+                            <div style='font-size:13px; opacity:.9;'>{cinemaAddr}</div>
+                            </div>
 
-  <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
+                            <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
 
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
-    <span style='font-weight:800;'>{baseText} VNĐ</span>
-  </div>
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
-    <span style='font-weight:800;'>{discountText} VNĐ</span>
-  </div>
+                            <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
+                            <span style='font-weight:800;'>{baseText} VNĐ</span>
+                            </div>
+                            <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
+                            <span style='font-weight:800;'>{discountText} VNĐ</span>
+                            </div>
 
-  <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
-    <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
-    <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
-  </div>
+                            <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
+                            <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
+                            <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
+                            </div>
 
-</div>";
+                        </div>";
 
                 return Content(html, "text/html");
             }
-
-           
             {
                 // ---- Map snackId -> snackName ----
                 var snackIds = snackLines.Select(x => x.SnackId).ToList();
@@ -766,45 +758,45 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
 
                 // ---- HTML content ----
                 string snackHtml = $@"
-<div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
+                        <div style='border-radius:16px; padding:24px 28px; color:#f9fafb; font-size:15px;'>
 
-  <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
-    HÓA ĐƠN BẮP NƯỚC
-  </div>
+                          <div style='font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#93c5fd; margin-bottom:4px;'>
+                            HÓA ĐƠN BẮP NƯỚC
+                          </div>
 
-  <div style='font-size:20px; font-weight:900; margin-bottom:16px;'>
-    Mã hóa đơn: {invoice.InvoiceId}
-  </div>
+                          <div style='font-size:20px; font-weight:900; margin-bottom:16px;'>
+                            Mã hóa đơn: {invoice.InvoiceId}
+                          </div>
 
-  <div style='margin-bottom:12px;'>
-    <div style='font-weight:700; color:#fde047;'>Thời gian mua</div>
-    <div>{createdText}</div>
-  </div>
+                          <div style='margin-bottom:12px;'>
+                            <div style='font-weight:700; color:#fde047;'>Thời gian mua</div>
+                            <div>{createdText}</div>
+                          </div>
 
   
 
-  <div style='margin-bottom:14px;'>
-    <div style='font-weight:700; color:#fde047;'>Danh sách bắp nước</div>
-    <div>{snackLinesHtml}</div>
-  </div>
+                          <div style='margin-bottom:14px;'>
+                            <div style='font-weight:700; color:#fde047;'>Danh sách bắp nước</div>
+                            <div>{snackLinesHtml}</div>
+                          </div>
 
-  <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
+                          <hr style='margin:20px 0 14px; border:none; border-top:1px dashed rgba(255,255,255,.4);' />
 
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
-    <span style='font-weight:800;'>{baseText} VNĐ</span>
-  </div>
-  <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
-    <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
-    <span style='font-weight:800;'>{discountText} VNĐ</span>
-  </div>
+                          <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Giá gốc</span>
+                            <span style='font-weight:800;'>{baseText} VNĐ</span>
+                          </div>
+                          <div style='display:flex; justify-content:space-between; margin-bottom:8px;'>
+                            <span style='font-weight:700; color:#e5e7eb;'>Tiền giảm</span>
+                            <span style='font-weight:800;'>{discountText} VNĐ</span>
+                          </div>
 
-  <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
-    <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
-    <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
-  </div>
+                          <div style='display:flex; justify-content:space-between; align-items:center; margin-top:10px;'>
+                            <span style='font-size:18px; font-weight:800; color:#fde047;'>ĐÃ THANH TOÁN</span>
+                            <span style='font-size:22px; font-weight:900;'>{paidText} VNĐ</span>
+                          </div>
 
-</div>";
+                        </div>";
 
                 return Content(snackHtml, "text/html");
             }
