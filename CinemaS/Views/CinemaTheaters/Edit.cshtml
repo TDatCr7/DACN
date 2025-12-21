@@ -5,108 +5,96 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header text-white">
-                    <h3><i class="fas fa-pen"></i> Chỉnh sửa phòng chiếu</h3>
-                </div>
-                <div class="card-body">
-                    @if (TempData["Error"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle"></i> <strong>Lỗi:</strong> @TempData["Error"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-video-camera"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
 
-                    @if (TempData["Message"] != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle"></i> @TempData["Message"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
 
-                    <form asp-action="Edit" asp-controller="CinemaTheaters" method="post" novalidate>
-                        <input type="hidden" asp-for="CinemaTheaterId" />
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-tag"></i> Tên phòng <span class="text-danger">*</span></label>
-                            <input asp-for="Name" class="form-control" placeholder="VD: Phòng 1, Phòng VIP A..." />
-                            <span asp-validation-for="Name" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-tv"></i> Loại phòng <span class="text-danger">*</span></label>
-                            <select asp-for="CinemaTypeId" class="form-select" asp-items="ViewBag.CinemaTypes">
-                                <option value="">-- Chọn loại phòng --</option>
-                            </select>
-                            <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-building"></i> Rạp chiếu <span class="text-danger">*</span></label>
-                            <select asp-for="MovieTheaterId" class="form-select" asp-items="ViewBag.MovieTheaters">
-                                <option value="">-- Chọn rạp chiếu --</option>
-                            </select>
-                            <span asp-validation-for="MovieTheaterId" class="text-danger"></span>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="NumOfRows" class="form-label"><i class="fas fa-th-list"></i> Số hàng ghế</label>
-                                <input asp-for="NumOfRows" class="form-control" readonly />
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="NumOfColumns" class="form-label"><i class="fas fa-grip-horizontal"></i> Số cột ghế</label>
-                                <input asp-for="NumOfColumns" class="form-control" readonly />
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-toggle-on"></i> Trạng thái</label>
-                            <div class="d-flex align-items-center">
-                                <select asp-for="Status" class="form-select me-2">
-                                    <option value="1">Hoạt động</option>
-                                    <option value="0">Tạm ngưng</option>
-                                </select>
-                                <button type="button" id="toggleStatusBtn" class="btn btn-outline-info">
-                                    <i class="fas fa-exchange-alt"></i> Đổi trạng thái
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                                <i class="fas fa-arrow-left"></i> Quay lại
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Lưu thay đổi
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                <button type="submit"
+                        form="cinemaTheaterEditForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                </button>
             </div>
         </div>
+
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin phòng chiếu
+            </div>
+
+            <form asp-action="Edit" method="post" id="cinemaTheaterEditForm" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="CinemaTheaterId" />
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label">Tên phòng</label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CinemaTypeId" class="form-label">Loại phòng</label>
+                        <select asp-for="CinemaTypeId" class="form-select" asp-items="ViewBag.CinemaTypes">
+                            <option value="">-- Chọn loại phòng --</option>
+                        </select>
+                        <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="MovieTheaterId" class="form-label">Rạp chiếu</label>
+                        <select asp-for="MovieTheaterId" class="form-select" asp-items="ViewBag.MovieTheaters">
+                            <option value="">-- Chọn rạp chiếu --</option>
+                        </select>
+                        <span asp-validation-for="MovieTheaterId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Status" class="form-label">Trạng thái</label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="1">Hoạt động</option>
+                            <option value="0">Tạm ngưng</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="NumOfRows" class="form-label">Số hàng ghế</label>
+                        <input asp-for="NumOfRows" class="form-control" readonly />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="NumOfColumns" class="form-label">Số cột ghế</label>
+                        <input asp-for="NumOfColumns" class="form-control" readonly />
+                    </div>
+                </div>
+            </form>
+        </div>
+
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
         setTimeout(() => $('.alert').fadeOut('slow'), 5000);
-
-        document.getElementById('toggleStatusBtn').addEventListener('click', function() {
-            var statusSelect = document.querySelector('select[name="Status"]');
-            statusSelect.value = statusSelect.value == '1' ? '0' : '1';
-        });
     </script>
 }

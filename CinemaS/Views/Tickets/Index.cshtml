@@ -60,8 +60,8 @@
         <h1 class="mb-0"><i class="fas fa-ticket-alt"></i> Quản lý Vé</h1>
 
         <div class="d-flex gap-2">
-            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
             </a>
         </div>
     </div>
@@ -90,78 +90,37 @@
     }
 
     <!-- Search & Filter Box -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form asp-action="Index" method="get" id="filterForm">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label text-white"><i class="fas fa-search"></i> Tìm kiếm</label>
-                        <div class="input-group search-box">
-                            <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control" placeholder="Mã vé, mã hóa đơn, mã ghế, loại vé..." />
-                            <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
-                        </div>
-                    </div>
+    <div class="admin-toolbar">
+        <form method="get" class="admin-search-shell d-flex gap-2 align-items-center" id="filterForm">
+            <div class="input-group admin-search-compact">
+                <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control admin-search-input" placeholder="Mã vé, mã hóa đơn, mã ghế, loại vé..." />
+                <button class="admin-search-btn" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label text-white"><i class="fas fa-calendar-alt"></i> Từ ngày</label>
-                        <input type="date" name="fromDate" value="@ViewData["FromDate"]" class="form-control" onchange="this.form.submit()" />
-                    </div>
+            <input type="date" name="fromDate" value="@ViewData["FromDate"]" class="form-control admin-role-filter" onchange="this.form.submit()" />
 
-                    <div class="col-md-3">
-                        <label class="form-label text-white"><i class="fas fa-calendar-check"></i> Đến ngày</label>
-                        <input type="date" name="toDate" value="@ViewData["ToDate"]" class="form-control" onchange="this.form.submit()" />
-                    </div>
+            <input type="date" name="toDate" value="@ViewData["ToDate"]" class="form-control admin-role-filter" onchange="this.form.submit()" />
 
-                    <div class="col-md-2">
-                        <label class="form-label text-white"><i class="fas fa-filter"></i> Trạng thái</label>
-                        @{
-                            var currentStatus = ViewData["StatusFilter"]?.ToString();
-                        }
-                        <select name="statusFilter" class="form-control" onchange="this.form.submit()">
-                            <option value="">Tất cả</option>
-                            @if (currentStatus == "0") {
-                                <option value="0" selected>Đang chờ</option>
-                            } else {
-                                <option value="0">Đang chờ</option>
-                            }
-                            @if (currentStatus == "1") {
-                                <option value="1" selected>Đã thanh toán</option>
-                            } else {
-                                <option value="1">Đã thanh toán</option>
-                            }
-                            @if (currentStatus == "2") {
-                                <option value="2" selected>Đã hủy</option>
-                            } else {
-                                <option value="2">Đã hủy</option>
-                            }
-                            @if (currentStatus == "3") {
-                                <option value="3" selected>Hết hạn</option>
-                            } else {
-                                <option value="3">Hết hạn</option>
-                            }
-                        </select>
-                    </div>
-                </div>
+            <select name="statusFilter" class="form-select admin-role-filter" onchange="this.form.submit()">
+                @{
+                    var currentStatus = ViewData["StatusFilter"]?.ToString();
+                }
+                <option value="">Tất cả</option>
+                <option value="0" selected="@(currentStatus == "0")">Đang chờ</option>
+                <option value="1" selected="@(currentStatus == "1")">Đã thanh toán</option>
+                <option value="2" selected="@(currentStatus == "2")">Đã hủy</option>
+                <option value="3" selected="@(currentStatus == "3")">Hết hạn</option>
+            </select>
 
-                <div class="row mt-3">
-                    <div class="col-12">
-                        @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()) || !string.IsNullOrEmpty(ViewData["FromDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["ToDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["StatusFilter"]?.ToString()))
-                        {
-                            <a href="@Url.Action("Index")" class="btn btn-outline-danger"><i class="fas fa-times"></i> Xóa bộ lọc</a>
-                        }
-                    </div>
-                    <div class="d-flex justify-content-between mt-4">
-                        @if (Model != null && Model.Any())
-                        {
-                            <div class="text-white">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Tổng số vé: @totalItems</strong>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </form>
-        </div>
+            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()) || !string.IsNullOrEmpty(ViewData["FromDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["ToDate"]?.ToString()) || !string.IsNullOrEmpty(ViewData["StatusFilter"]?.ToString()))
+            {
+                <a href="@Url.Action("Index")" class="btn btn-outline-danger">
+                    <i class="fas fa-times"></i>
+                </a>
+            }
+        </form>
     </div>
 
     <!-- Table - sử dụng admin-table-wrap và admin-table -->

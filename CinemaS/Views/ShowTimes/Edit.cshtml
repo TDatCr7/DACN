@@ -8,171 +8,159 @@
     var seatTypes = ViewBag.SeatTypes as IEnumerable<SeatTypes>;
 }
 
-<!-- Font Awesome & CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/table.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card shadow">
-                <div class="card-header text-white">
-                    <h3><i class="fas fa-film"></i> Chỉnh sửa suất chiếu</h3>
-                </div>
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-film"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
 
-                <div class="card-body">
-                    <!-- Thông báo -->
-                    @if (TempData["Error"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle"></i> <strong>Lỗi:</strong> @TempData["Error"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
 
-                    @if (TempData["Message"] != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle"></i> @TempData["Message"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
-
-                    <form asp-action="Edit" asp-controller="ShowTimes" method="post" novalidate>
-                        <input type="hidden" asp-for="ShowTimeId" />
-                        <input type="hidden" asp-for="TotalCinema" />
-                        <input type="hidden" asp-for="CreatedAt" />
-                        <input type="hidden" asp-for="UpdatedAt" />
-
-                        <!-- Hàng 1: Chọn phim và phòng -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-video"></i> Phim <span class="text-danger">*</span></label>
-                                <select asp-for="MoviesId" class="form-select" asp-items="@ViewBag.Movies">
-                                    <option value="">-- Chọn phim --</option>
-                                </select>
-                                <span asp-validation-for="MoviesId" class="text-danger"></span>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-door-open"></i> Phòng chiếu <span class="text-danger">*</span></label>
-                                <select asp-for="CinemaTheaterId" class="form-select" asp-items="@ViewBag.CinemaTheaters">
-                                    <option value="">-- Chọn phòng chiếu --</option>
-                                </select>
-                                <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <!-- Hàng 2: Ngày và giờ -->
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label"><i class="fas fa-calendar-days"></i> Ngày chiếu</label>
-                                <input asp-for="ShowDate" type="date" class="form-control" value="@Model.ShowDate?.ToString("yyyy-MM-dd")" />
-                                <span asp-validation-for="ShowDate" class="text-danger"></span>
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label"><i class="fas fa-clock"></i> Giờ bắt đầu</label>
-                                <input asp-for="StartTime" type="time" class="form-control" value="@Model.StartTime?.ToString("HH:mm")" />
-                                <span asp-validation-for="StartTime" class="text-danger"></span>
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label"><i class="fas fa-hourglass-end"></i> Giờ kết thúc</label>
-                                <input asp-for="EndTime" type="time" class="form-control" value="@Model.EndTime?.ToString("HH:mm")" />
-                                <span asp-validation-for="EndTime" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-sliders"></i> Điều chỉnh giá suất chiếu (%)
-                                </label>
-                                <div class="input-group">
-                                    <input asp-for="PriceAdjustmentPercent"
-                                           type="text"
-                                           class="form-control"
-                                           id="priceAdjustmentPercent"
-                                           inputmode="numeric" />
-                                    <span class="input-group-text">%</span>
-                                </div>
-                                <small class="text-white-50">
-                                    <i class="fas fa-circle-info"></i>
-                                    VD: 10 = tăng 10% ; -20 = giảm 20%
-                                </small>
-                                <small class="text-danger" id="priceAdjustmentError" style="display:none;"></small>
-                                <span asp-validation-for="PriceAdjustmentPercent" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <div class="card mb-3">
-                            <div class="card-header text-white d-flex justify-content-between align-items-center">
-                                <strong><i class="fa-solid fa-tags"></i> Giá ghế</strong>
-                                <a asp-action="Index" asp-controller="SeatTypes" class="btn btn-sm btn-info">
-                                    <i class="fa-solid fa-couch"></i> Quản lý loại ghế
-                                </a>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    @if (seatTypes != null)
-                                    {
-                                        foreach (var seatType in seatTypes)
-                                        {
-                                            var priceInt = (int)(seatType.Price ?? 0);
-
-                                            <div class="col-md-4 mb-3">
-                                                <label class="form-label">
-                                                    @seatType.Name
-                                                    @if (seatType.Name == "NORMAL")
-                                                    {
-                                                        <span class="badge bg-secondary">Ghế thường</span>
-                                                    }
-                                                    else if (seatType.Name == "VIP")
-                                                    {
-                                                        <span class="badge bg-warning text-dark">Ghế VIP</span>
-                                                    }
-                                                    else if (seatType.Name == "COUPLE")
-                                                    {
-                                                        <span class="badge bg-danger">Ghế đôi</span>
-                                                    }
-                                                </label>
-                                                <div class="p-3 border rounded">
-                                                    <div class="mb-2" readonly>
-                                                        <strong id="price-display-@seatType.SeatTypeId">@priceInt.ToString("N0")</strong> đ
-                                                    </div>
-                                                </div>
-                                                <input type="hidden"
-                                                       name="seatTypePrices[@seatType.SeatTypeId]"
-                                                       class="form-control seat-base-price"
-                                                       data-seat-id="@seatType.SeatTypeId"
-                                                       data-price="@priceInt"
-                                                       value="@priceInt" />
-                                                <small style="display:block; margin-top: 5px;">
-                                                    Giá gốc: <strong>@priceInt.ToString("N0") đ</strong>
-                                                </small>
-                                            </div>
-                                        }
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Nút hành động -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                                <i class="fas fa-arrow-left"></i> Quay lại
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Lưu thay đổi
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                <button type="submit"
+                        form="showTimeEditForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                </button>
             </div>
         </div>
+
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin suất chiếu
+            </div>
+
+            <form asp-action="Edit" method="post" id="showTimeEditForm" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ShowTimeId" />
+                <input type="hidden" asp-for="TotalCinema" />
+                <input type="hidden" asp-for="CreatedAt" />
+                <input type="hidden" asp-for="UpdatedAt" />
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="MoviesId" class="form-label">Phim</label>
+                        <select asp-for="MoviesId" class="form-select" asp-items="@ViewBag.Movies">
+                            <option value="">-- Chọn phim --</option>
+                        </select>
+                        <span asp-validation-for="MoviesId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CinemaTheaterId" class="form-label">Phòng chiếu</label>
+                        <select asp-for="CinemaTheaterId" class="form-select" asp-items="@ViewBag.CinemaTheaters">
+                            <option value="">-- Chọn phòng chiếu --</option>
+                        </select>
+                        <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="ShowDate" class="form-label">Ngày chiếu</label>
+                        <input asp-for="ShowDate" type="date" class="form-control" value="@Model.ShowDate?.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="ShowDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="StartTime" class="form-label">Giờ bắt đầu</label>
+                        <input asp-for="StartTime" type="time" class="form-control" value="@Model.StartTime?.ToString("HH:mm")" />
+                        <span asp-validation-for="StartTime" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="EndTime" class="form-label">Giờ kết thúc</label>
+                        <input asp-for="EndTime" type="time" class="form-control" value="@Model.EndTime?.ToString("HH:mm")" />
+                        <span asp-validation-for="EndTime" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="PriceAdjustmentPercent" class="form-label">Điều chỉnh giá suất chiếu (%)</label>
+                        <div class="input-group">
+                            <input asp-for="PriceAdjustmentPercent"
+                                   type="text"
+                                   class="form-control"
+                                   id="priceAdjustmentPercent"
+                                   inputmode="numeric" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-white-50">
+                            <i class="fas fa-circle-info"></i>
+                            VD: 10 = tăng 10% ; -20 = giảm 20%
+                        </small>
+                        <small class="text-danger" id="priceAdjustmentError" style="display:none;"></small>
+                        <span asp-validation-for="PriceAdjustmentPercent" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div style="height:1px;background:rgba(148,163,255,.14);margin:18px 0 14px;"></div>
+
+                <div class="admin-form-card" style="background: rgba(15,23,42,.96); border: 1px solid rgba(148,163,255,.35); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom: 12px;">
+                        <div style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">Giá ghế</div>
+                        <a asp-action="Index" asp-controller="SeatTypes" class="btn btn-sm btn-outline-light-rounded">
+                            <i class="fa-solid fa-couch"></i> Quản lý loại ghế
+                        </a>
+                    </div>
+
+                    <div class="field-group">
+                        <div class="row">
+                            @if (seatTypes != null)
+                            {
+                                foreach (var seatType in seatTypes)
+                                {
+                                    var priceInt = (int)(seatType.Price ?? 0);
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">
+                                            @seatType.Name
+                                            @if (seatType.Name == "NORMAL")
+                                            {
+                                                <span class="badge bg-secondary">Ghế thường</span>
+                                            }
+                                            else if (seatType.Name == "VIP")
+                                            {
+                                                <span class="badge bg-warning text-dark">Ghế VIP</span>
+                                            }
+                                            else if (seatType.Name == "COUPLE")
+                                            {
+                                                <span class="badge bg-danger">Ghế đôi</span>
+                                            }
+                                        </label>
+                                        <div class="p-3 border rounded" style="background: rgba(15,23,42,.96); border-color: rgba(148,163,255,.35); color: #e5e7f5; box-shadow: 0 0 0 1px rgba(148,163,255,.5);">
+                                            <div class="mb-2" readonly>
+                                                <strong id="price-display-@seatType.SeatTypeId">@priceInt.ToString("N0")</strong> đ
+                                            </div>
+                                        </div>
+                                        <input type="hidden"
+                                               name="seatTypePrices[@seatType.SeatTypeId]"
+                                               class="form-control seat-base-price"
+                                               data-seat-id="@seatType.SeatTypeId"
+                                               data-price="@priceInt"
+                                               value="@priceInt" />
+                                        <small style="display:block; margin-top: 5px; color: #9ca3af;">
+                                            Giá gốc: <strong>@priceInt.ToString("N0") đ</strong>
+                                        </small>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
     </div>
 </div>
 

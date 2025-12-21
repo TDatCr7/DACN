@@ -1,78 +1,76 @@
 ﻿@model CinemaS.Models.CinemaTypes
 
 @{
-    ViewData["Title"] = "Tạo Loại Phòng Chiếu";
+    ViewData["Title"] = "Thêm loại phòng chiếu";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header text-white">
-                    <h3><i class="fas fa-plus-circle"></i> Tạo Loại Phòng Chiếu</h3>
-                </div>
-
-                <div class="card-body">
-                    <!-- Thông báo lỗi -->
-                    @if (TempData["Error"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
-
-                    <form asp-action="Create" method="post" novalidate>
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-                        <!-- Tên loại phòng -->
-                        <div class="mb-3">
-                            <label asp-for="Name" class="form-label">
-                                <i class="fas fa-signature"></i> Tên loại phòng <span class="text-danger">*</span>
-                            </label>
-                            <input asp-for="Name" class="form-control" placeholder="VD: IMAX, 3D, 4DX..." required />
-                            <span asp-validation-for="Name" class="text-danger"></span>
-                        </div>
-
-                        <!-- Mã Code -->
-                        <div class="mb-3">
-                            <label asp-for="Code" class="form-label">
-                                <i class="fas fa-barcode"></i> Mã Code
-                            </label>
-                            <input asp-for="Code" class="form-control" placeholder="VD: IMAX2D, 3D, 4DX..." />
-                            <span asp-validation-for="Code" class="text-danger"></span>
-                        </div>
-
-                        <!-- Mô tả -->
-                        <div class="mb-3">
-                            <label asp-for="Description" class="form-label">
-                                <i class="fas fa-file-lines"></i> Mô tả
-                            </label>
-                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
-                        </div>
-
-                        <!-- Nút hành động -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                                <i class="fas fa-arrow-left"></i> Quay lại
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Tạo mới
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        @* ONE PANEL: header + content inside, title left, remove subnote *@
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-clapperboard"></i>
+                    @ViewData["Title"]
+                </h1>
             </div>
+
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+
+                <button type="submit"
+                        form="cinemaTypeCreateForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-circle-plus me-1"></i> Tạo
+                </button>
+            </div>
+        </div>
+
+        @* divider like "island" but not separated *@
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <form asp-action="Create" method="post" id="cinemaTypeCreateForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                    Thông tin loại phòng chiếu
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label">Tên loại phòng</label>
+                        <input asp-for="Name" class="form-control" placeholder="VD: IMAX, 3D, 4DX..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Code" class="form-label">Mã Code</label>
+                        <input asp-for="Code" class="form-control" placeholder="VD: IMAX2D, 3D, 4DX..." />
+                        <span asp-validation-for="Code" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Description" class="form-label">Mô tả</label>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                </div>
+            </form>
+
         </div>
     </div>
 </div>
 
 @section Scripts {
-    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <partial name="_ValidationScriptsPartial" />
 }

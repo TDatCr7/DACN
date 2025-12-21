@@ -58,114 +58,55 @@
                 <i class="fa-solid fa-film"></i>
                 Danh sách phim
             </h1>
+            <div class="d-flex gap-2">
+                <a asp-action="Create" class="btn btn-primary btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                    <i class="fa-solid fa-plus me-1"></i> Thêm phim
+                </a>
+                <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
         </div>
 
         <!-- TOOLBAR -->
-        <form method="get" asp-action="Index" class="admin-toolbar movies-toolbar" id="movieFilterForm">
+        <form method="get" asp-action="Index" class="admin-search-shell d-flex gap-2 align-items-center" id="movieFilterForm">
 
-            <!-- ROW 1: -->
-            <div class="movies-toolbar-row movies-toolbar-row-top">
-
-                <div class="movies-toolbar-left">
-                    @if (isAdmin)
-                    {
-                        <a asp-controller="Genres" asp-action="Index"
-                           class="btn btn-outline-light-rounded btn-sweep px-3">
-                            <i class="fa-solid fa-layer-group me-1"></i> Quản lý thể loại
-                        </a>
-                    }
-                </div>
-
-                <div class="movies-toolbar-right movies-toolbar-crud">
-                    @if (isAdmin)
-                    {
-                        <a asp-controller="Admin" asp-action="Index"
-                           class="btn btn-outline-light-rounded btn-sweep px-3">
-                            <i class="fa-solid fa-arrow-left"></i> Quay lại
-                        </a>
-
-                        <a asp-action="Create"
-                           class="btn btn-primary btn-sweep px-3">
-                            <i class="fa-solid fa-plus me-1"></i> Thêm phim
-                        </a>
-
-                        <button type="button" id="deleteButton"
-                                class="btn btn-danger px-3"
-                                onclick="toggleDeleteMode()">
-                            <i class="fa-solid fa-trash-can me-1"></i> Xóa phim
-                        </button>
-
-                        <button type="button" id="confirmDeleteButton"
-                                class="btn btn-primary btn-sweep px-3"
-                                style="display:none;"
-                                onclick="deleteSelectedMovies()">
-                            <i class="fa-solid fa-circle-check me-1"></i> Xác nhận xóa
-                        </button>
-
-                        <button type="button" id="cancelDeleteButton"
-                                class="btn btn-outline-light-rounded btn-sweep px-3"
-                                style="display:none;"
-                                onclick="cancelDeleteMode()">
-                            <i class="fa-solid fa-circle-xmark me-1"></i> Hủy
-                        </button>
-                    }
-                </div>
+            <div class="input-group admin-search-compact">
+                <input type="text"
+                       id="searchInput"
+                       name="q"
+                       value="@currentSearch"
+                       class="form-control admin-search-input"
+                       placeholder="Tìm theo tên phim..." />
+                <button class="admin-search-btn" type="submit" title="Tìm kiếm">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
             </div>
 
-            <!-- divider -->
-            <div class="movies-toolbar-divider"></div>
+            <select id="categoryFilter"
+                    name="genre"
+                    class="form-select admin-role-filter"
+                    onchange="this.form.submit()">
+                <option value="all" selected="@(currentGenre == "all" ? "selected" : null)">Tất cả</option>
+                @foreach (var cat in Model.Genres)
+                {
+                    <option value="@cat" selected="@(currentGenre == cat ? "selected" : null)">@cat</option>
+                }
+            </select>
 
-            <!-- ROW 2: LEFT = Search, RIGHT = Filters -->
-            <div class="movies-toolbar-row movies-toolbar-row-bottom">
-                <div class="movies-toolbar-search">
-                    <div class="input-group admin-search-compact">
-                        <input type="text"
-                               id="searchInput"
-                               name="q"
-                               value="@currentSearch"
-                               class="form-control admin-search-input"
-                               placeholder="Tìm theo tên phim..." />
-                        <button class="admin-search-btn" type="submit" title="Tìm kiếm">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </button>
-                    </div>
-                </div>
+            <select id="statusFilter"
+                    name="status"
+                    class="form-select admin-role-filter"
+                    onchange="this.form.submit()">
+                <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả</option>
+                <option value="RELEASED" selected="@(currentStatus == "RELEASED" ? "selected" : null)">Đang chiếu</option>
+                <option value="COMING" selected="@(currentStatus == "COMING" ? "selected" : null)">Sắp chiếu</option>
+                <option value="ENDED" selected="@(currentStatus == "ENDED" ? "selected" : null)">Không còn chiếu</option>
+            </select>
 
-                <div class="movies-toolbar-filters">
-                    <div class="movies-filter">
-                        <span class="movies-filter-label">
-                            <i class="fa-solid fa-filter me-1"></i> Thể loại
-                        </span>
-                        <select id="categoryFilter"
-                                name="genre"
-                                class="form-select admin-role-filter"
-                                onchange="this.form.submit()">
-                            <option value="all" selected="@(currentGenre == "all" ? "selected" : null)">Tất cả</option>
-                            @foreach (var cat in Model.Genres)
-                            {
-                                <option value="@cat" selected="@(currentGenre == cat ? "selected" : null)">@cat</option>
-                            }
-                        </select>
-                    </div>
-
-                    <div class="movies-filter">
-                        <span class="movies-filter-label">
-                            <i class="fa-solid fa-clock me-1"></i> Trạng thái
-                        </span>
-                        <select id="statusFilter"
-                                name="status"
-                                class="form-select admin-role-filter"
-                                onchange="this.form.submit()">
-                            <option value="all" selected="@(currentStatus == "all" ? "selected" : null)">Tất cả</option>
-                            <option value="RELEASED" selected="@(currentStatus == "RELEASED" ? "selected" : null)">Đang chiếu</option>
-                            <option value="COMING" selected="@(currentStatus == "COMING" ? "selected" : null)">Sắp chiếu</option>
-                            <option value="ENDED" selected="@(currentStatus == "ENDED" ? "selected" : null)">Không còn chiếu</option>
-                        </select>
-                    </div>
-
-                    <input type="hidden" name="page" value="1" />
-                </div>
-            </div>
+            <input type="hidden" name="page" value="1" />
         </form>
 
         <!-- MESSAGE -->

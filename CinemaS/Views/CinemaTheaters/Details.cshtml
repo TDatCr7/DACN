@@ -1,65 +1,123 @@
 ﻿@model CinemaS.Models.CinemaTheaters
 
 @{
-    ViewData["Title"] = "Details";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "_Layout";
+    ViewData["Title"] = "Chi tiết phòng chiếu";
+
+    var nameText = string.IsNullOrWhiteSpace(Model.Name) ? "N/A" : Model.Name;
+    var numOfRowsText = Model.NumOfRows?.ToString() ?? "N/A";
+    var numOfColumnsText = Model.NumOfColumns?.ToString() ?? "N/A";
+    var regularSeatRowText = Model.RegularSeatRow?.ToString() ?? "N/A";
+    var doubleSeatRowText = Model.DoubleSeatRow?.ToString() ?? "N/A";
+    var vipSeatRowText = Model.VIPSeatRow?.ToString() ?? "N/A";
+    var statusText = Model.Status == 1 ? "Hoạt động" : "Ngưng hoạt động";
+    var cinemaTypeName = ViewBag.CinemaTypeName ?? "N/A";
+    var movieTheaterName = ViewBag.MovieTheaterName ?? "N/A";
 }
 
-<h1>Details</h1>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" style="border-radius:14px;margin-bottom:12px;">
+        @TempData["Error"]
+    </div>
+}
 
-<div>
-    <h4>CinemaTheaters</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.NumOfRows)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.NumOfRows)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.NumOfColumns)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.NumOfColumns)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.RegularSeatRow)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.RegularSeatRow)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DoubleSeatRow)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DoubleSeatRow)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.VIPSeatRow)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.VIPSeatRow)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-    </dl>
-</div>
-<div class="d-flex justify-content-between mt-4">
-    <button type="button" class="btn btn-secondary" onclick="history.back()">
-        <i class="fas fa-arrow-left"></i> Quay lại
-    </button>
-    <a asp-action="Edit" asp-route-id="@Model?.CinemaTheaterId" class="btn btn-warning">
-        <i class="fas fa-edit"></i> Chỉnh sửa
-    </a>
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
+
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-door-open"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+
+                <a asp-action="Edit" asp-route-id="@Model.CinemaTheaterId"
+                   class="btn btn-primary btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-pen"></i> Sửa
+                </a>
+
+                <form asp-action="Delete" asp-route-id="@Model.CinemaTheaterId" method="post" class="m-0 d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="btn btn-outline-light-rounded btn-sweep px-3"
+                            style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap; border-color:rgba(248,113,113,.65)!important;"
+                            onclick="return confirm('Xoá phòng chiếu này?');">
+                        <i class="fa-solid fa-trash-can"></i> Xoá
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin phòng chiếu
+            </div>
+
+            <div class="admin-user-detail-grid">
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-tag"></i> Mã phòng</div>
+                    <div class="admin-user-detail-value">@Model.CinemaTheaterId</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-door-open"></i> Tên phòng</div>
+                    <div class="admin-user-detail-value">@nameText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-building"></i> Rạp</div>
+                    <div class="admin-user-detail-value">@movieTheaterName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-film"></i> Loại rạp</div>
+                    <div class="admin-user-detail-value">@cinemaTypeName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-table-cells"></i> Số hàng</div>
+                    <div class="admin-user-detail-value">@numOfRowsText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-table-columns"></i> Số cột</div>
+                    <div class="admin-user-detail-value">@numOfColumnsText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-chair"></i> Hàng thường</div>
+                    <div class="admin-user-detail-value">@regularSeatRowText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-heart"></i> Hàng đôi</div>
+                    <div class="admin-user-detail-value">@doubleSeatRowText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-crown"></i> Hàng VIP</div>
+                    <div class="admin-user-detail-value">@vipSeatRowText</div>
+                </div>
+
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-toggle-on"></i> Trạng thái</div>
+                    <div class="admin-user-detail-value">@statusText</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
