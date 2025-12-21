@@ -212,7 +212,7 @@
                         else
                         {
                             var d = Model.Detail;
-                            var hasQr = !string.IsNullOrWhiteSpace(d.QrImageBase64) || !string.IsNullOrWhiteSpace(Model.QrImageBase64);
+                            var hasQr = !Model.IsAdminAccount && (!string.IsNullOrWhiteSpace(d.QrImageBase64) || !string.IsNullOrWhiteSpace(Model.QrImageBase64));
                             var qrBase64 = d.QrImageBase64 ?? Model.QrImageBase64;
 
                             <div class="@(hasQr ? "ticket-header-with-qr" : "ticket-header")">

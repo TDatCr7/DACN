@@ -249,7 +249,8 @@ namespace CinemaS.Controllers
                 PayDateRaw = payDate,
                 TransactionNo = providerTxnId,
                 IsSuccess = false,
-                Message = signatureOk ? "Thanh toán không thành công." : "Chữ ký VNPay không hợp lệ."
+                Message = signatureOk ? "Thanh toán không thành công." : "Chữ ký VNPay không hợp lệ.",
+                IsAdminAccount = !string.IsNullOrWhiteSpace(invoice?.StaffId)
             };
 
             var paymentMethod = await _context.PaymentMethods
@@ -286,7 +287,7 @@ namespace CinemaS.Controllers
                 decimal ticketSum = 0m;
                 decimal snackSum = 0m;
 
-                /* ==== ƯU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
+                /* ==== ƠU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
                 var snacksRawOnly = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
                 if (!string.IsNullOrWhiteSpace(snacksRawOnly))
                 {
@@ -629,7 +630,8 @@ namespace CinemaS.Controllers
                 OrderId = invoice.InvoiceId,
                 IsSuccess = invoice.Status == (byte)1,
                 Message = invoice.Status == (byte)1 ? "Thanh toán thành công." : "Đơn hàng chưa thanh toán.",
-                Detail = await BuildTicketDetailAsync(invoice.InvoiceId)
+                Detail = await BuildTicketDetailAsync(invoice.InvoiceId),
+                IsAdminAccount = !string.IsNullOrWhiteSpace(invoice.StaffId)
             };
 
             if (paymentTxn != null)
@@ -1556,6 +1558,9 @@ namespace CinemaS.Controllers
             var inv = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
             if (inv == null) return null;
 
+            // Check if admin booking (StaffId != CustomerId)
+            bool isAdminBooking = !string.IsNullOrWhiteSpace(inv.StaffId);
+
             var tickets = await _context.Tickets.AsNoTracking()
                 .Where(t => t.InvoiceId == invoiceId)
                 .ToListAsync();
@@ -1655,15 +1660,18 @@ namespace CinemaS.Controllers
             detail.SnackTotal = detail.SnackItems.Sum(x => x.LineTotal);
             detail.GrandTotal = detail.TicketTotal + detail.SnackTotal;
 
-            // Generate QR code for the ticket
-            try
+            // Generate QR code for the ticket only if not admin booking
+            if (!isAdminBooking)
             {
-                detail.QrImageBase64 = await _qrService.GenerateQrImageBase64Async(invoiceId, 10);
-            }
-            catch
-            {
-                // QR generation failed - continue without QR
-                detail.QrImageBase64 = null;
+                try
+                {
+                    detail.QrImageBase64 = await _qrService.GenerateQrImageBase64Async(invoiceId, 10);
+                }
+                catch
+                {
+                    // QR generation failed - continue without QR
+                    detail.QrImageBase64 = null;
+                }
             }
 
             return detail;

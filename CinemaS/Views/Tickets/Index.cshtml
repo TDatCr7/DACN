@@ -228,4 +228,85 @@
         </table>
     </div>
     @if (totalPages > 1)
-    {                @* Pagination: show first 2, last 2, and a sliding window around current page with ellipses *@        <div class="ticket-pager">            <!-- Prev -->            <a class="ticket-page-btn @(page <= 1 ? "is-disabled" : "")"               asp-action="Index"               asp-route-page="@(page - 1)"               asp-route-searchString="@ViewData["CurrentFilter"]"               asp-route-fromDate="@ViewData["FromDate"]"               asp-route-toDate="@ViewData["ToDate"]"               asp-route-statusFilter="@ViewData["StatusFilter"]">                <i class="fa-solid fa-chevron-left"></i>            </a>            @{                var current = page;                var total = totalPages;                var around = 2; // pages to show around current                var edge = 2; // pages to always show at start and end                var set = new System.Collections.Generic.SortedSet<int>();                // Always include first and last edge pages                for (int i = 1; i <= Math.Min(edge, total); i++) set.Add(i);                for (int i = Math.Max(1, total - edge + 1); i <= total; i++) set.Add(i);                // Include window around current                for (int i = current - around; i <= current + around; i++) if (i >= 1 && i <= total) set.Add(i);                var items = new System.Collections.Generic.List<int?>();                int last = 0;                foreach (var p in set)                {                    if (last != 0 && p - last > 1)                    {                        items.Add(null); // ellipsis marker                    }                    items.Add(p);                    last = p;                }            }            @foreach (var it in items)            {                if (it == null)                {                    <span class="ticket-page-btn is-disabled">...</span>                }                else                {                    var p = it.Value;                    <a class="ticket-page-btn @(p == page ? "is-active" : "")"                       asp-action="Index"                       asp-route-page="@p"                       asp-route-searchString="@ViewData["CurrentFilter"]"                       asp-route-fromDate="@ViewData["FromDate"]"                       asp-route-toDate="@ViewData["ToDate"]"                       asp-route-statusFilter="@ViewData["StatusFilter"]">                        @p                    </a>                }            }            <!-- Next -->            <a class="ticket-page-btn @(page >= totalPages ? "is-disabled" : "")"               asp-action="Index"               asp-route-page="@(page + 1)"               asp-route-searchString="@ViewData["CurrentFilter"]"               asp-route-fromDate="@ViewData["FromDate"]"               asp-route-toDate="@ViewData["ToDate"]"               asp-route-statusFilter="@ViewData["StatusFilter"]">                <i class="fa-solid fa-chevron-right"></i>            </a>        </div>    }</div>@section Scripts {    <script>        // Auto-hide alerts after 5 seconds        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);    </script>}
+    {
+        
+        @* Pagination: show first 2, last 2, and a sliding window around current page with ellipses *@
+        <div class="ticket-pager">
+            <!-- Prev -->
+            <a class="ticket-page-btn @(page <= 1 ? "is-disabled" : "")"
+               asp-action="Index"
+               asp-route-page="@(page - 1)"
+               asp-route-searchString="@ViewData["CurrentFilter"]"
+               asp-route-fromDate="@ViewData["FromDate"]"
+               asp-route-toDate="@ViewData["ToDate"]"
+               asp-route-statusFilter="@ViewData["StatusFilter"]">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+
+            @{
+                var current = page;
+                var total = totalPages;
+                var around = 2; // pages to show around current
+                var edge = 2; // pages to always show at start and end
+                var set = new System.Collections.Generic.SortedSet<int>();
+                // Always include first and last edge pages
+                for (int i = 1; i <= Math.Min(edge, total); i++) set.Add(i);
+                for (int i = Math.Max(1, total - edge + 1); i <= total; i++) set.Add(i);
+                // Include window around current
+                for (int i = current - around; i <= current + around; i++) if (i >= 1 && i <= total) set.Add(i);
+
+                var items = new System.Collections.Generic.List<int?>();
+                int last = 0;
+                foreach (var p in set)
+                {
+                    if (last != 0 && p - last > 1)
+                    {
+                        items.Add(null); // ellipsis marker
+                    }
+                    items.Add(p);
+                    last = p;
+                }
+            }
+
+            @foreach (var it in items)
+            {
+                if (it == null)
+                {
+                    <span class="ticket-page-btn is-disabled">...</span>
+                }
+                else
+                {
+                    var p = it.Value;
+                    <a class="ticket-page-btn @(p == page ? "is-active" : "")"
+                       asp-action="Index"
+                       asp-route-page="@p"
+                       asp-route-searchString="@ViewData["CurrentFilter"]"
+                       asp-route-fromDate="@ViewData["FromDate"]"
+                       asp-route-toDate="@ViewData["ToDate"]"
+                       asp-route-statusFilter="@ViewData["StatusFilter"]">
+                        @p
+                    </a>
+                }
+            }
+
+            <!-- Next -->
+            <a class="ticket-page-btn @(page >= totalPages ? "is-disabled" : "")"
+               asp-action="Index"
+               asp-route-page="@(page + 1)"
+               asp-route-searchString="@ViewData["CurrentFilter"]"
+               asp-route-fromDate="@ViewData["FromDate"]"
+               asp-route-toDate="@ViewData["ToDate"]"
+               asp-route-statusFilter="@ViewData["StatusFilter"]">
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-hide alerts after 5 seconds
+        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
+    </script>
+}
