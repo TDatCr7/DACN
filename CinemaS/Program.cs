@@ -148,27 +148,27 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.Use(async (context, next) =>
-{
-    // chỉ xử lý request vào trang root "/"
-    if (context.Request.Path == "/")
-    {
-        var user = context.User;
+//app.Use(async (context, next) =>
+//{
+//    // chỉ xử lý request vào trang root "/"
+//    if (context.Request.Path == "/")
+//    {
+//        var user = context.User;
 
-        // đã đăng nhập + là Admin -> Admin/Index
-        if (user?.Identity?.IsAuthenticated == true && user.IsInRole("Admin"))
-        {
-            context.Response.Redirect("/Admin/Index");
-            return;
-        }
+//        // đã đăng nhập + là Admin -> Admin/Index
+//        if (user?.Identity?.IsAuthenticated == true && user.IsInRole("Admin"))
+//        {
+//            context.Response.Redirect("/Admin/Index");
+//            return;
+//        }
 
-        // còn lại -> Home/Index
-        context.Response.Redirect("/Home/Index");
-        return;
-    }
+//        // còn lại -> Home/Index
+//        context.Response.Redirect("/Home/Index");
+//        return;
+//    }
 
-    await next();
-});
+//    await next();
+//});
 
 app.MapStaticAssets();
 app.MapRazorPages();
