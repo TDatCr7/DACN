@@ -12,6 +12,7 @@ namespace CinemaS.Services
     public interface IEmailSenderWithAttachment : IEmailSender
     {
         Task SendEmailWithAttachmentAsync(string email, string subject, string htmlMessage, byte[] attachmentData, string attachmentName, string attachmentMimeType);
+        Task SendEmailWithMultipleAttachmentsAsync(string email, string subject, string htmlMessage, List<(byte[] data, string name, string mimeType)> attachments);
     }
 
     public class GmailEmailSender : IEmailSenderWithAttachment
@@ -118,6 +119,75 @@ namespace CinemaS.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "SendEmailWithAttachmentAsync failed. To={To}, Subject={Subject}", email, subject);
+                throw;
+            }
+        }
+
+        public async Task SendEmailWithMultipleAttachmentsAsync(string email, string subject, string htmlMessage, List<(byte[] data, string name, string mimeType)> attachments)
+        {
+            var password = (_settings.SenderPassword ?? string.Empty)
+                .Replace(" ", string.Empty)
+                .Trim();
+
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(email));
+            message.Subject = subject;
+
+            var builder = new BodyBuilder
+            {
+                HtmlBody = htmlMessage
+            };
+
+            // Process all attachments
+            if (attachments != null && attachments.Any())
+            {
+                foreach (var (data, name, mimeType) in attachments)
+                {
+                    if (data == null || data.Length == 0 || string.IsNullOrWhiteSpace(name))
+                        continue;
+
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(mimeType) && mimeType.StartsWith("image/"))
+                        {
+                            // Add as linked resource (inline) with Content-Id for cid reference
+                            var contentId = name.Replace(" ", "_");
+                            builder.LinkedResources.Add(contentId, data, ContentType.Parse(mimeType));
+                        }
+                        else
+                        {
+                            // Non-image attachments: regular attachment
+                            builder.Attachments.Add(name, data, ContentType.Parse(mimeType ?? "application/octet-stream"));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to add attachment {Name}, falling back to regular attachment.", name);
+                        try
+                        {
+                            builder.Attachments.Add(name, data);
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            message.Body = builder.ToMessageBody();
+
+            try
+            {
+                using var client = new SmtpClient();
+                await client.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(_settings.SenderEmail, password);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+
+                _logger.LogInformation("Email with {Count} attachments sent successfully. To={To}, Subject={Subject}", attachments?.Count ?? 0, email, subject);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SendEmailWithMultipleAttachmentsAsync failed. To={To}, Subject={Subject}", email, subject);
                 throw;
             }
         }

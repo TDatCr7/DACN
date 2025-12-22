@@ -1800,64 +1800,66 @@ namespace CinemaS.Controllers
 
             var subject = $"Đã đặt vé thành công - {detail.MovieTitle}";
 
+            // Generate QR code
             string? qrBase64 = null;
-            byte[]? attachmentBytes = null;
-            string? attachmentName = null;
+            byte[]? qrImageBytes = null;
+            string qrImageName = $"QR_{invoice.InvoiceId}.png";
 
-            try
-            {
-                qrBase64 = await _qrService.GenerateQrImageBase64Async(invoice.InvoiceId, 8);
-            }
-            catch
-            {
-                qrBase64 = null;
-            }
-
+            qrBase64 = await _qrService.GenerateQrImageBase64Async(invoice.InvoiceId, 8);
             if (!string.IsNullOrWhiteSpace(qrBase64))
             {
-                try
-                {
-                    attachmentBytes = Convert.FromBase64String(qrBase64);
-                    attachmentName = $"QR_{invoice.InvoiceId}.png";
-                }
-                catch
-                {
-                    attachmentBytes = null;
-                    attachmentName = null;
-                }
+                qrImageBytes = Convert.FromBase64String(qrBase64);
+            }
+
+            // Generate PDF ticket using existing QR image
+            byte[]? pdfBytes = null;
+            if (qrImageBytes != null && qrImageBytes.Length > 0)
+            {
+                pdfBytes = await _qrService.GenerateTicketPdfWithQrAsync(invoice.InvoiceId, qrImageBytes);
             }
 
             string? cid = null;
-            if (attachmentBytes != null && attachmentBytes.Length > 0 && !string.IsNullOrWhiteSpace(attachmentName))
+            if (qrImageBytes != null && qrImageBytes.Length > 0)
             {
-                cid = attachmentName.Replace(" ", "_");
+                cid = qrImageName.Replace(" ", "_");
             }
 
             var body = BuildTicketEmailBody(detail, cid);
 
-            try
+            if (_emailSender is IEmailSenderWithAttachment emailWithAttachment)
             {
-                if (attachmentBytes != null && attachmentBytes.Length > 0 && _emailSender is IEmailSenderWithAttachment emailWithAttachment && !string.IsNullOrWhiteSpace(attachmentName))
+                // Send email with both QR image and PDF attachments
+                if (qrImageBytes != null && qrImageBytes.Length > 0)
                 {
-                    await emailWithAttachment.SendEmailWithAttachmentAsync(
+                    var attachments = new List<(byte[] data, string name, string mimeType)>
+                    {
+                        (qrImageBytes, qrImageName, "image/png")
+                    };
+
+                    // Add PDF if available
+                    if (pdfBytes != null && pdfBytes.Length > 0)
+                    {
+                        attachments.Add((pdfBytes, "ticket.pdf", "application/pdf"));
+                    }
+
+                    await emailWithAttachment.SendEmailWithMultipleAttachmentsAsync(
                         toEmail,
                         subject,
                         body,
-                        attachmentBytes,
-                        attachmentName,
-                        "image/png");
-                }
-                else if (!string.IsNullOrWhiteSpace(qrBase64))
-                {
-                    var bodyWithDataUri = BuildTicketEmailBody(detail, null, qrBase64);
-                    await _emailSender.SendEmailAsync(toEmail, subject, bodyWithDataUri);
+                        attachments
+                    );
                 }
                 else
                 {
                     await _emailSender.SendEmailAsync(toEmail, subject, body);
                 }
             }
-            catch
+            else if (!string.IsNullOrWhiteSpace(qrBase64))
+            {
+                var bodyWithDataUri = BuildTicketEmailBody(detail, null, qrBase64);
+                await _emailSender.SendEmailAsync(toEmail, subject, bodyWithDataUri);
+            }
+            else
             {
                 await _emailSender.SendEmailAsync(toEmail, subject, body);
             }
