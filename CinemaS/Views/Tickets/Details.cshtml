@@ -4,7 +4,8 @@
 @inject CinemaS.Models.CinemaContext Db
 
 @{
-    ViewData["Title"] = "Chi tiết vé (Admin)";
+    Layout = "_Layout";
+    ViewData["Title"] = "Chi tiết vé";
 
     var t = Model;
 
@@ -30,227 +31,170 @@
         ? await Db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == inv.CustomerId)
         : null;
 
-    var poster = string.IsNullOrWhiteSpace(mv?.PosterImage)
-        ? Url.Content("~/images/movies/MovieFallback.jpg")
-        : (mv.PosterImage.StartsWith("http")
-            ? mv.PosterImage
-            : Url.Content("~/" + mv.PosterImage.TrimStart('/')));
-
     string StatusText(byte? status) => status switch
     {
         1 => "Chưa thanh toán",
         2 => "Đã thanh toán",
         3 => "Đã hủy",
         4 => "Hết hạn",
-        _ => "7"
+        _ => "Không xác định"
     };
 
+    var ticketIdText = t.TicketId ?? "N/A";
+    var invoiceIdText = t.InvoiceId ?? "N/A";
+    var priceText = t.Price.HasValue ? $"{t.Price.Value:N0} VNĐ" : "N/A";
+    var statusText = StatusText(t.Status);
+    var seatLabel = seat != null ? $"{seat.RowIndex}{seat.ColumnIndex}" : (t.SeatId ?? "N/A");
+    var seatTypeName = seatType?.Name ?? "N/A";
+    var ticketTypeName = ticketType?.Name ?? "N/A";
+    var createdAtText = t.CreatedBooking?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
+    var expireText = t.Expire?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
+    var movieTitle = mv?.Title ?? "N/A";
+    var roomName = room?.Name ?? "N/A";
+    var theaterName = theater?.Name ?? "N/A";
+    var showDateText = st?.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A";
+    var startTimeText = st?.StartTime?.ToString("HH:mm") ?? "N/A";
+    var userName = user?.FullName ?? "Khách lẻ";
+    var email = inv?.Email ?? user?.Email ?? "N/A";
+    var phone = inv?.PhoneNumber ?? user?.PhoneNumber ?? "N/A";
 }
 
-<style>
-    .admin-ticket-detail {
-        max-width: 1100px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 320px 1fr;
-        gap: 20px;
-    }
-
-    .admin-ticket-card {
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.18), transparent 60%), #020617;
-        border: 1px solid rgba(148,163,255,.28);
-        border-radius: 22px;
-        box-shadow: 0 20px 55px rgba(15,23,42,.9);
-        overflow: hidden;
-    }
-
-    .admin-ticket-poster {
-        position: relative;
-    }
-
-        .admin-ticket-poster img {
-            width: 100%;
-            height: 460px;
-            object-fit: cover;
-        }
-
-    .admin-ticket-badge {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        padding: 6px 12px;
-        border-radius: 999px;
-        font-weight: 900;
-        font-size: 12px;
-        background: rgba(15,23,42,.85);
-        border: 1px solid rgba(148,163,255,.45);
-    }
-
-    .admin-ticket-meta {
-        padding: 14px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        font-size: 13px;
-        color: #cbd5e1;
-    }
-
-        .admin-ticket-meta strong {
-            color: #e5e7eb;
-            font-weight: 800;
-        }
-
-    .admin-ticket-main {
-        padding: 20px 22px;
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-    }
-
-    .admin-section {
-        border-radius: 18px;
-        border: 1px solid rgba(148,163,255,.2);
-        background: rgba(15,23,42,.55);
-        padding: 16px 18px;
-    }
-
-    .admin-section-title {
-        font-weight: 900;
-        font-size: 13px;
-        letter-spacing: .4px;
-        color: #c7d2fe;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-    }
-
-    .kv-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px 14px;
-        font-size: 13px;
-        color: #cbd5e1;
-    }
-
-        .kv-grid div strong {
-            color: #e5e7eb;
-            font-weight: 800;
-            margin-right: 4px;
-        }
-
-    .admin-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 6px;
-    }
-
-    @@media (max-width: 992px) {
-        .admin-ticket-detail {
-            grid-template-columns: 1fr;
-        }
-
-        .admin-ticket-poster img {
-            height: 320px;
-        }
-    }
-
-    .admin-ticket-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-        .admin-ticket-badge.paid {
-            border: 1px solid rgba(34,197,94,.7);
-            color: #22c55e;
-            background: rgba(34,197,94,.12);
-        }
-
-        .admin-ticket-badge.warning {
-            border: 1px solid rgba(245,158,11,.7);
-            color: #fbbf24;
-            background: rgba(245,158,11,.12);
-        }
-
-</style>
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0"><i class="fa-solid fa-ticket me-2"></i>Chi tiết vé</h2>
-    <a asp-action="Index" class="btn btn-secondary rounded-pill">
-        <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
-    </a>
-</div>
-
-<div class="admin-ticket-detail">
-    <!-- LEFT -->
-    <div class="admin-ticket-card">
-        <div class="admin-ticket-poster">
-            <img src="@poster" alt="@mv?.Title" />
-            @{
-                var isPaid = t.Status == 2 || t.Status == null;
-            }
-
-            <span class="admin-ticket-badge @(isPaid ? "paid" : "warning")">
-                <i class="fa-solid @(isPaid ? "fa-circle-check" : "fa-circle-xmark")"></i>
-                @StatusText(t.Status)
-            </span>
-
-        </div>
-        <div class="admin-ticket-meta">
-            <div><strong>Mã vé:</strong> @t.TicketId</div>
-            <div><strong>Hóa đơn:</strong> @t.InvoiceId</div>
-            <div><strong>Giá vé:</strong> @(t.Price?.ToString("N0") ?? "0") đ</div>
-            <div><strong>Tạo lúc:</strong> @(t.CreatedBooking?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</div>
-            <div><strong>Hết hạn:</strong> @(t.Expire?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</div>
-        </div>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" style="border-radius:14px;margin-bottom:12px;">
+        @TempData["Error"]
     </div>
+}
 
-    <!-- RIGHT -->
-    <div class="admin-ticket-card">
-        <div class="admin-ticket-main">
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-            <div class="admin-section">
-                <div class="admin-section-title">Phim & Suất chiếu</div>
-                <div class="kv-grid">
-                    <div><strong>Phim:</strong> @mv?.Title</div>
-                    <div><strong>Ngày:</strong> @st?.ShowDate?.ToString("dd/MM/yyyy")</div>
-                    <div><strong>Giờ:</strong> @st?.StartTime?.ToString("HH:mm")</div>
-                    <div><strong>Phòng:</strong> @room?.Name</div>
-                    <div><strong>Rạp:</strong> @theater?.Name</div>
-                </div>
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-ticket"></i>
+                    @ViewData["Title"]
+                </h1>
             </div>
 
-            <div class="admin-section">
-                <div class="admin-section-title">Ghế & Vé</div>
-                <div class="kv-grid">
-                    <div><strong>Ghế:</strong> @(seat != null ? $"{seat.RowIndex}{seat.ColumnIndex}" : t.SeatId)</div>
-                    <div><strong>Loại ghế:</strong> @seatType?.Name</div>
-                    <div><strong>Loại vé:</strong> @ticketType?.Name</div>
-                    <div><strong>Trạng thái:</strong> @StatusText(t.Status)</div>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <div class="admin-section-title">Khách hàng</div>
-                <div class="kv-grid">
-                    <div><strong>Tên:</strong> @(user?.FullName ?? "Khách lẻ")</div>
-                    <div><strong>Email:</strong> @(inv?.Email ?? user?.Email ?? "N/A")</div>
-                    <div><strong>Điện thoại:</strong> @(inv?.PhoneNumber ?? user?.PhoneNumber ?? "N/A")</div>
-                </div>
-            </div>
-
-            <div class="admin-actions">
-                <a asp-action="Edit" asp-route-id="@t.TicketId" class="btn btn-primary rounded-pill">
-                    <i class="fa-solid fa-pen me-1"></i> Sửa
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
                 </a>
-                <a asp-action="Delete" asp-route-id="@t.TicketId" class="btn btn-danger rounded-pill">
-                    <i class="fa-solid fa-trash me-1"></i> Xóa
+
+                <a asp-action="Edit" asp-route-id="@Model.TicketId"
+                   class="btn btn-primary btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-pen"></i> Sửa
                 </a>
+
+                <form asp-action="Delete" asp-route-id="@Model.TicketId" method="post" class="m-0 d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="btn btn-outline-light-rounded btn-sweep px-3"
+                            style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap; border-color:rgba(248,113,113,.65)!important;"
+                            onclick="return confirm('Xoá vé này?');">
+                        <i class="fa-solid fa-trash-can"></i> Xoá
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin vé
+            </div>
+
+            <div class="admin-user-detail-grid">
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-hashtag"></i> Mã vé</div>
+                    <div class="admin-user-detail-value">@ticketIdText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-file-invoice"></i> Hóa đơn</div>
+                    <div class="admin-user-detail-value">@invoiceIdText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-money-bill"></i> Giá vé</div>
+                    <div class="admin-user-detail-value">@priceText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-toggle-on"></i> Trạng thái</div>
+                    <div class="admin-user-detail-value">@statusText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-chair"></i> Ghế</div>
+                    <div class="admin-user-detail-value">@seatLabel</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-couch"></i> Loại ghế</div>
+                    <div class="admin-user-detail-value">@seatTypeName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-ticket"></i> Loại vé</div>
+                    <div class="admin-user-detail-value">@ticketTypeName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-calendar-plus"></i> Ngày tạo</div>
+                    <div class="admin-user-detail-value">@createdAtText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-calendar-xmark"></i> Hết hạn</div>
+                    <div class="admin-user-detail-value">@expireText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-film"></i> Phim</div>
+                    <div class="admin-user-detail-value">@movieTitle</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-door-open"></i> Phòng</div>
+                    <div class="admin-user-detail-value">@roomName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-building"></i> Rạp</div>
+                    <div class="admin-user-detail-value">@theaterName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-calendar"></i> Ngày chiếu</div>
+                    <div class="admin-user-detail-value">@showDateText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-clock"></i> Giờ bắt đầu</div>
+                    <div class="admin-user-detail-value">@startTimeText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-user"></i> Khách hàng</div>
+                    <div class="admin-user-detail-value">@userName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-envelope"></i> Email</div>
+                    <div class="admin-user-detail-value">@email</div>
+                </div>
+
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-phone"></i> Điện thoại</div>
+                    <div class="admin-user-detail-value">@phone</div>
+                </div>
             </div>
 
         </div>

@@ -1,49 +1,105 @@
 ﻿@model CinemaS.Models.Snacks
 
 @{
-    ViewData["Title"] = "Details";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "_Layout";
+    ViewData["Title"] = "Chi tiết đồ ăn";
+
+    var nameText = string.IsNullOrWhiteSpace(Model.Name) ? "N/A" : Model.Name;
+    var priceText = Model.Price.HasValue ? $"{Model.Price.Value:N0} VNĐ" : "N/A";
+    var descriptionText = string.IsNullOrWhiteSpace(Model.Description) ? "N/A" : Model.Description;
+    var imageText = string.IsNullOrWhiteSpace(Model.Image) ? "N/A" : Model.Image;
+    var isActiveText = Model.IsActive ? "Đang bán" : "Ngưng bán";
+    var snackTypeName = ViewBag.SnackTypeName ?? "N/A";
 }
 
-<h1>Details</h1>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" style="border-radius:14px;margin-bottom:12px;">
+        @TempData["Error"]
+    </div>
+}
 
-<div>
-    <h4>Snacks</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Price)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Price)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Image)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Image)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsActive)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsActive)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.SnackId">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
+
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-cookie"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+
+                <a asp-action="Edit" asp-route-id="@Model.SnackId"
+                   class="btn btn-primary btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-pen"></i> Sửa
+                </a>
+
+                <form asp-action="Delete" asp-route-id="@Model.SnackId" method="post" class="m-0 d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="btn btn-outline-light-rounded btn-sweep px-3"
+                            style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap; border-color:rgba(248,113,113,.65)!important;"
+                            onclick="return confirm('Xoá đồ ăn này?');">
+                        <i class="fa-solid fa-trash-can"></i> Xoá
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin đồ ăn
+            </div>
+
+            <div class="admin-user-detail-grid">
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-tag"></i> Mã đồ ăn</div>
+                    <div class="admin-user-detail-value">@Model.SnackId</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-cookie"></i> Tên đồ ăn</div>
+                    <div class="admin-user-detail-value">@nameText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-utensils"></i> Loại đồ ăn</div>
+                    <div class="admin-user-detail-value">@snackTypeName</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-money-bill"></i> Giá</div>
+                    <div class="admin-user-detail-value">@priceText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-toggle-on"></i> Trạng thái</div>
+                    <div class="admin-user-detail-value">@isActiveText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-image"></i> Hình ảnh</div>
+                    <div class="admin-user-detail-value">@imageText</div>
+                </div>
+
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-align-left"></i> Mô tả</div>
+                    <div class="admin-user-detail-value">@descriptionText</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>

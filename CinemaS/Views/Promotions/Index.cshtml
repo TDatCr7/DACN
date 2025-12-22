@@ -19,7 +19,7 @@
     }
 
     .promo-index-card {
-        background: radial-gradient(circle at 0 0, rgba(59, 130, 246, .25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124, 58, 237, .22), transparent 55%), var(--card-bg);
+        background: radial-gradient(circle at 0 0, rgba(59,130,246,.25), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.22), transparent 55%), var(--card-bg);
         border-radius: 24px;
         border: 1px solid var(--card-border);
         box-shadow: 0 20px 50px rgba(15, 23, 42, .95);
@@ -305,11 +305,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <a asp-action="Create" class="btn btn-primary rounded-pill">
+            <a asp-action="Create" class="btn btn-primary btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
                 <i class="fa-solid fa-plus me-1"></i> Tạo mã mới
             </a>
-            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
-                <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
             </a>
         </div>
     </div>
@@ -328,80 +328,45 @@
 
     <div class="promo-index-card">
         <div class="promo-index-topbar">
-            <form method="get" asp-action="Index">
-                <div class="row g-2 align-items-end">
-                    <div class="col-lg-4 col-md-6">
-                        <label class="filter-label">
-                            <i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm
-                        </label>
+            <!-- TOPBAR: TÌM KIẾM + LỌC NGÀY -->
+            <div class="admin-toolbar">
+                <form method="get" class="admin-search-shell d-flex gap-2 align-items-center" asp-action="Index">
+                    <div class="input-group admin-search-compact">
                         <input type="text"
                                name="search"
                                value="@(ViewBag.Search ?? String.Empty)"
-                               class="form-control"
+                               class="form-control admin-search-input"
                                placeholder="Tên CTKM, mã code, nội dung..." />
+                        <button class="admin-search-btn" type="submit">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
                     </div>
 
-                    <div class="col-lg-2 col-md-3">
-                        <label class="filter-label">
-                            <i class="fa-regular fa-calendar me-1"></i> Từ ngày
-                        </label>
-                        <input type="date"
-                               name="fromDate"
-                               value="@(ViewBag.FromDate ?? String.Empty)"
-                               class="form-control" />
-                    </div>
+                    <input type="date"
+                           name="fromDate"
+                           value="@(ViewBag.FromDate ?? String.Empty)"
+                           class="form-control admin-role-filter" />
 
-                    <div class="col-lg-2 col-md-3">
-                        <label class="filter-label">
-                            <i class="fa-regular fa-calendar me-1"></i> Đến ngày
-                        </label>
-                        <input type="date"
-                               name="toDate"
-                               value="@(ViewBag.ToDate ?? String.Empty)"
-                               class="form-control" />
-                    </div>
+                    <input type="date"
+                           name="toDate"
+                           value="@(ViewBag.ToDate ?? String.Empty)"
+                           class="form-control admin-role-filter" />
 
-                    <div class="col-lg-2 col-md-3">
-                        <label class="filter-label">
-                            Trạng thái
-                        </label>
-                        <select name="onlyActive" class="form-select">
-                            <option value="">Tất cả</option>
+                    <select name="onlyActive" class="form-select admin-role-filter">
+                        <option value="">Tất cả</option>
+                        <option value="true" selected="@((bool?)ViewBag.OnlyActive == true)">Đang áp dụng</option>
+                        <option value="false" selected="@((bool?)ViewBag.OnlyActive == false)">Ngưng / hết hạn</option>
+                    </select>
 
-                            @if ((bool?)ViewBag.OnlyActive == true)
-                            {
-                                <option value="true" selected>Đang áp dụng</option>
-                            }
-                            else
-                            {
-                                <option value="true">Đang áp dụng</option>
-                            }
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-filter me-1"></i> Lọc
+                    </button>
 
-                            @if ((bool?)ViewBag.OnlyActive == false)
-                            {
-                                <option value="false" selected>Ngưng / hết hạn</option>
-                            }
-                            else
-                            {
-                                <option value="false">Ngưng / hết hạn</option>
-                            }
-                        </select>
-
-                    </div>
-
-                    <div class="col-lg-2 col-md-6">
-                        <label class="filter-label d-block">&nbsp;</label>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary flex-fill">
-                                <i class="fa-solid fa-filter me-1"></i> Lọc
-                            </button>
-                            <a asp-action="Index" class="btn btn-outline-secondary">
-                                <i class="fa-solid fa-xmark"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </form>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </form>
+            </div>
         </div>
 
         <div class="promo-table-wrap">
