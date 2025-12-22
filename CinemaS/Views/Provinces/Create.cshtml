@@ -1,78 +1,83 @@
 ﻿@model CinemaS.Models.Provinces
-
 @{
-    ViewData["Title"] = "Tạo Tỉnh/Thành phố";
+    ViewData["Title"] = "Thêm tỉnh/thành phố";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/create.css" />
 
-<div class="container mt-4">
-    <div class="form-container">
-        <h1 class="mb-4">
-            <i class="fa-solid fa-map-location-dot"></i> Tạo Tỉnh/Thành phố mới
-        </h1>
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        <form asp-action="Create" method="post">
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-
-            <!-- Mã tỉnh -->
-            <div class="mb-3">
-                <label asp-for="ProvinceId" class="form-label required-field">Mã tỉnh / TP</label>
-                <input asp-for="ProvinceId" class="form-control" placeholder="VD: HN, SG, DN..." required />
-                <span asp-validation-for="ProvinceId" class="text-danger"></span>
+        @* ONE PANEL: header + content inside, title left, remove subnote *@
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    @ViewData["Title"]
+                </h1>
             </div>
 
-            <!-- Tên -->
-            <div class="mb-3">
-                <label asp-for="Name" class="form-label required-field">Tên Tỉnh / Thành phố</label>
-                <input asp-for="Name" class="form-control" placeholder="VD: Hà Nội, Hồ Chí Minh, Đà Nẵng..." required />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
 
-            <!-- Ngày tạo -->
-            <div class="mb-3">
-                <label asp-for="CreatedAt" class="form-label">Ngày tạo</label>
-                <input asp-for="CreatedAt" type="date" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-                <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ tự động ghi thời gian tạo.</small>
-            </div>
-
-            <!-- Ngày cập nhật -->
-            <div class="mb-3">
-                <label asp-for="UpdatedAt" class="form-label">Ngày cập nhật</label>
-                <input asp-for="UpdatedAt" type="date" class="form-control" />
-                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-                <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ cập nhật khi sửa thông tin.</small>
-            </div>
-
-            <div class="d-flex justify-content-between mt-4">
-                <button type="button" class="btn btn-secondary" onclick="history.back()">
-                    <i class="fas fa-arrow-left"></i> Quay lại
-                </button>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-save"></i> Lưu
+                <button type="submit"
+                        form="provinceCreateForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-circle-plus me-1"></i> Tạo
                 </button>
             </div>
-        </form>
+        </div>
+
+        @* divider like "island" but not separated *@
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <form asp-action="Create" method="post" id="provinceCreateForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                    Thông tin tỉnh/thành phố
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="ProvinceId" class="form-label">Mã tỉnh/TP</label>
+                        <input asp-for="ProvinceId" class="form-control" placeholder="VD: HN, SG, DN..." />
+                        <span asp-validation-for="ProvinceId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label">Tên tỉnh/thành phố</label>
+                        <input asp-for="Name" class="form-control" placeholder="VD: Hà Nội, Hồ Chí Minh, Đà Nẵng..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CreatedAt" class="form-label">Ngày tạo</label>
+                        <input asp-for="CreatedAt" type="date" class="form-control" />
+                        <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                        <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ tự động ghi thời gian tạo.</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="UpdatedAt" class="form-label">Ngày cập nhật</label>
+                        <input asp-for="UpdatedAt" type="date" class="form-control" />
+                        <span asp-validation-for="UpdatedAt" class="text-danger"></span>
+                        <small class="text-muted">(*) Có thể bỏ trống — hệ thống sẽ cập nhật khi sửa thông tin.</small>
+                    </div>
+                </div>
+            </form>
+
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-
-    <script>
-        // Ẩn thông báo sau 5s
-        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
-    </script>
+    <partial name="_ValidationScriptsPartial" />
 }

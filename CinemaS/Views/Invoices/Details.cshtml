@@ -1,572 +1,151 @@
 ﻿@model CinemaS.Models.Invoices
 
 @{
+    Layout = "_Layout";
     ViewData["Title"] = "Chi tiết hóa đơn";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 
     var statusValue = Model.Status ?? 0;
     var isPaid = statusValue == 1;
 
-    string statusText = statusValue switch
+    string StatusText(int? status) => status switch
     {
         0 => "Chưa thanh toán",
         1 => "Đã thanh toán",
         2 => "Đã huỷ / Lỗi",
-        _ => $"Trạng thái khác ({statusValue})"
+        _ => $"Trạng thái khác ({status})"
     };
 
     bool isSnackOnly = (Model.TotalTicket ?? 0) == 0;
-
     string invoiceType = isSnackOnly ? "Hoá đơn bắp nước" : "Hoá đơn vé xem phim";
 
-    string emailText = string.IsNullOrWhiteSpace(Model.Email) ? "Chưa có" : Model.Email;
-    string phoneText = string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Chưa có" : Model.PhoneNumber;
-    string staffText = string.IsNullOrWhiteSpace(Model.StaffId) ? "Không có" : Model.StaffId;
-    string promotionText = string.IsNullOrWhiteSpace(Model.PromotionId) ? "Không áp dụng" : Model.PromotionId;
-    string paymentMethodIdText = string.IsNullOrWhiteSpace(Model.PaymentMethodId) ? "Chưa có" : Model.PaymentMethodId;
-
-    string totalTicketText = (Model.TotalTicket ?? 0).ToString();
-    string totalText = (Model.TotalPrice ?? 0).ToString("#,0") + " đ";
-
-    string createdText = Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa có";
-    string updatedText = Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa có";
+    var invoiceIdText = Model.InvoiceId ?? "N/A";
+    var customerIdText = Model.CustomerId ?? "N/A";
+    var emailText = string.IsNullOrWhiteSpace(Model.Email) ? "N/A" : Model.Email;
+    var phoneText = string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "N/A" : Model.PhoneNumber;
+    var totalTicketText = (Model.TotalTicket ?? 0).ToString();
+    var totalPriceText = (Model.TotalPrice ?? 0).ToString("#,0") + " VNĐ";
+    var statusText = StatusText(Model.Status);
+    var createdAtText = Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
+    var updatedAtText = Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
+    var staffIdText = string.IsNullOrWhiteSpace(Model.StaffId) ? "N/A" : Model.StaffId;
+    var promotionIdText = string.IsNullOrWhiteSpace(Model.PromotionId) ? "N/A" : Model.PromotionId;
+    var paymentMethodIdText = string.IsNullOrWhiteSpace(Model.PaymentMethodId) ? "N/A" : Model.PaymentMethodId;
 }
 
-<style>
-    :root {
-        --card-bg: rgba(15, 23, 42, 0.95);
-        --card-border: rgba(148, 163, 255, 0.3);
-        --text-primary: #e5e7eb;
-        --text-secondary: #9ca3af;
-        --shadow-glow: 0 8px 32px rgba(59, 130, 246, 0.15);
-    }
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" style="border-radius:14px;margin-bottom:12px;">
+        @TempData["Error"]
+    </div>
+}
 
-    .invoice-result-container {
-        min-height: calc(100vh - 140px);
-        padding: 40px 20px 60px;
-        background: radial-gradient(circle at 20% 10%, rgba(99, 102, 241, 0.1), transparent 40%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 40%);
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-    }
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-    .invoice-result-content {
-        width: 100%;
-        max-width: 900px;
-    }
-
-    .invoice-card-shell {
-        background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.15), transparent 50%), var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 24px;
-        overflow: hidden;
-        box-shadow: var(--shadow-glow);
-        display: flex;
-        flex-direction: column;
-    }
-
-    .inv-header {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
-        border-bottom: 1px solid var(--card-border);
-        padding: 18px 24px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-    }
-
-    .inv-header-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .inv-header-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-size: 16px;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-    }
-
-    .inv-header-title {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--text-primary);
-    }
-
-    .status-badge-compact {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 700;
-        border: 1px solid;
-    }
-
-        .status-badge-compact.success {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(5, 150, 105, 0.18));
-            border-color: rgba(16, 185, 129, 0.5);
-            color: #10b981;
-        }
-
-        .status-badge-compact.danger {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(234, 179, 8, 0.18));
-            border-color: rgba(245, 158, 11, 0.5);
-            color: #fbbf24;
-        }
-
-        .status-badge-compact i {
-            font-size: 14px;
-        }
-
-    .inv-body {
-        padding: 24px;
-        color: var(--text-primary);
-    }
-
-    .inv-meta-top {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px 20px;
-        margin-bottom: 20px;
-        font-size: 13px;
-        color: var(--text-secondary);
-    }
-
-        .inv-meta-top span strong {
-            color: #e5e7eb;
-        }
-
-    .pill-type {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        text-transform: uppercase;
-        border: 1px solid rgba(148,163,255,.4);
-        background: rgba(15,23,42,.9);
-        color: #9ca3af;
-    }
-
-        .pill-type i {
-            color: #fbbf24;
-            font-size: 12px;
-        }
-
-    .inv-grid {
-        display: grid;
-        grid-template-columns: 1.1fr 1.1fr;
-        gap: 24px;
-        margin-top: 12px;
-    }
-
-    .inv-section-title {
-        font-size: 13px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        color: #a5b4fc;
-        margin-bottom: 10px;
-    }
-
-    .kv-list {
-        border-radius: 16px;
-        border: 1px solid rgba(148,163,255,.18);
-        background: rgba(15,23,42,.8);
-        padding: 12px 14px;
-        font-size: 13px;
-    }
-
-    .kv-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 6px 0;
-        border-bottom: 1px dashed rgba(148,163,255,.18);
-    }
-
-        .kv-row:last-child {
-            border-bottom: none;
-        }
-
-    .kv-label {
-        color: var(--text-secondary);
-        min-width: 120px;
-    }
-
-    .kv-value {
-        text-align: right;
-        font-weight: 600;
-        word-break: break-all;
-    }
-
-    .inv-total-block {
-        margin-top: 20px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(148,163,255,.24);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-
-    .inv-total-label {
-        font-size: 14px;
-        color: var(--text-secondary);
-    }
-
-    .inv-total-value {
-        font-size: 22px;
-        font-weight: 800;
-        background: linear-gradient(120deg, #fbbf24, #f59e0b);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .inv-actions-bottom {
-        margin-top: 24px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: flex-end;
-    }
-
-    .btn-chip {
-        padding: 9px 18px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 700;
-        border: 1px solid rgba(148,163,255,.5);
-        background: rgba(15,23,42,.98);
-        color: #e5e7eb;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        text-decoration: none;
-    }
-
-    .btn-chip-primary {
-        background: linear-gradient(120deg, #3b82f6, #8b5cf6);
-        border-color: rgba(148,163,255,.6);
-        color: #fff;
-    }
-
-    .btn-chip-danger {
-        border-color: rgba(248, 113, 113, .8);
-        color: #fecaca;
-    }
-
-    .btn-chip:hover {
-        filter: brightness(1.08);
-        text-decoration: none;
-        color: inherit;
-    }
-
-    .btn-chip-danger:hover {
-        background: #ef4444;
-        color: #fff;
-    }
-
-    /* Ticket side panel (tái sử dụng từ trước) */
-    #ticket-panel {
-        position: fixed;
-        top: 90px;
-        right: 24px;
-        bottom: 40px;
-        width: 420px;
-        max-width: 95vw;
-        z-index: 1050;
-        display: none;
-    }
-
-        #ticket-panel.is-open {
-            display: block;
-        }
-
-    .ticket-panel-card {
-        height: 100%;
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.3), transparent 55%), linear-gradient(145deg, #020617, #020617);
-        border-radius: 24px;
-        border: 1px solid rgba(148,163,255,.55);
-        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        color: #e9ecf6;
-        transform: translateX(110%);
-        opacity: 0;
-        transition: transform .25s ease-out, opacity .25s ease-out;
-    }
-
-    #ticket-panel.is-open .ticket-panel-card {
-        transform: translateX(0);
-        opacity: 1;
-    }
-
-    .ticket-panel-header {
-        padding: 14px 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: radial-gradient(circle at 0 0, rgba(37,99,235,.6), transparent 55%), rgba(15,23,42,.96);
-        font-weight: 700;
-        font-size: 15px;
-        border-bottom: 1px solid rgba(148,163,255,.4);
-    }
-
-    .ticket-panel-body {
-        padding: 18px 22px 20px;
-        overflow: auto;
-        font-size: 14px;
-    }
-
-    .ticket-panel-close {
-        border: none;
-        background: transparent;
-        color: #e5e7eb;
-        font-size: 18px;
-        cursor: pointer;
-    }
-
-    .ticket-card {
-        font-size: 14px;
-        line-height: 1.6;
-    }
-
-    @@media (max-width: 767.98px) {
-        .invoice-result-container {
-            padding: 30px 16px 50px;
-        }
-
-        .invoice-card-shell {
-            border-radius: 20px;
-        }
-
-        .inv-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-
-<div class="invoice-result-container">
-    <div class="invoice-result-content">
-        <div class="invoice-card-shell">
-            <div class="inv-header">
-                <div class="inv-header-left">
-                    <div class="inv-header-icon">
-                        <i class="fa-solid fa-file-invoice-dollar"></i>
-                    </div>
-                    <div>
-                        <h2 class="inv-header-title">Chi tiết hóa đơn</h2>
-                        <div style="font-size:12px;color:#cbd5f5;">@invoiceType</div>
-                    </div>
-                </div>
-
-                <div class="status-badge-compact @(isPaid ? "success" : "danger")">
-                    @if (isPaid)
-                    {
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>@statusText</span>
-                    }
-                    else
-                    {
-                        <i class="fa-solid fa-clock"></i>
-                        <span>@statusText</span>
-                    }
-                </div>
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-file-invoice"></i>
+                    @ViewData["Title"]
+                </h1>
             </div>
 
-            <div class="inv-body">
-                <div class="inv-meta-top">
-                    <span>Mã hóa đơn: <strong>@Model.InvoiceId</strong></span>
-                    <span>Khách hàng: <strong>@Model.CustomerId</strong></span>
-                    <span>Trạng thái: <strong>@statusValue</strong></span>
-                    <span class="pill-type">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span>@invoiceType</span>
-                    </span>
-                </div>
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
 
-                <div class="inv-grid">
-                    <div>
-                        <div class="inv-section-title">Thông tin chung</div>
-                        <div class="kv-list">
-                            <div class="kv-row">
-                                <div class="kv-label">Mã hóa đơn</div>
-                                <div class="kv-value">@Model.InvoiceId</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Mã khách hàng</div>
-                                <div class="kv-value">@Model.CustomerId</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Mã nhân viên</div>
-                                <div class="kv-value">@staffText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Mã khuyến mãi</div>
-                                <div class="kv-value">@promotionText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Ngày tạo</div>
-                                <div class="kv-value">@createdText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Ngày cập nhật</div>
-                                <div class="kv-value">@updatedText</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="inv-section-title">Khách hàng & thanh toán</div>
-                        <div class="kv-list">
-                            <div class="kv-row">
-                                <div class="kv-label">Email</div>
-                                <div class="kv-value">@emailText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Số điện thoại</div>
-                                <div class="kv-value">@phoneText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Mã phương thức</div>
-                                <div class="kv-value">@paymentMethodIdText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Tổng vé</div>
-                                <div class="kv-value">@totalTicketText</div>
-                            </div>
-                            <div class="kv-row">
-                                <div class="kv-label">Trạng thái</div>
-                                <div class="kv-value">@statusText</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="inv-total-block">
-                    <div class="inv-total-label">
-                        Tổng tiền hóa đơn
-                    </div>
-                    <div class="inv-total-value">@totalText</div>
-                </div>
-
-                <div class="inv-actions-bottom">
-                    <a asp-action="Index" class="btn-chip">
-                        <i class="fa-solid fa-arrow-left-long"></i>
-                        <span>Danh sách hóa đơn</span>
-                    </a>
-
-                    <button type="button"
-                            class="btn-chip"
-                            id="btnViewTicket"
-                            data-snack="@isSnackOnly.ToString().ToLower()">
-                        @if (isSnackOnly)
-                        {
-                            <i class="fa-solid fa-burger"></i>
-                            <span>Xem bắp nước</span>
-                        }
-                        else
-                        {
-                            <i class="fa-solid fa-ticket"></i>
-                            <span>Xem vé</span>
-                        }
-                    </button>
-
-                    @if (!isPaid)
-                    {
-                        <form asp-action="Delete"
-                              asp-route-id="@Model.InvoiceId"
-                              method="post"
-                              class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-chip btn-chip-danger"
-                                    onclick="return confirm('Xóa hóa đơn này?');">
-                                <i class="fa-solid fa-trash-can"></i>
-                                <span>Xóa</span>
-                            </button>
-                        </form>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="ticket-panel">
-    <div class="ticket-panel-card">
-        <div class="ticket-panel-header">
-            <span id="ticket-panel-title"></span>
-            <button id="ticket-panel-close" class="ticket-panel-close">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-        <div id="ticket-panel-body" class="ticket-panel-body">
-            <div class="ticket-card text-muted">Đang tải...</div>
-        </div>
-    </div>
-</div>
-
-
-@section Scripts {
-    <script>
-        (function () {
-            const btn = document.getElementById("btnViewTicket");
-            const panel = document.getElementById("ticket-panel");
-            const body = document.getElementById("ticket-panel-body");
-            const closeBtn = document.getElementById("ticket-panel-close");
-            const titleEl = document.getElementById("ticket-panel-title");
-
-            if (!btn) return;
-
-            const isSnackOnly = btn.dataset.snack === "true";
-
-            const ticketUrl = "@Url.Action("TicketPopup", "Invoices", new { id = Model.InvoiceId })";
-            const snackUrl  = "@Url.Action("SnackPopup", "Invoices", new { id = Model.InvoiceId })";
-
-            function open(html) {
-                if (!panel || !body) return;
-                body.innerHTML = html;
-                panel.classList.add("is-open");
-            }
-
-            function close() {
-                if (!panel) return;
-                panel.classList.remove("is-open");
-            }
-
-            if (closeBtn) closeBtn.addEventListener("click", close);
-
-            btn.addEventListener("click", function () {
-                const url = isSnackOnly ? snackUrl : ticketUrl;
-
-                if (titleEl) {
-                    titleEl.textContent = isSnackOnly
-                        ? ("Bắp nước trong hóa đơn @Model.InvoiceId")
-                        : ("Vé trong hóa đơn @Model.InvoiceId");
+                @if (!isPaid)
+                {
+                    <form asp-action="Delete" asp-route-id="@Model.InvoiceId" method="post" class="m-0 d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit"
+                                class="btn btn-outline-light-rounded btn-sweep px-3"
+                                style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap; border-color:rgba(248,113,113,.65)!important;"
+                                onclick="return confirm('Xoá hóa đơn này?');">
+                            <i class="fa-solid fa-trash-can"></i> Xoá
+                        </button>
+                    </form>
                 }
+            </div>
+        </div>
 
-                open("<div class='ticket-card text-muted'>Đang tải...</div>");
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
 
-                fetch(url)
-                    .then(r => r.text())
-                    .then(html => open(html))
-                    .catch(() => open("<div class='ticket-card text-danger'>Không tải được dữ liệu.</div>"));
-            });
-        })();
-    </script>
-}
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin hóa đơn
+                <span class="ms-2 role-chip" style="cursor:default;">
+                    <i class="fa-solid fa-layer-group"></i> @invoiceType
+                </span>
+            </div>
+
+            <div class="admin-user-detail-grid">
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-hashtag"></i> Mã hóa đơn</div>
+                    <div class="admin-user-detail-value">@invoiceIdText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-user"></i> Mã khách hàng</div>
+                    <div class="admin-user-detail-value">@customerIdText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-envelope"></i> Email</div>
+                    <div class="admin-user-detail-value">@emailText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-phone"></i> Số điện thoại</div>
+                    <div class="admin-user-detail-value">@phoneText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-ticket"></i> Tổng vé</div>
+                    <div class="admin-user-detail-value">@totalTicketText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-money-bill"></i> Tổng tiền</div>
+                    <div class="admin-user-detail-value">@totalPriceText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-toggle-on"></i> Trạng thái</div>
+                    <div class="admin-user-detail-value">@statusText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-calendar-plus"></i> Ngày tạo</div>
+                    <div class="admin-user-detail-value">@createdAtText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-calendar-check"></i> Ngày cập nhật</div>
+                    <div class="admin-user-detail-value">@updatedAtText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-user-tie"></i> Nhân viên</div>
+                    <div class="admin-user-detail-value">@staffIdText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-gift"></i> Khuyến mãi</div>
+                    <div class="admin-user-detail-value">@promotionIdText</div>
+                </div>
+
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-credit-card"></i> Phương thức thanh toán</div>
+                    <div class="admin-user-detail-value">@paymentMethodIdText</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
 

@@ -1,218 +1,139 @@
 ﻿@model CinemaS.Models.CinemaTheaters
 @{
-	ViewData["Title"] = "Tạo phòng chiếu mới";
-	Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Thêm phòng chiếu";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-<div class="container mt-4">
-	<div class="row justify-content-center">
-		<div class="col-md-8">
-			<div class="card shadow">
-				<div class="card-header text-white d-flex justify-content-between align-items-center">
-					<h3 class="mb-0">
-						<i class="fas fa-door-open"></i> Tạo phòng chiếu mới
-					</h3>
-					
-				</div>
+        @* ONE PANEL: header + content inside, title left, remove subnote *@
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-door-open"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
 
-				<div class="card-body">
-					<!-- Thông báo lỗi từ server -->
-					@if (TempData["Error"] != null)
-					{
-						<div class="alert alert-danger alert-dismissible fade show" role="alert">
-							<i class="fas fa-exclamation-circle"></i> <strong>Lỗi:</strong> @TempData["Error"]
-							<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-						</div>
-					}
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
 
-					<form asp-action="Create" method="post" id="createForm" novalidate>
-						<div class="mb-3">
-							<label class="form-label"><i class="fas fa-tag"></i> Tên phòng <span class="text-danger">*</span></label>
-							<input asp-for="Name" class="form-control" placeholder="VD: Phòng 1, Phòng VIP A..." />
-							<div class="invalid-feedback d-block" id="nameError"></div>
-							<span asp-validation-for="Name" class="text-danger"></span>
-						</div>
+                <button type="submit"
+                        form="cinemaTheaterCreateForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-circle-plus me-1"></i> Tạo
+                </button>
+            </div>
+        </div>
 
-						<div class="mb-3">
-							<label class="form-label"><i class="fas fa-tv"></i> Loại phòng <span class="text-danger">*</span></label>
-							<select asp-for="CinemaTypeId" class="form-select" id="cinemaTypeSelect">
-								<option value="">-- Chọn loại phòng --</option>
-								@if (ViewBag.CinemaTypes != null)
-								{
-									@foreach (var item in ViewBag.CinemaTypes)
-									{
-										<option value="@item.Value">@item.Text</option>
-									}
-								}
-							</select>
-							<div class="invalid-feedback d-block" id="cinemaTypeError"></div>
-							<span asp-validation-for="CinemaTypeId" class="text-danger"></span>
-						</div>
+        @* divider like "island" but not separated *@
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
 
-						<div class="mb-3">
-							<label class="form-label"><i class="fas fa-building"></i> Rạp chiếu <span class="text-danger">*</span></label>
-							<select asp-for="MovieTheaterId" class="form-select" id="movieTheaterSelect">
-								<option value="">-- Chọn rạp --</option>
-								@if (ViewBag.MovieTheaters != null)
-								{
-									@foreach (var item in ViewBag.MovieTheaters)
-									{
-										<option value="@item.Value">@item.Text</option>
-									}
-								}
-							</select>
-							<div class="invalid-feedback d-block" id="movieTheaterError"></div>
-							<span asp-validation-for="MovieTheaterId" class="text-danger"></span>
-						</div>
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
+            <form asp-action="Create" method="post" id="cinemaTheaterCreateForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-						<div class="d-flex justify-content-between align-items-center mt-4">
-							<a asp-controller="CinemaTheaters" asp-action="Index" class="btn btn-secondary">
-								<i class="fas fa-arrow-left"></i> Quay lại
-							</a>
+                <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                    Thông tin phòng chiếu
+                </div>
 
-							<!-- Giữa: Liên kết quản lý loại ghế -->
-							<a asp-action="Index" asp-controller="SeatTypes" class="btn btn-info">
-								<i class="fa-solid fa-couch"></i> Quản lý loại ghế
-							</a>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label">Tên phòng</label>
+                        <input asp-for="Name" class="form-control" placeholder="VD: Phòng 1, Phòng VIP A..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
 
-							<!-- Bên phải: Nút chính -->
-							<button type="submit" class="btn btn-success" id="submitBtn">
-								<i class="fas fa-save"></i> Tạo phòng và ghế
-							</button>
-						</div>
+                    <div class="col-md-6">
+                        <label asp-for="CinemaTypeId" class="form-label">Loại phòng</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <select asp-for="CinemaTypeId" class="form-select" id="cinemaTypeSelect">
+                                <option value="">-- Chọn loại phòng --</option>
+                                @if (ViewBag.CinemaTypes != null)
+                                {
+                                    @foreach (var item in ViewBag.CinemaTypes)
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
+                                }
+                            </select>
+                            <a asp-controller="CinemaTypes" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Xem danh sách loại phòng">
+                                <i class="fa-solid fa-list"></i>
+                            </a>
+                        </div>
+                        <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
+                    </div>
 
-					</form>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
+                    <div class="col-md-6">
+                        <label asp-for="MovieTheaterId" class="form-label">Rạp chiếu</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <select asp-for="MovieTheaterId" class="form-select" id="movieTheaterSelect">
+                                <option value="">-- Chọn rạp --</option>
+                                @if (ViewBag.MovieTheaters != null)
+                                {
+                                    @foreach (var item in ViewBag.MovieTheaters)
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
+                                }
+                            </select>
+                            <a asp-controller="MovieTheaters" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Xem danh sách rạp chiếu">
+                                <i class="fa-solid fa-list"></i>
+                            </a>
+                        </div>
+                        <span asp-validation-for="MovieTheaterId" class="text-danger"></span>
+                    </div>
+                </div>
+            </form>
 
-<div class="nav-card-container">
-	<!-- Card1: Movie Theaters -->
-	<div class="nav-card">
-		<div class="nav-card-icon">
-			<i class="fa-solid fa-film"></i>
-		</div>
-		<div class="nav-card-title">Rạp Chiếu Phim</div>
-		<div class="nav-card-desc">
-			Quản lý các rạp chiếu phim
-		</div>
-		<a href="@Url.Action("Index", "MovieTheaters")" class="nav-card-btn">
-			<i class="fa-solid fa-arrow-right"></i> Xem danh sách
-		</a>
-	</div>
-
-	<!-- Card2: Cinema Types -->
-	<div class="nav-card">
-		<div class="nav-card-icon">
-			<i class="fa-solid fa-clapperboard"></i>
-		</div>
-		<div class="nav-card-title">Loại Phòng Chiếu</div>
-		<div class="nav-card-desc">
-			Quản lý loại phòng (IMAX,3D,4DX...)
-		</div>
-		<a href="@Url.Action("Index", "CinemaTypes")" class="nav-card-btn">
-			<i class="fa-solid fa-arrow-right"></i> Xem loại
-		</a>
-	</div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-	@{
-		await Html.RenderPartialAsync("_ValidationScriptsPartial");
-	}
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const form = document.getElementById('cinemaTheaterCreateForm');
+            const nameInput = document.getElementById('Name');
+            const cinemaTypeSelect = document.getElementById('cinemaTypeSelect');
+            const movieTheaterSelect = document.getElementById('movieTheaterSelect');
 
-	<script>
-		document.addEventListener('DOMContentLoaded', function () {
-			const form = document.getElementById('createForm');
-			const nameInput = document.getElementById('Name');
-			const cinemaTypeSelect = document.getElementById('cinemaTypeSelect');
-			const movieTheaterSelect = document.getElementById('movieTheaterSelect');
-			const submitBtn = document.getElementById('submitBtn');
+            form.addEventListener('submit', function (e) {
+                let isValid = true;
+                let errors = [];
 
-			// Kiểm tra validation trước khi submit
-			form.addEventListener('submit', function (e) {
-				let isValid = true;
-				let errors = [];
+                if (!nameInput.value.trim()) {
+                    isValid = false;
+                    errors.push('Tên phòng không được để trống');
+                } else if (nameInput.value.trim().length < 3) {
+                    isValid = false;
+                    errors.push('Tên phòng phải có ít nhất 3 ký tự');
+                }
 
-				// Kiểm tra tên phòng
-				if (!nameInput.value.trim()) {
-					isValid = false;
-					errors.push('Tên phòng không được để trống');
-					document.getElementById('nameError').innerHTML = '<i class="fas fa-times-circle"></i> Tên phòng không được để trống';
-					nameInput.classList.add('is-invalid');
-				} else if (nameInput.value.trim().length <3) {
-					isValid = false;
-					errors.push('Tên phòng phải có ít nhất3 ký tự');
-					document.getElementById('nameError').innerHTML = '<i class="fas fa-times-circle"></i> Tên phòng phải có ít nhất3 ký tự';
-					nameInput.classList.add('is-invalid');
-				} else {
-					document.getElementById('nameError').innerHTML = '';
-					nameInput.classList.remove('is-invalid');
-				}
+                if (!cinemaTypeSelect.value) {
+                    isValid = false;
+                    errors.push('Vui lòng chọn loại phòng');
+                }
 
-				// Kiểm tra loại phòng
-				if (!cinemaTypeSelect.value) {
-					isValid = false;
-					errors.push('Vui lòng chọn loại phòng');
-					document.getElementById('cinemaTypeError').innerHTML = '<i class="fas fa-times-circle"></i> Vui lòng chọn loại phòng';
-					cinemaTypeSelect.classList.add('is-invalid');
-				} else {
-					document.getElementById('cinemaTypeError').innerHTML = '';
-					cinemaTypeSelect.classList.remove('is-invalid');
-				}
+                if (!movieTheaterSelect.value) {
+                    isValid = false;
+                    errors.push('Vui lòng chọn rạp chiếu');
+                }
 
-				// Kiểm tra rạp chiếu
-				if (!movieTheaterSelect.value) {
-					isValid = false;
-					errors.push('Vui lòng chọn rạp chiếu');
-					document.getElementById('movieTheaterError').innerHTML = '<i class="fas fa-times-circle"></i> Vui lòng chọn rạp chiếu';
-					movieTheaterSelect.classList.add('is-invalid');
-				} else {
-					document.getElementById('movieTheaterError').innerHTML = '';
-					movieTheaterSelect.classList.remove('is-invalid');
-				}
-
-				// Nếu không hợp lệ, không submit
-				if (!isValid) {
-					e.preventDefault();
-
-					// Hiển thị alert
-					let errorMessage = '⚠️ Vui lòng kiểm tra lại:\n\n';
-					errors.forEach(error => {
-						errorMessage += '• ' + error + '\n';
-					});
-					alert(errorMessage);
-				}
-			});
-
-			// Xóa lỗi khi người dùng điền lại
-			nameInput.addEventListener('input', function () {
-				if (this.value.trim().length >=3) {
-					document.getElementById('nameError').innerHTML = '';
-					this.classList.remove('is-invalid');
-				}
-			});
-
-			cinemaTypeSelect.addEventListener('change', function () {
-				if (this.value) {
-					document.getElementById('cinemaTypeError').innerHTML = '';
-					this.classList.remove('is-invalid');
-				}
-			});
-
-			movieTheaterSelect.addEventListener('change', function () {
-				if (this.value) {
-					document.getElementById('movieTheaterError').innerHTML = '';
-					this.classList.remove('is-invalid');
-				}
-			});
-		});
-	</script>
+                if (!isValid) {
+                    e.preventDefault();
+                    alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.map(err => "• " + err).join("\n"));
+                }
+            });
+        })();
+    </script>
 }

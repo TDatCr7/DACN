@@ -4,10 +4,13 @@
 
 @{
     ViewData["Title"] = "Chi tiết cụm rạp";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "_Layout";
 
-    var provinceName = ViewBag?.ProvinceName as string ?? "Không xác định";
-    var isActive = (Model?.Status ?? 1) == 1;
+    var nameText = string.IsNullOrWhiteSpace(Model.Name) ? "N/A" : Model.Name;
+    var addressText = string.IsNullOrWhiteSpace(Model.Address) ? "N/A" : Model.Address;
+    var hotlineText = string.IsNullOrWhiteSpace(Model.Hotline) ? "N/A" : Model.Hotline;
+    var provinceName = ViewBag?.ProvinceName as string ?? "N/A";
+    var statusText = (Model.Status ?? 1) == 1 ? "Đang hoạt động" : "Tạm ngưng";
 
     // YÊU CẦU: mở Google Maps theo LINK lưu trong DB (Model.IFrameCode), KHÔNG tạo theo tên/địa chỉ.
     // Nếu DB lưu iframe -> lấy src. Nếu DB lưu link -> dùng trực tiếp.
@@ -31,237 +34,87 @@
     var hasGoogleLink = !string.IsNullOrWhiteSpace(googleLink);
 }
 
-<style>
-    .mt-detail {
-        padding: 10px 0 30px;
-    }
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger" style="border-radius:14px;margin-bottom:12px;">
+        @TempData["Error"]
+    </div>
+}
 
-    .mt-hero {
-        border-radius: 22px;
-        border: 1px solid rgba(148,163,255,.28);
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.22), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.18), transparent 55%), rgba(2,6,23,.92);
-        box-shadow: 0 22px 60px rgba(15,23,42,.85), 0 0 0 1px rgba(15,23,42,.75);
-        overflow: hidden;
-        padding: 16px;
-    }
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-    .mt-topline {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
-    }
-
-    .mt-title {
-        margin: 0;
-        font-weight: 1000;
-        font-size: 22px;
-        letter-spacing: .2px;
-        color: #e9ecf6;
-    }
-
-    .mt-sub {
-        margin-top: 6px;
-        color: #9aa5c6;
-        font-weight: 700;
-        font-size: 13px;
-    }
-
-    .mt-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(148,163,255,.25);
-        background: rgba(15,23,42,.75);
-        color: #e5e7f5;
-        font-weight: 900;
-        font-size: 12px;
-        white-space: nowrap;
-    }
-
-        .mt-badge.active {
-            border-color: rgba(16,185,129,.45);
-        }
-
-            .mt-badge.active i {
-                color: #10b981;
-            }
-
-        .mt-badge.inactive {
-            border-color: rgba(245,158,11,.45);
-        }
-
-            .mt-badge.inactive i {
-                color: #f59e0b;
-            }
-
-    .mt-card {
-        border-radius: 18px;
-        border: 1px solid rgba(148,163,255,.18);
-        background: rgba(15,23,42,.55);
-        padding: 14px 16px;
-    }
-
-    .mt-card-title {
-        font-weight: 1000;
-        font-size: 12px;
-        letter-spacing: .35px;
-        color: #c7d2fe;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-    }
-
-    .mt-row {
-        display: flex;
-        gap: 10px;
-        padding: 9px 0;
-        border-top: 1px solid rgba(148,163,255,.12);
-        align-items: flex-start;
-    }
-
-        .mt-row:first-of-type {
-            border-top: none;
-            padding-top: 0;
-        }
-
-    .mt-ico {
-        width: 18px;
-        color: rgba(148,163,255,.95);
-        margin-top: 2px;
-    }
-
-    .mt-label {
-        color: #9aa5c6;
-        font-weight: 800;
-        font-size: 12px;
-        min-width: 86px;
-        text-transform: uppercase;
-        letter-spacing: .25px;
-    }
-
-    .mt-value {
-        color: #e5e7eb;
-        font-weight: 800;
-        font-size: 13px;
-        flex: 1;
-        min-width: 0;
-        word-break: break-word;
-    }
-
-    .mt-actions {
-        margin-top: 12px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .btn-mt {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 16px;
-        border-radius: 999px;
-        text-decoration: none;
-        font-weight: 900;
-        border: 1px solid rgba(148,163,255,.22);
-        background: rgba(15,23,42,.75);
-        color: #e5e7f5;
-    }
-
-        .btn-mt:hover {
-            filter: brightness(1.05);
-            color: #fff;
-            text-decoration: none;
-        }
-
-        .btn-mt.primary {
-            background: linear-gradient(120deg, rgba(59,92,204,.35), rgba(124,58,237,.28));
-        }
-
-        .btn-mt.danger {
-            background: linear-gradient(120deg, rgba(239,68,68,.28), rgba(124,58,237,.22));
-        }
-
-    .mt-warn {
-        margin-top: 10px;
-        color: #9aa5c6;
-        font-weight: 800;
-        font-size: 13px;
-    }
-</style>
-
-<div class="mt-detail">
-    <div class="mt-hero">
-        <div class="mt-topline">
-            <div>
-                <h1 class="mt-title">@((Model?.Name ?? "N/A"))</h1>
-                <div class="mt-sub">
-                    <i class="fa-solid fa-hashtag me-1"></i>@(Model?.MovieTheaterId ?? "N/A")
-                </div>
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-building"></i>
+                    @ViewData["Title"]
+                </h1>
             </div>
 
-            <div class="mt-badge @(isActive ? "active" : "inactive")">
-                <i class="fa-solid @(isActive ? "fa-circle-check" : "fa-clock")"></i>
-                <span>@(isActive ? "Đang hoạt động" : "Tạm ngưng")</span>
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+
+                <a asp-action="Edit" asp-route-id="@Model.MovieTheaterId"
+                   class="btn btn-primary btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-pen"></i> Sửa
+                </a>
+
+                <form asp-action="Delete" asp-route-id="@Model.MovieTheaterId" method="post" class="m-0 d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="btn btn-outline-light-rounded btn-sweep px-3"
+                            style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap; border-color:rgba(248,113,113,.65)!important;"
+                            onclick="return confirm('Xoá cụm rạp này?');">
+                        <i class="fa-solid fa-trash-can"></i> Xoá
+                    </button>
+                </form>
             </div>
         </div>
 
-        <div class="mt-card">
-            <div class="mt-card-title">Thông tin</div>
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
 
-            <div class="mt-row">
-                <div class="mt-ico"><i class="fa-solid fa-location-dot"></i></div>
-                <div class="mt-label">Địa chỉ</div>
-                <div class="mt-value">@((Model?.Address ?? "N/A"))</div>
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin cụm rạp
             </div>
 
-            <div class="mt-row">
-                <div class="mt-ico"><i class="fa-solid fa-phone"></i></div>
-                <div class="mt-label">Hotline</div>
-                <div class="mt-value">@((Model?.Hotline ?? "N/A"))</div>
-            </div>
-
-            <div class="mt-row">
-                <div class="mt-ico"><i class="fa-solid fa-map"></i></div>
-                <div class="mt-label">Tỉnh/TP</div>
-                <div class="mt-value">@provinceName</div>
-            </div>
-
-            <div class="mt-actions">
-                <a class="btn-mt primary" asp-controller="Home" asp-action="Index">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Trang chủ</span>
-                </a>
-
-                @* CHỈ ADMIN mới thấy nút danh sách *@
-                @if (User?.IsInRole("Admin") == true)
-                {
-                    <a class="btn-mt" asp-controller="MovieTheaters" asp-action="Index">
-                        <i class="fa-solid fa-list"></i>
-                        <span>Danh sách cụm rạp</span>
-                    </a>
-                }
-
-                @* Nút mở Google Maps theo LINK trong DB *@
-                @if (hasGoogleLink)
-                {
-                    <a class="btn-mt danger" href="@googleLink" target="_blank" rel="noopener">
-                        <i class="fa-brands fa-google"></i>
-                        <span>Mở Google Maps</span>
-                    </a>
-                }
-            </div>
-
-            @if (!hasGoogleLink)
-            {
-                <div class="mt-warn">
-                    Không đủ dữ liệu để xác minh: Model.IFrameCode không có link Google Maps hợp lệ.
+            <div class="admin-user-detail-grid">
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-tag"></i> Mã cụm rạp</div>
+                    <div class="admin-user-detail-value">@Model.MovieTheaterId</div>
                 </div>
-            }
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-building"></i> Tên cụm rạp</div>
+                    <div class="admin-user-detail-value">@nameText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-location-dot"></i> Địa chỉ</div>
+                    <div class="admin-user-detail-value">@addressText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-phone"></i> Hotline</div>
+                    <div class="admin-user-detail-value">@hotlineText</div>
+                </div>
+
+                <div class="admin-user-detail-item">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-map"></i> Tỉnh/TP</div>
+                    <div class="admin-user-detail-value">@provinceName</div>
+                </div>
+
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-toggle-on"></i> Trạng thái</div>
+                    <div class="admin-user-detail-value">@statusText</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

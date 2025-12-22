@@ -249,7 +249,8 @@ namespace CinemaS.Controllers
                 PayDateRaw = payDate,
                 TransactionNo = providerTxnId,
                 IsSuccess = false,
-                Message = signatureOk ? "Thanh toán không thành công." : "Chữ ký VNPay không hợp lệ."
+                Message = signatureOk ? "Thanh toán không thành công." : "Chữ ký VNPay không hợp lệ.",
+                IsAdminAccount = !string.IsNullOrWhiteSpace(invoice?.StaffId)
             };
 
             var paymentMethod = await _context.PaymentMethods
@@ -286,7 +287,7 @@ namespace CinemaS.Controllers
                 decimal ticketSum = 0m;
                 decimal snackSum = 0m;
 
-                /* ==== ƯU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
+                /* ==== ƠU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
                 var snacksRawOnly = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
                 if (!string.IsNullOrWhiteSpace(snacksRawOnly))
                 {
@@ -412,7 +413,7 @@ namespace CinemaS.Controllers
                                     decimal basePrice = stype?.Price ?? 0m;
                                     decimal adjustedPrice = basePrice * (1 + priceAdjustmentPercent / 100m);
                                     adjustedPrice = Math.Round(adjustedPrice, 0, MidpointRounding.AwayFromZero);
-                                    
+
                                     ticketSum += adjustedPrice;
 
                                     var newTicketId = await NextTicketIdSafeAsync();
@@ -629,7 +630,8 @@ namespace CinemaS.Controllers
                 OrderId = invoice.InvoiceId,
                 IsSuccess = invoice.Status == (byte)1,
                 Message = invoice.Status == (byte)1 ? "Thanh toán thành công." : "Đơn hàng chưa thanh toán.",
-                Detail = await BuildTicketDetailAsync(invoice.InvoiceId)
+                Detail = await BuildTicketDetailAsync(invoice.InvoiceId),
+                IsAdminAccount = !string.IsNullOrWhiteSpace(invoice.StaffId)
             };
 
             if (paymentTxn != null)
@@ -867,6 +869,9 @@ namespace CinemaS.Controllers
                         var ct = await _context.CinemaTheaters.AsNoTracking()
                             .FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
 
+                        var theater = ct != null ? await _context.MovieTheaters.AsNoTracking()
+                            .FirstOrDefaultAsync(mt => mt.MovieTheaterId == ct.MovieTheaterId) : null;
+
                         movie = mv?.Title;
                         room = ct?.Name;
                     }
@@ -1067,7 +1072,7 @@ namespace CinemaS.Controllers
                                     decimal basePrice = stype?.Price ?? 0m;
                                     decimal adjustedPrice = basePrice * (1 + priceAdjustmentPercent / 100m);
                                     adjustedPrice = Math.Round(adjustedPrice, 0, MidpointRounding.AwayFromZero);
-                                    
+
                                     ticketSum += adjustedPrice;
 
                                     var newTicketId = await NextTicketIdSafeAsync();
@@ -1556,6 +1561,9 @@ namespace CinemaS.Controllers
             var inv = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
             if (inv == null) return null;
 
+            // Check if admin booking (StaffId != CustomerId)
+            bool isAdminBooking = !string.IsNullOrWhiteSpace(inv.StaffId);
+
             var tickets = await _context.Tickets.AsNoTracking()
                 .Where(t => t.InvoiceId == invoiceId)
                 .ToListAsync();
@@ -1573,6 +1581,9 @@ namespace CinemaS.Controllers
                     .FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
                 var room = await _context.CinemaTheaters.AsNoTracking()
                     .FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
+
+                var theater = room != null ? await _context.MovieTheaters.AsNoTracking()
+                    .FirstOrDefaultAsync(mt => mt.MovieTheaterId == room.MovieTheaterId) : null;
 
                 var seatIds = tickets.Select(t => t.SeatId).ToList();
                 var seatLabels = await _context.Seats.AsNoTracking()
@@ -1593,6 +1604,8 @@ namespace CinemaS.Controllers
                     MovieTitle = movie?.Title ?? "N/A",
                     MoviePoster = movie?.PosterImage,
                     CinemaTheater = room?.Name ?? "N/A",
+                    TheaterName = theater?.Name ?? "N/A",
+                    TheaterAddress = theater?.Address ?? "N/A",
                     ShowDate = st.ShowDate,
                     StartTime = st.StartTime,
                     EndTime = st.EndTime,
@@ -1614,6 +1627,8 @@ namespace CinemaS.Controllers
                     MovieTitle = "Đơn đồ ăn",
                     MoviePoster = null,
                     CinemaTheater = "N/A",
+                    TheaterName = "N/A",
+                    TheaterAddress = "N/A",
                     ShowDate = null,
                     StartTime = null,
                     EndTime = null,
@@ -1655,15 +1670,18 @@ namespace CinemaS.Controllers
             detail.SnackTotal = detail.SnackItems.Sum(x => x.LineTotal);
             detail.GrandTotal = detail.TicketTotal + detail.SnackTotal;
 
-            // Generate QR code for the ticket
-            try
+            // Generate QR code for the ticket only if not admin booking
+            if (!isAdminBooking)
             {
-                detail.QrImageBase64 = await _qrService.GenerateQrImageBase64Async(invoiceId, 10);
-            }
-            catch
-            {
-                // QR generation failed - continue without QR
-                detail.QrImageBase64 = null;
+                try
+                {
+                    detail.QrImageBase64 = await _qrService.GenerateQrImageBase64Async(invoiceId, 10);
+                }
+                catch
+                {
+                    // QR generation failed - continue without QR
+                    detail.QrImageBase64 = null;
+                }
             }
 
             return detail;
@@ -1782,64 +1800,66 @@ namespace CinemaS.Controllers
 
             var subject = $"Đã đặt vé thành công - {detail.MovieTitle}";
 
+            // Generate QR code
             string? qrBase64 = null;
-            byte[]? attachmentBytes = null;
-            string? attachmentName = null;
+            byte[]? qrImageBytes = null;
+            string qrImageName = $"QR_{invoice.InvoiceId}.png";
 
-            try
-            {
-                qrBase64 = await _qrService.GenerateQrImageBase64Async(invoice.InvoiceId, 8);
-            }
-            catch
-            {
-                qrBase64 = null;
-            }
-
+            qrBase64 = await _qrService.GenerateQrImageBase64Async(invoice.InvoiceId, 8);
             if (!string.IsNullOrWhiteSpace(qrBase64))
             {
-                try
-                {
-                    attachmentBytes = Convert.FromBase64String(qrBase64);
-                    attachmentName = $"QR_{invoice.InvoiceId}.png";
-                }
-                catch
-                {
-                    attachmentBytes = null;
-                    attachmentName = null;
-                }
+                qrImageBytes = Convert.FromBase64String(qrBase64);
+            }
+
+            // Generate PDF ticket using existing QR image
+            byte[]? pdfBytes = null;
+            if (qrImageBytes != null && qrImageBytes.Length > 0)
+            {
+                pdfBytes = await _qrService.GenerateTicketPdfWithQrAsync(invoice.InvoiceId, qrImageBytes);
             }
 
             string? cid = null;
-            if (attachmentBytes != null && attachmentBytes.Length > 0 && !string.IsNullOrWhiteSpace(attachmentName))
+            if (qrImageBytes != null && qrImageBytes.Length > 0)
             {
-                cid = attachmentName.Replace(" ", "_");
+                cid = qrImageName.Replace(" ", "_");
             }
 
             var body = BuildTicketEmailBody(detail, cid);
 
-            try
+            if (_emailSender is IEmailSenderWithAttachment emailWithAttachment)
             {
-                if (attachmentBytes != null && attachmentBytes.Length > 0 && _emailSender is IEmailSenderWithAttachment emailWithAttachment && !string.IsNullOrWhiteSpace(attachmentName))
+                // Send email with both QR image and PDF attachments
+                if (qrImageBytes != null && qrImageBytes.Length > 0)
                 {
-                    await emailWithAttachment.SendEmailWithAttachmentAsync(
+                    var attachments = new List<(byte[] data, string name, string mimeType)>
+                    {
+                        (qrImageBytes, qrImageName, "image/png")
+                    };
+
+                    // Add PDF if available
+                    if (pdfBytes != null && pdfBytes.Length > 0)
+                    {
+                        attachments.Add((pdfBytes, "ticket.pdf", "application/pdf"));
+                    }
+
+                    await emailWithAttachment.SendEmailWithMultipleAttachmentsAsync(
                         toEmail,
                         subject,
                         body,
-                        attachmentBytes,
-                        attachmentName,
-                        "image/png");
-                }
-                else if (!string.IsNullOrWhiteSpace(qrBase64))
-                {
-                    var bodyWithDataUri = BuildTicketEmailBody(detail, null, qrBase64);
-                    await _emailSender.SendEmailAsync(toEmail, subject, bodyWithDataUri);
+                        attachments
+                    );
                 }
                 else
                 {
                     await _emailSender.SendEmailAsync(toEmail, subject, body);
                 }
             }
-            catch
+            else if (!string.IsNullOrWhiteSpace(qrBase64))
+            {
+                var bodyWithDataUri = BuildTicketEmailBody(detail, null, qrBase64);
+                await _emailSender.SendEmailAsync(toEmail, subject, bodyWithDataUri);
+            }
+            else
             {
                 await _emailSender.SendEmailAsync(toEmail, subject, body);
             }
@@ -1856,47 +1876,84 @@ namespace CinemaS.Controllers
                 : string.Empty;
 
             string seats = (d.SeatLabels != null && d.SeatLabels.Any())
-                ? string.Join(", ", d.SeatLabels)
+                ? string.Join(" ", d.SeatLabels.Select(s => $"<span class=\"seat-item\">{s}</span>"))
                 : string.Empty;
 
-            bool hasEmail = !string.IsNullOrWhiteSpace(d.InvoiceEmail);
-            bool hasPhone = !string.IsNullOrWhiteSpace(d.InvoicePhone);
-            bool hasPaymentMethod = !string.IsNullOrWhiteSpace(d.PaymentMethod);
             bool hasSnacks = d.SnackItems != null && d.SnackItems.Count > 0;
 
-            var sb = new System.Text.StringBuilder();
-            sb.Append("<!DOCTYPE html><html lang='vi'><head><meta charset='utf-8' /><title>Đã đặt vé thành công</title></head>");
-            sb.Append("<body style='font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#111827;'>");
-            sb.Append("<p><strong>Đã đặt vé thành công.</strong></p>");
-
-            sb.Append("<p>Thông tin vé:</p><ul>");
-            sb.Append($"<li><strong>Mã hóa đơn:</strong> {d.InvoiceId}</li>");
-            sb.Append($"<li><strong>Phim:</strong> {d.MovieTitle}</li>");
-            sb.Append($"<li><strong>Rạp/phòng:</strong> {d.CinemaTheater}</li>");
-            sb.Append($"<li><strong>Ngày chiếu:</strong> {showDate}</li>");
-            sb.Append($"<li><strong>Suất chiếu:</strong> {startTime} - {endTime}</li>");
-            sb.Append($"<li><strong>Ghế:</strong> {seats}</li>");
-            sb.Append($"<li><strong>Ngày đặt:</strong> {createdAt}</li>");
-            if (hasEmail) sb.Append($"<li><strong>Email:</strong> {d.InvoiceEmail}</li>");
-            if (hasPhone) sb.Append($"<li><strong>Số điện thoại:</strong> {d.InvoicePhone}</li>");
-            if (hasPaymentMethod) sb.Append($"<li><strong>Phương thức thanh toán:</strong> {d.PaymentMethod}</li>");
-            sb.Append("</ul>");
-
-            if (hasSnacks)
+            // QR code handling
+            string qrHtml = string.Empty;
+            if (!string.IsNullOrWhiteSpace(qrDataUri))
             {
-                sb.Append("<p><strong>Bắp nước:</strong></p><ul>");
-                foreach (var s in d.SnackItems)
-                    sb.Append($"<li>{s.Name} × {s.Quantity}</li>");
-                sb.Append("</ul>");
+                qrHtml = $"<img src=\"data:image/png;base64,{qrDataUri}\" alt=\"QR Code\" style=\"width:100%;height:100%;object-fit:contain;\">";
+            }
+            else if (!string.IsNullOrWhiteSpace(qrCid))
+            {
+                qrHtml = $"<img src=\"cid:{qrCid}\" alt=\"QR Code\" style=\"width:100%;height:100%;object-fit:contain;\">";
+            }
+            else
+            {
+                qrHtml = @"<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg' style='width:100%;height:100%;'>
+                    <path d='M0 0h35v35H0V0zm5 5v25h25V5H5zM65 0h35v35H65V0zm5 5v25h25V5H70zM0 65h35v35H0V65zm5 5v25h25V70H5z' fill='#000'/>
+                    <path d='M12 12h11v11H12V12zM77 12h11v11H77V12zM12 77h11v11H12V77z' fill='#000'/>
+                    <path d='M45 0h10v10H45V0zM55 10h10v10H55V10zM45 20h10v10H45V20zM35 30h10v10H35V30zM55 30h10v10H55V30zM65 40h10v10H65V40zM35 50h10v10H35V50zM55 50h10v10H55V50zM45 60h10v10H45V60zM65 60h10v10H65V60zM35 70h10v10H35V70zM55 70h10v10H55V70zM45 80h10v10H45V80zM65 80h10v10H65V80zM35 90h10v10H35V90zM55 90h10v10H55V90z' fill='#000'/>
+                </svg>";
             }
 
-            sb.Append("<p>Vui lòng mang theo mã hóa đơn hoặc email này khi đến rạp để được hỗ trợ nếu cần.</p>");
-            sb.Append("</body></html>");
+            var sb = new System.Text.StringBuilder();
+            sb.Append("<!DOCTYPE html><html lang='vi'><head><meta charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1.0' /><title>Hóa đơn</title><style>");
+            sb.Append(@"
+    body { font-family: 'Georgia', 'Times New Roman', serif; margin: 0; padding: 20px; background: #fff; color: #000; }
+    .container { max-width: 650px; margin: 0 auto; border: 1px solid #000; padding: 40px; }
+    .header { border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+    .invoice-title { font-size: 16px; font-style: italic; }
+    
+    .grid { display: flex; gap: 40px; margin-bottom: 30px; }
+    .col { flex: 1; }
+    .label { font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 5px; display: block; }
+    .value { font-size: 14px; font-weight: bold; }
 
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th { text-align: left; border-bottom: 1px solid #000; padding: 5px 0; font-size: 11px; text-transform: uppercase; }
+    td { padding: 10px 0; border-bottom: 1px dotted #ccc; font-size: 13px; }
+    
+    .total-box { border-top: 2px solid #000; margin-top: 20px; padding-top: 10px; display: flex; justify-content: flex-end; }
+    .total-row { display: flex; gap: 40px; align-items: baseline; }
+    .grand-total { font-weight: bold; }
+
+    .footer { text-align: center; margin-top: 50px; font-size: 11px; font-style: italic; border-top: 1px solid #eee; padding-top: 10px; }
+");
+            sb.Append("</style></head><body><div class='container'>");
+
+            // Header
+            sb.Append("<div class='header'><div><div class='brand'>CinemaS</div><div style='font-size:12px; margin-top:5px;'>" + d.TheaterAddress + "</div></div>");
+            sb.Append("<div style='text-align:right'><div class='invoice-title'>HÓA ĐƠN</div><div>#" + d.InvoiceId + "</div></div></div>");
+
+            // Info
+            sb.Append("<div class='grid'><div class='col'><span class='label'>KHÁCH HÀNG</span><div class='value'>" + (d.InvoiceEmail ?? "Khách lẻ") + "</div></div>");
+            sb.Append("<div class='col'><span class='label'>NGÀY</span><div class='value'>" + createdAt + "</div></div></div>");
+
+            // Table
+            if (d.TicketCount > 0)
+            {
+                sb.Append("<table><thead><tr><th width='40%'>MÔ TẢ</th><th width='20%'>PHÒNG</th><th width='20%'>GHẾ</th><th width='20%' style='text-align:right'>THÀNH TIỀN</th></tr></thead><tbody>");
+                sb.Append("<tr><td><strong>" + d.MovieTitle + "</strong><br><small>" + startTime + " | " + showDate + "</small></td>");
+                sb.Append("<td>" + d.CinemaTheater + "</td><td>" + seats + "</td><td style='text-align:right'>" + d.TicketTotal.ToString("N0") + "</td></tr></tbody></table>");
+            }
+            if (hasSnacks)
+            {
+                sb.Append("<table><thead><tr><th width='60%'>DỊCH VỤ</th><th width='20%' style='text-align:center'>SL</th><th width='20%' style='text-align:right'>THÀNH TIỀN</th></tr></thead><tbody>");
+                foreach (var s in d.SnackItems) sb.Append("<tr><td>" + s.Name + "</td><td style='text-align:center'>" + s.Quantity + "</td><td style='text-align:right'>" + s.LineTotal.ToString("N0") + "</td></tr>");
+                sb.Append("</tbody></table>");
+            }
+
+            // Total
+            sb.Append("<div class='total-box'><div class='total-row'><span>TỔNG CỘNG (VND): </span><span class='grand-total'>" + (d.TicketTotal + d.SnackTotal - d.DiscountAmount).ToString("N0") + "</span></div></div>");
+
+            sb.Append("<div class='footer'>Cảm ơn quý khách đã sử dụng dịch vụ.</div></div></body></html>");
             return sb.ToString();
         }
-
-        // ===================== Point / Point_Histories helpers =====================
 
         private async Task<string> NextPointHistoryIdSafeAsync()
         {

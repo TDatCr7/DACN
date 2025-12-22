@@ -587,10 +587,11 @@
 <div class="qr-container">
     <!-- Tabs -->
     <div class="qr-tabs">
-        <button class="qr-tab active" onclick="switchTab('camera')">
+        <button id="btn-camera" class="qr-tab active" onclick="switchTab('camera')">
             <i class="fas fa-camera"></i> Máy ảnh quét mã QR
         </button>
-        <button class="qr-tab" onclick="switchTab('upload')">
+
+        <button id="btn-upload" class="qr-tab" onclick="switchTab('upload')">
             <i class="fas fa-image"></i> Tải lên hình ảnh mã QR
         </button>
     </div>
@@ -669,25 +670,55 @@
     </div>
 </div>
 @section Scripts {
+
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
+                // --- SỰ KIỆN MỚI: Lắng nghe hành động Paste ---
+        document.addEventListener('paste', function (event) {
+            // Lấy dữ liệu từ Clipboard (/ˈklɪp.bɔːrd/ - bộ nhớ tạm)
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+
+            for (let index in items) {
+                const item = items[index];
+
+                // Kiểm tra nếu là hình ảnh
+                if (item.kind === 'file' && item.type.indexOf('image/') !== -1) {
+                    const blob = item.getAsFile(); // Blob (/blɒb/ - đối tượng dữ liệu nhị phân)
+
+                    // Tự động chuyển sang tab Upload để người dùng thấy
+                    switchTab('upload');
+
+                    // Gọi hàm xử lý ảnh chung vừa tạo ở bước 1
+                    processImageFile(blob);
+
+                    event.preventDefault(); // Ngăn hành động dán mặc định
+                    return;
+                }
+            }
+        });
         let cameraStream = null;
         let scanningActive = false;
         let lastScannedQR = null;
         let lastCanvasDataUrl = null; // store last captured canvas image
         const QR_SCAN_COOLDOWN = 2000; // 2 seconds
 
-        function switchTab(tab) {
-            // Update tab buttons and content
+            function switchTab(tabName) {
             document.querySelectorAll('.qr-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.qr-tab-content').forEach(c => c.classList.remove('active'));
 
-            event.target.closest('.qr-tab').classList.add('active');
-            document.getElementById(tab + '-tab').classList.add('active');
+            const activeBtn = document.getElementById('btn-' + tabName);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
 
-            // Stop scanner when leaving camera tab
-            if (tab === 'upload' && scanningActive) {
+            const activeContent = document.getElementById(tabName + '-tab');
+            if (activeContent) {
+                activeContent.classList.add('active');
+            }
+
+            if (tabName === 'upload') {
                 stopCamera();
+            } else if (tabName === 'camera') {
             }
         }
 
@@ -953,6 +984,8 @@
             const files = event.dataTransfer.files;
             if (files.length > 0) {
                 handleFileUpload({ target: { files: files } });
+
+                processImageFile(files[0]);
             }
         }
 
@@ -1000,6 +1033,40 @@
                 "'": '&#039;'
             };
             return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+                // --- HÀM MỚI: Xử lý file ảnh (Dùng chung cho cả Upload và Paste) ---
+        function processImageFile(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('qr-canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    try {
+                        lastCanvasDataUrl = canvas.toDataURL('image/png');
+                    } catch (e) {
+                        lastCanvasDataUrl = null;
+                    }
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+                    if (code) {
+                        validateQrCode(code.data);
+                    } else {
+                        showInvalidQr("Không thể đọc mã QR trong ảnh");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
     </script>
 }

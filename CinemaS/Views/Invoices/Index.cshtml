@@ -326,72 +326,52 @@
             <small>Tổng: @(ViewBag.TotalItems ?? 0) hóa đơn</small>
         </div>
 
-        <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary rounded-pill">
-            <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại
+        <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại
         </a>
     </div>
 
     <div class="invoice-index-card">
         <!-- TOPBAR: TÌM KIẾM + LỌC NGÀY -->
-        <div class="invoice-index-topbar">
-            <form method="get" asp-action="Index">
-                <div class="row g-2 align-items-end">
-                    <div class="col-lg-4 col-md-6">
-                        <label class="filter-label">
-                            <i class="fa-solid fa-magnifying-glass me-1"></i> Tìm kiếm
-                        </label>
-                        <input type="text"
-                               name="search"
-                               value="@(ViewBag.Search ?? string.Empty)"
-                               class="form-control filter-input"
-                               placeholder="Tên khách, email hoặc số điện thoại..." />
-                    </div>
-
-                    <div class="col-lg-2 col-md-3">
-                        <label class="filter-label">
-                            <i class="fa-regular fa-calendar me-1"></i> Từ ngày
-                        </label>
-                        <input type="date"
-                               name="fromDate"
-                               value="@(ViewBag.FromDate ?? string.Empty)"
-                               class="form-control filter-input" />
-                    </div>
-
-                    <div class="col-lg-2 col-md-3">
-                        <label class="filter-label">
-                            <i class="fa-regular fa-calendar me-1"></i> Đến ngày
-                        </label>
-                        <input type="date"
-                               name="toDate"
-                               value="@(ViewBag.ToDate ?? string.Empty)"
-                               class="form-control filter-input" />
-                    </div>
-                    <div class="col-lg-2 col-md-6">
-                        <label class="filter-label">
-                            <i class="fa-solid fa-layer-group me-1"></i> Loại
-                        </label>
-                        <select name="type" class="form-control filter-input">
-                            @{
-                                var type = (string)(ViewBag.Type ?? "");
-                            }
-                            <option value="" selected="@(string.IsNullOrEmpty(type))">Tất cả</option>
-                            <option value="ticket" selected="@(type == "ticket")">Hóa đơn vé</option>
-                            <option value="snack" selected="@(type == "snack")">Hóa đơn đồ ăn</option>
-                        </select>
-                    </div>
-
-                    <div class="col-lg-2 col-md-6">
-                        <label class="filter-label d-block">&nbsp;</label>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary filter-btn-main flex-fill">
-                                <i class="fa-solid fa-filter me-1"></i> Lọc
-                            </button>
-                            <a asp-action="Index" class="btn btn-outline-secondary filter-btn-reset">
-                                <i class="fa-solid fa-xmark"></i>
-                            </a>
-                        </div>
-                    </div>
+        <div class="admin-toolbar">
+            <form method="get" class="admin-search-shell d-flex gap-2 align-items-center" asp-action="Index">
+                <div class="input-group admin-search-compact">
+                    <input type="text"
+                           name="search"
+                           value="@(ViewBag.Search ?? string.Empty)"
+                           class="form-control admin-search-input"
+                           placeholder="Tên khách, email hoặc số điện thoại..." />
+                    <button class="admin-search-btn" type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
                 </div>
+
+                <input type="date"
+                       name="fromDate"
+                       value="@(ViewBag.FromDate ?? string.Empty)"
+                       class="form-control admin-role-filter" />
+
+                <input type="date"
+                       name="toDate"
+                       value="@(ViewBag.ToDate ?? string.Empty)"
+                       class="form-control admin-role-filter" />
+
+                <select name="type" class="form-select admin-role-filter">
+                    @{
+                        var type = (string)(ViewBag.Type ?? "");
+                    }
+                    <option value="" selected="@(string.IsNullOrEmpty(type))">Tất cả</option>
+                    <option value="ticket" selected="@(type == "ticket")">Hóa đơn vé</option>
+                    <option value="snack" selected="@(type == "snack")">Hóa đơn đồ ăn</option>
+                </select>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-filter me-1"></i> Lọc
+                </button>
+
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
             </form>
         </div>
 
@@ -407,7 +387,7 @@
                         <th style="width:170px;">Ngày tạo</th>
                         <th style="width:140px;">Tổng tiền</th>
                         <th style="width:70px; text-align:center;">Loại</th>
-                        <th class="col-status" style="width:120px;">Trạng thái</th>]
+                        <th class="col-status" style="width:120px;">Trạng thái</th>
                         <th style="width:150px;" class="text-end">Thao tác</th>
                     </tr>
                 </thead>

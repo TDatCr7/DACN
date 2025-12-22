@@ -6,108 +6,106 @@
 }
 <link rel="stylesheet" href="~/css/management.css" />
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0"><i class="fa-solid fa-map-location-dot"></i> Quản lý Tỉnh/Thành phố</h1>
-        <div class="d-flex gap-2">
-            <a asp-action="Create" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> Tạo mới
-            </a>
-            <a asp-controller="MovieTheaters" asp-action="Create" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
-            </a>
-        </div>
-    </div>
-
-    @* Alert messages *@
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle"></i> @TempData["Message"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    @* Search box *@
-    <div class="card mb-4">
-        <div class="card-body">
-            <form asp-action="Index" method="get">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="input-group search-box">
-                            <input type="text" name="searchString"
-                                   value="@ViewData["CurrentFilter"]"
-                                   class="form-control"
-                                   placeholder="Tìm theo mã hoặc tên tỉnh/thành phố..." />
-                            <button type="submit" class="btn btn-outline-secondary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            @if (!string.IsNullOrEmpty(ViewData["CurrentFilter"]?.ToString()))
-                            {
-                                <a href="@Url.Action("Index")" class="btn btn-outline-danger">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                            }
-                        </div>
-                    </div>
+<div class="admin-shell">
+    <div class="admin-panel">
+        <div class="container-fluid mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0"><i class="fa-solid fa-map-location-dot"></i> Quản lý Tỉnh/Thành phố</h1>
+                <div class="d-flex gap-2">
+                    <a asp-action="Create" class="btn btn-primary btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                        <i class="fa-solid fa-plus me-1"></i> Tạo mới
+                    </a>
+                    <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </a>
                 </div>
-            </form>
-        </div>
-    </div>
+            </div>
 
-    @* Table list - sử dụng admin-table-wrap và admin-table *@
-    <div class="admin-table-wrap">
-        <table class="table admin-table align-middle">
-            <thead>
-                <tr>
-                    <th><i class="fa-solid fa-tag"></i>Mã</th>
-                    <th><i class="fa-solid fa-map-pin"></i>Tên Tỉnh/Thành phố</th>
-                    <th><i class="fa-solid fa-calendar"></i>Ngày tạo</th>
-                    <th><i class="fa-solid fa-calendar-check"></i>Cập nhật</th>
-                    <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var item in Model)
-                    {
+            @* Alert messages *@
+            @if (TempData["Message"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i> @TempData["Message"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @* Search box *@
+            <div class="admin-toolbar">
+                <form method="get"
+                      class="admin-search-shell d-flex gap-2 align-items-center"
+                      id="adminFilterForm"
+                      asp-action="Index">
+
+                    <div class="input-group admin-search-compact">
+                        <input type="text"
+                               name="searchString"
+                               class="form-control admin-search-input"
+                               placeholder="Tìm theo mã hoặc tên tỉnh/thành phố..."
+                               value="@ViewData["CurrentFilter"]" />
+                        <button class="admin-search-btn" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+            @* Table list - sử dụng admin-table-wrap và admin-table *@
+            <div class="admin-table-wrap">
+                <table class="table admin-table align-middle">
+                    <thead>
                         <tr>
-                            <td><strong>@item.ProvinceId</strong></td>
-                            <td>@item.Name</td>
-                            <td>@(item.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
-                            <td>@(item.UpdatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
-                            <td class="text-end">
-                                <a asp-action="Edit" asp-route-id="@item.ProvinceId"
-                                   class="admin-icon-btn" title="Sửa">
-                                    <i class="fa-solid fa-pen"></i>
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@item.ProvinceId" 
-                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </a>
-                            </td>
+                            <th><i class="fa-solid fa-tag"></i>Mã</th>
+                            <th><i class="fa-solid fa-map-pin"></i>Tên Tỉnh/Thành phố</th>
+                            <th><i class="fa-solid fa-calendar"></i>Ngày tạo</th>
+                            <th><i class="fa-solid fa-calendar-check"></i>Cập nhật</th>
+                            <th style="text-align:right;"><i class="fa-solid fa-ellipsis-vertical"></i>Hành động</th>
                         </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="5" class="text-center admin-text-muted py-4">
-                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                            <strong>Không tìm thấy dữ liệu</strong>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td><strong>@item.ProvinceId</strong></td>
+                                    <td>@item.Name</td>
+                                    <td>@(item.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                    <td>@(item.UpdatedAt?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                    <td class="text-end">
+                                        <a asp-action="Edit" asp-route-id="@item.ProvinceId"
+                                           class="admin-icon-btn" title="Sửa">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.ProvinceId" 
+                                           class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center admin-text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    <strong>Không tìm thấy dữ liệu</strong>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 

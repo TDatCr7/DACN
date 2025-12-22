@@ -1216,6 +1216,7 @@
         max-width: 60%;
     }
 }
+
 .payable-card--with-btn {
     display: flex;
     flex-direction: column;
@@ -1227,4 +1228,116 @@
     min-height: 56px;
     border-radius: 14px;
     margin-top: 0;
+}
+/* Fix: giới hạn kích thước poster và ngăn poster bị kéo giãn */
+.movie-info {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px 12px;
+    box-sizing: border-box;
+}
+
+.movie-poster {
+    flex: 0 0 96px; /* giữ poster cố định ~96px */
+    width: 96px;
+    height: 136px; /* chỉnh theo tỉ lệ poster của bạn */
+    overflow: hidden;
+    border-radius: 6px;
+}
+
+    .movie-poster img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* giữ tỉ lệ, không bị kéo giãn */
+        display: block;
+    }
+
+.movie-details {
+    flex: 1 1 auto; /* chiếm phần còn lại nhưng không ép poster */
+    min-width: 0; /* cho phép text wrap đúng trong flex child */
+}
+/* =========================
+   FLOATING TOTAL BAR
+   ========================= */
+.floating-total-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0b1220;
+    color: #e5e7eb;
+    padding: 12px 16px;
+    text-align: center;
+    font-weight: bold;
+    border-top: 1px solid #1f2a44;
+    display: none;
+    z-index: 1000;
+}
+/* ===== STICKY PRICE BAR ===== */
+
+.sticky-price-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
+    border-bottom: 1px solid rgba(148, 163, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    z-index: 998;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 1;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateY(0);
+}
+
+    .sticky-price-bar.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-100%);
+    }
+
+.sticky-price-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 16px;
+    color: #e5e7eb;
+    max-width: 100%;
+}
+
+.sticky-price-label {
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.sticky-price-amount {
+    font-weight: 900;
+    font-size: 20px;
+    color: #22c55e;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+    .sticky-price-bar {
+        height: 56px;
+        padding: 0 16px;
+    }
+
+    .sticky-price-content {
+        gap: 12px;
+        font-size: 14px;
+    }
+
+    .sticky-price-amount {
+        font-size: 18px;
+    }
 }

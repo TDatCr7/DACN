@@ -15,11 +15,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0"><i class="fa-solid fa-clapperboard"></i> Quản lý Suất chiếu</h1>
         <div class="d-flex gap-2">
-            <a asp-action="Create" class="btn btn-primary">
-                <i class="fas fa-plus-circle"></i> Tạo suất chiếu
+            <a asp-action="Create" class="btn btn-primary btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                <i class="fa-solid fa-plus me-1"></i> Tạo suất chiếu
             </a>
-            <a asp-controller="Admin" asp-action="Index" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Quay lại
+            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-light-rounded btn-sweep px-3" style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:700; white-space:nowrap;">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
             </a>
         </div>
     </div>
@@ -34,32 +34,24 @@
     }
 
     <!-- Ô tìm kiếm -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" asp-action="Index">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="input-group search-box">
-                            <input type="text"
-                                   id="searchInput"
-                                   name="searchTerm"
-                                   value="@Context.Request.Query["searchTerm"]"
-                                   class="form-control"
-                                   placeholder="Tìm theo tên phim hoặc phòng..." />
-                            <button type="submit" class="btn btn-outline-secondary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            @if (!string.IsNullOrEmpty(Context.Request.Query["searchTerm"]))
-                            {
-                                <a href="@Url.Action("Index")" class="btn btn-outline-danger">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
+    <div class="admin-toolbar">
+        <form method="get"
+              class="admin-search-shell d-flex gap-2 align-items-center"
+              id="adminFilterForm">
+
+            <div class="input-group admin-search-compact">
+                <input type="text"
+                       id="searchInput"
+                       name="searchTerm"
+                       value="@Context.Request.Query["searchTerm"]"
+                       class="form-control admin-search-input"
+                       placeholder="Tìm theo tên phim hoặc phòng..." />
+                <button class="admin-search-btn" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+        </form>
     </div>
 
     <!-- Nếu chưa có dữ liệu -->

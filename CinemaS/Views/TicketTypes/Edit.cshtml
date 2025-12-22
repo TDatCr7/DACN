@@ -1,176 +1,75 @@
-﻿@* Views/TicketTypes/Edit.cshtml *@
-@model CinemaS.Models.TicketTypes
+﻿@model CinemaS.Models.TicketTypes
 
 @{
     ViewData["Title"] = "Chỉnh sửa loại vé";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-    .page-tickettype-form {
-        padding: 34px 0 60px;
-    }
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-    .tickettype-form-card {
-        background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.3), transparent 55%), linear-gradient(145deg, #020617, #020617);
-        border: 1px solid rgba(148,163,255,.55);
-        border-radius: 24px;
-        padding: 20px 22px;
-        box-shadow: 0 22px 60px rgba(15,23,42,.95), 0 0 0 1px rgba(15,23,42,.85);
-        color: #e9ecf6;
-    }
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-ticket"></i>
+                    @ViewData["Title"]
+                </h1>
+            </div>
 
-    .tickettype-form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 14px;
-    }
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
 
-    .tickettype-form-title {
-        font-weight: 900;
-        font-size: 20px;
-        margin: 0;
-    }
+                <button type="submit"
+                        form="ticketTypeEditForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                </button>
+            </div>
+        </div>
 
-    .tickettype-form-sub {
-        font-size: 13px;
-        color: #9ca3af;
-    }
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
 
-    .field-label {
-        font-weight: 700;
-        font-size: 13px;
-        color: #c7d2fe;
-    }
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+            <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                Thông tin loại vé
+            </div>
 
-    .tickettype-input,
-    .form-control {
-        background: radial-gradient(circle at 0 0, rgba(15,23,42,.96), rgba(2,6,23,1));
-        border-radius: 14px;
-        border: 1px solid rgba(148,163,255,.35);
-        color: #e5e7f5;
-        font-size: 14px;
-    }
+            <form asp-action="Edit" method="post" id="ticketTypeEditForm" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="TicketTypeId" />
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
-        .tickettype-input::placeholder {
-            color: #6b7280;
-            font-size: 13px;
-        }
-
-        .tickettype-input:focus,
-        .form-control:focus {
-            background: radial-gradient(circle at 0 0, rgba(15,23,42,1), rgba(2,6,23,1));
-            color: #e5e7f5;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 1px rgba(59,92,204,.7), 0 0 0 6px rgba(37,99,235,.35);
-        }
-
-    .btn-primary {
-        background: linear-gradient(90deg,#3b5ccc,#7c3aed);
-        border: none;
-        font-weight: 800;
-        border-radius: 999px;
-        padding-inline: 22px;
-    }
-
-    .btn-outline-light {
-        border-radius: 999px;
-        padding-inline: 18px;
-        border-color: rgba(148,163,255,.75);
-        color: #e5e7ff;
-        background: rgba(15,23,42,.9);
-    }
-
-        .btn-outline-light:hover {
-            background: rgba(37,99,235,.9);
-            border-color: rgba(129,140,248,1);
-            color: #fff;
-        }
-</style>
-
-<div class="container page-tickettype-form">
-    <div class="row justify-content-center">
-        <div class="col-lg-5 col-md-7">
-            <div class="tickettype-form-card">
-                <div class="tickettype-form-header">
-                    <div>
-                        <h3 class="tickettype-form-title">
-                            <i class="fa-solid fa-pen-to-square me-2"></i>Chỉnh sửa loại vé
-                        </h3>
-                        <div class="tickettype-form-sub">
-                            Mã loại vé: <strong>@Model.TicketTypeId</strong>
-                        </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Mã loại vé</label>
+                        <input class="form-control" value="@Model.TicketTypeId" disabled />
                     </div>
-                    <!-- Quay lại TRANG TRƯỚC -->
-                    <button type="button" class="btn btn-outline-light btn-sm" onclick="history.back()">
-                        <i class="fa-solid fa-arrow-left-long me-1"></i> Quay lại trước
-                    </button>
-                </div>
-
-                @if (TempData["Error"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert">
-                        <i class="fas fa-triangle-exclamation"></i>
-                        <strong>Lỗi:</strong> @TempData["Error"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
-
-                <form asp-action="Edit" method="post" id="editForm" novalidate>
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
-                    <input type="hidden" asp-for="TicketTypeId" />
-
-                    <div class="mb-3">
-                        <label class="field-label">Mã loại vé</label>
-                        <input class="form-control tickettype-input" value="@Model.TicketTypeId" disabled />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="field-label">
-                            Tên loại vé <span class="text-danger">*</span>
-                        </label>
-                        <input asp-for="Name"
-                               class="form-control tickettype-input"
-                               placeholder="Ví dụ: Người lớn, Trẻ em, HSSV..." />
+                    <div class="col-md-8">
+                        <label asp-for="Name" class="form-label">Tên loại vé</label>
+                        <input asp-for="Name" class="form-control" />
                         <span asp-validation-for="Name" class="text-danger"></span>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="field-label">
-                            Mô tả
-                        </label>
-                        <textarea asp-for="Description"
-                                  class="form-control tickettype-input"
-                                  rows="3"
-                                  placeholder="Mô tả ngắn gọn điều kiện áp dụng (nếu có)..."></textarea>
-                        <span asp-validation-for="Description" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="field-label">
-                            Giá vé (VNĐ) <span class="text-danger">*</span>
-                        </label>
-                        <input asp-for="Price"
-                               type="number"
-                               min="0"
-                               class="form-control tickettype-input"
-                               placeholder="Ví dụ: 75000" />
+                    <div class="col-md-6">
+                        <label asp-for="Price" class="form-label">Giá vé (VNĐ)</label>
+                        <input asp-for="Price" type="number" min="0" class="form-control" />
                         <span asp-validation-for="Price" class="text-danger"></span>
                     </div>
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <!-- DƯỚI: về danh sách loại vé -->
-                        <a asp-action="Index" class="btn btn-outline-light">
-                            <i class="fa-solid fa-list-ul me-1"></i> Về danh sách
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fa-solid fa-save me-1"></i> Lưu thay đổi
-                        </button>
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label">Mô tả</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
+
     </div>
 </div>
 
@@ -179,7 +78,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('editForm');
+            const form = document.getElementById('ticketTypeEditForm');
             const nameInput = document.querySelector('input[name="Name"]');
             const priceInput = document.querySelector('input[name="Price"]');
 

@@ -19,6 +19,7 @@ using iText.IO.Image;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
 using iText.IO.Font.Constants;
+using iText.IO.Font;
 
 namespace CinemaS.Services
 {
@@ -48,6 +49,11 @@ namespace CinemaS.Services
         /// Generate PDF ticket with QR code
         /// </summary>
         Task<byte[]?> GenerateTicketPdfAsync(string invoiceId);
+
+        /// <summary>
+        /// Generate PDF ticket using provided QR image bytes
+        /// </summary>
+        Task<byte[]?> GenerateTicketPdfWithQrAsync(string invoiceId, byte[] qrImageBytes);
     }
 
     public class QrTicketService : IQrTicketService
@@ -277,10 +283,27 @@ namespace CinemaS.Services
             // Set page size
             pdf.SetDefaultPageSize(iText.Kernel.Geom.PageSize.A5);
 
+            // Load Vietnamese-compatible font
+            var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+            PdfFont font = null;
+            PdfFont boldFont = null;
+            
+            try
+            {
+                font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
+                boldFont = PdfFontFactory.CreateFont(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arialbd.ttf"), PdfEncodings.IDENTITY_H);
+            }
+            catch
+            {
+                // Fallback to Helvetica if Arial not found
+                font = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                boldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+            }
+
             // Title
-            var title = new Paragraph("VÉ XEM PHIM - GL CINEMA")
+            var title = new Paragraph("VÉ XEM PHIM - CINEMAS")
+                .SetFont(boldFont)
                 .SetFontSize(18)
-                .SetBold()
                 .SetTextAlignment(TextAlignment.CENTER)
                 .SetMarginBottom(20);
             document.Add(title);
@@ -295,20 +318,99 @@ namespace CinemaS.Services
             document.Add(new Paragraph().SetMarginBottom(15));
 
             // Movie info
-            document.Add(CreateInfoParagraph("PHIM:", validation.MovieTitle ?? "N/A"));
-            document.Add(CreateInfoParagraph("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A"));
-            document.Add(CreateInfoParagraph("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A"));
-            document.Add(CreateInfoParagraph("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A"));
-            document.Add(CreateInfoParagraph("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A"));
-            document.Add(CreateInfoParagraph("RẠP:", validation.TheaterName ?? "N/A"));
-            document.Add(CreateInfoParagraph("PHÒNG:", validation.RoomName ?? "N/A"));
-            document.Add(CreateInfoParagraph("KHÁCH HÀNG:", validation.CustomerName ?? "N/A"));
-            document.Add(CreateInfoParagraph("EMAIL:", validation.CustomerEmail ?? "N/A"));
-            document.Add(CreateInfoParagraph("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A"));
-            document.Add(CreateInfoParagraph("TỔNG TIỀN:", $"{(validation.TotalPrice ?? 0):N0} VNĐ"));
+            document.Add(CreateInfoParagraphWithFont("PHIM:", validation.MovieTitle ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("RẠP:", validation.TheaterName ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("PHÒNG:", validation.RoomName ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("KHÁCH HÀNG:", validation.CustomerName ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("EMAIL:", validation.CustomerEmail ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{(validation.TotalPrice ?? 0):N0} VNĐ", boldFont, font));
 
             // Footer note
             var footer = new Paragraph("Vui lòng mang theo vé điện tử này khi đến rạp. Xuất trình mã QR để được kiểm tra vé.")
+                .SetFont(font)
+                .SetFontSize(9)
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetMarginTop(20)
+                .SetFontColor(ColorConstants.GRAY);
+            document.Add(footer);
+
+            document.Close();
+            return ms.ToArray();
+        }
+
+        public async Task<byte[]?> GenerateTicketPdfWithQrAsync(string invoiceId, byte[] qrImageBytes)
+        {
+            var qrContent = await GenerateQrContentAsync(invoiceId);
+            if (qrContent == null)
+                return null;
+
+            var validation = await ValidateQrAsync(qrContent.ToQrString());
+            if (!validation.IsValid)
+                return null;
+
+            using var ms = new MemoryStream();
+            using var writer = new PdfWriter(ms);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf);
+
+            // Set page size
+            pdf.SetDefaultPageSize(iText.Kernel.Geom.PageSize.A5);
+
+            // Load Vietnamese-compatible font
+            var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
+            PdfFont font = null;
+            PdfFont boldFont = null;
+            
+            try
+            {
+                font = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
+                boldFont = PdfFontFactory.CreateFont(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arialbd.ttf"), PdfEncodings.IDENTITY_H);
+            }
+            catch
+            {
+                // Fallback to Helvetica if Arial not found
+                font = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                boldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+            }
+
+            // Title
+            var title = new Paragraph("VÉ XEM PHIM - CINEMAS")
+                .SetFont(boldFont)
+                .SetFontSize(18)
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetMarginBottom(20);
+            document.Add(title);
+
+            // QR Code (reuse provided bytes)
+            var qrImage = new Image(ImageDataFactory.Create(qrImageBytes))
+                .SetWidth(120)
+                .SetHeight(120)
+                .SetHorizontalAlignment(HorizontalAlignment.CENTER);
+            document.Add(qrImage);
+
+            document.Add(new Paragraph().SetMarginBottom(15));
+
+            // Movie info - use helper method with font
+            document.Add(CreateInfoParagraphWithFont("PHIM:", validation.MovieTitle ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("RẠP:", validation.TheaterName ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("PHÒNG:", validation.RoomName ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("KHÁCH HÀNG:", validation.CustomerName ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("EMAIL:", validation.CustomerEmail ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A", boldFont, font));
+            document.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{(validation.TotalPrice ?? 0):N0} VNĐ", boldFont, font));
+
+            // Footer note
+            var footer = new Paragraph("Vui lòng mang theo vé điện tử này khi đến rạp. Xuất trình mã QR để được kiểm tra vé.")
+                .SetFont(font)
                 .SetFontSize(9)
                 .SetTextAlignment(TextAlignment.CENTER)
                 .SetMarginTop(20)
@@ -325,8 +427,26 @@ namespace CinemaS.Services
                 .SetFontSize(11)
                 .SetMarginBottom(5);
 
-            p.Add(new Text(label + " ").SetBold());
+            var font = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+            var boldText = new Text(label + " ").SetFont(font);
+            
+            p.Add(boldText);
             p.Add(new Text(value));
+
+            return p;
+        }
+
+        private Paragraph CreateInfoParagraphWithFont(string label, string value, PdfFont boldFont, PdfFont regularFont)
+        {
+            var p = new Paragraph()
+                .SetFontSize(11)
+                .SetMarginBottom(5);
+
+            var boldText = new Text(label + " ").SetFont(boldFont);
+            var valueText = new Text(value).SetFont(regularFont);
+            
+            p.Add(boldText);
+            p.Add(valueText);
 
             return p;
         }

@@ -1,8 +1,8 @@
-﻿@model CinemaS.Models.SnackTypes
+@model CinemaS.Models.CinemaTypes
 
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Chi tiết loại đồ ăn";
+    ViewData["Title"] = "Chi tiết loại rạp";
 
     var nameText = string.IsNullOrWhiteSpace(Model.Name) ? "N/A" : Model.Name;
     var descriptionText = string.IsNullOrWhiteSpace(Model.Description) ? "N/A" : Model.Description;
@@ -21,7 +21,7 @@
         <div class="admin-toolbar" style="margin-bottom:10px;">
             <div style="display:flex;align-items:center;gap:10px;">
                 <h1 style="margin:0;font-weight:900;">
-                    <i class="fa-solid fa-cookie"></i>
+                    <i class="fa-solid fa-film"></i>
                     @ViewData["Title"]
                 </h1>
             </div>
@@ -33,18 +33,18 @@
                     <i class="fa-solid fa-arrow-left"></i> Quay lại
                 </a>
 
-                <a asp-action="Edit" asp-route-id="@Model.SnackTypeId"
+                <a asp-action="Edit" asp-route-id="@Model.CinemaTypeId"
                    class="btn btn-primary btn-sweep px-3"
                    style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
                     <i class="fa-solid fa-pen"></i> Sửa
                 </a>
 
-                <form asp-action="Delete" asp-route-id="@Model.SnackTypeId" method="post" class="m-0 d-inline">
+                <form asp-action="Delete" asp-route-id="@Model.CinemaTypeId" method="post" class="m-0 d-inline">
                     @Html.AntiForgeryToken()
                     <button type="submit"
                             class="btn btn-outline-light-rounded btn-sweep px-3"
                             style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap; border-color:rgba(248,113,113,.65)!important;"
-                            onclick="return confirm('Xoá loại đồ ăn này?');">
+                            onclick="return confirm('Xoá loại rạp này?');">
                         <i class="fa-solid fa-trash-can"></i> Xoá
                     </button>
                 </form>
@@ -56,17 +56,17 @@
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
             <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
-                Thông tin loại đồ ăn
+                Thông tin loại rạp
             </div>
 
             <div class="admin-user-detail-grid">
                 <div class="admin-user-detail-item">
-                    <div class="admin-user-detail-label"><i class="fa-solid fa-tag"></i> Mã loại đồ ăn</div>
-                    <div class="admin-user-detail-value">@Model.SnackTypeId</div>
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-tag"></i> Mã loại rạp</div>
+                    <div class="admin-user-detail-value">@Model.CinemaTypeId</div>
                 </div>
 
                 <div class="admin-user-detail-item">
-                    <div class="admin-user-detail-label"><i class="fa-solid fa-cookie"></i> Tên loại đồ ăn</div>
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-film"></i> Tên loại rạp</div>
                     <div class="admin-user-detail-value">@nameText</div>
                 </div>
 

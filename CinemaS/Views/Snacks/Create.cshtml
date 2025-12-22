@@ -1,116 +1,104 @@
 ﻿@model CinemaS.Models.Snacks
-
 @{
-    ViewData["Title"] = "Tạo Đồ Ăn";
+    ViewData["Title"] = "Thêm đồ ăn";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- FontAwesome + CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-<link rel="stylesheet" href="~/css/management.css" />
-<link rel="stylesheet" href="~/css/Create.css" />
+<div class="admin-shell admin-form-wrap">
+    <div class="admin-panel">
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow border-0">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="fa-solid fa-utensils"></i> Tạo Đồ Ăn
-                    </h4>
-                </div>
-                <div class="card-body p-4">
-
-                    <!-- Thông báo lỗi -->
-                    @if (TempData["Error"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="fa-solid fa-exclamation-circle"></i> @TempData["Error"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
-
-                    <form asp-action="Create" method="post" enctype="multipart/form-data" novalidate>
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-
-                        <!-- Loại đồ ăn -->
-                        <div class="mb-3">
-                            <label asp-for="SnackTypeId" class="form-label fw-semibold">
-                                <i class="fa-solid fa-layer-group"></i> Loại đồ ăn <span class="text-danger">*</span>
-                            </label>
-                            <select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId" required>
-                                <option value="">-- Chọn loại đồ ăn --</option>
-                            </select>
-                            <span asp-validation-for="SnackTypeId" class="text-danger"></span>
-                        </div>
-
-                        <!-- Tên đồ ăn -->
-                        <div class="mb-3">
-                            <label asp-for="Name" class="form-label fw-semibold">
-                                <i class="fa-solid fa-signature"></i> Tên đồ ăn <span class="text-danger">*</span>
-                            </label>
-                            <input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." required />
-                            <span asp-validation-for="Name" class="text-danger"></span>
-                        </div>
-
-                        <!-- Giá -->
-                        <div class="mb-3">
-                            <label asp-for="Price" class="form-label fw-semibold">
-                                <i class="fa-solid fa-money-bill-wave"></i> Giá (VNĐ) <span class="text-danger">*</span>
-                            </label>
-                            <input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="Nhập giá tiền" required />
-                            <span asp-validation-for="Price" class="text-danger"></span>
-                        </div>
-
-                        <!-- Ảnh -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="fa-solid fa-image"></i> Ảnh sản phẩm
-                            </label>
-                            <div>
-                                <label for="imageFile" class="btn btn-outline-primary">
-                                    <i class="fa-solid fa-upload"></i> Chọn ảnh
-                                </label>
-                                <input type="file" id="imageFile" name="imageFile" accept="image/*" class="d-none" onchange="previewImage(event)" />
-                                <img id="imagePreview" class="mt-3 rounded shadow-sm" style="max-width:200px; display:none;" />
-                                <small class="form-text text-white-50 d-block mt-2">Định dạng: JPG, PNG, GIF (tối đa 5MB)</small>
-                            </div>
-                        </div>
-
-                        <!-- Mô tả -->
-                        <div class="mb-3">
-                            <label asp-for="Description" class="form-label fw-semibold">
-                                <i class="fa-solid fa-file-lines"></i> Mô tả
-                            </label>
-                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
-                        </div>
-
-                        <!-- Trạng thái -->
-                        <div class="form-check mb-3">
-                            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
-                            <label asp-for="IsActive" class="form-check-label"> Đang bán
-                            </label>
-                        </div>
-
-                        <!-- Nút hành động -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" onclick="history.back()">
-                                <i class="fa-solid fa-arrow-left"></i> Quay lại
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa-solid fa-save"></i> Tạo mới
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        @* ONE PANEL: header + content inside, title left, remove subnote *@
+        <div class="admin-toolbar" style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <h1 style="margin:0;font-weight:900;">
+                    <i class="fa-solid fa-utensils"></i>
+                    @ViewData["Title"]
+                </h1>
             </div>
+
+            <div class="d-flex gap-2">
+                <a asp-action="Index"
+                   class="btn btn-outline-light-rounded btn-sweep px-3"
+                   style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:800; white-space:nowrap;">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </a>
+
+                <button type="submit"
+                        form="snackCreateForm"
+                        class="btn btn-primary btn-sweep px-3"
+                        style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
+                    <i class="fa-solid fa-circle-plus me-1"></i> Tạo
+                </button>
+            </div>
+        </div>
+
+        @* divider like "island" but not separated *@
+        <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
+
+        <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
+
+            <form asp-action="Create" method="post" enctype="multipart/form-data" id="snackCreateForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
+                    Thông tin đồ ăn
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="SnackTypeId" class="form-label">Loại đồ ăn</label>
+                        <select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId">
+                            <option value="">-- Chọn loại đồ ăn --</option>
+                        </select>
+                        <span asp-validation-for="SnackTypeId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label">Tên đồ ăn</label>
+                        <input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Price" class="form-label">Giá (VNĐ)</label>
+                        <input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="Nhập giá tiền" />
+                        <span asp-validation-for="Price" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Ảnh sản phẩm</label>
+                        <div>
+                            <label for="imageFile" class="btn btn-outline-primary">
+                                <i class="fa-solid fa-upload"></i> Chọn ảnh
+                            </label>
+                            <input type="file" id="imageFile" name="imageFile" accept="image/*" class="d-none" onchange="previewImage(event)" />
+                            <img id="imagePreview" class="mt-3 rounded shadow-sm" style="max-width:200px; display:none;" />
+                            <small class="form-text text-white-50 d-block mt-2">Định dạng: JPG, PNG, GIF (tối đa 5MB)</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Description" class="form-label">Mô tả</label>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsActive" class="form-check-label"> Đang bán</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
         </div>
     </div>
 </div>
 
 @section Scripts {
-    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <partial name="_ValidationScriptsPartial" />
     <script>
         // Hiển thị ảnh xem trước
         function previewImage(event) {
