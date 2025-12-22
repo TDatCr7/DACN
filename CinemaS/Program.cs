@@ -7,6 +7,7 @@ using CinemaS.VNPAY;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using CinemaS.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,7 @@ builder.Services
     .AddIdentity<AppUser, IdentityRole>(options =>
     {
         options.User.RequireUniqueEmail = true;
-        options.SignIn.RequireConfirmedAccount = true;
+        options.SignIn.RequireConfirmedAccount = false;
         options.Password.RequireDigit = false;
         options.Password.RequireUppercase = false;
         options.Password.RequireLowercase = false;
@@ -63,6 +64,13 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MobileCors", p =>
+        p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true));
+});
+
+builder.Services.AddSingleton<IRegisterOtpStore, RegisterOtpStore>();
 
 var app = builder.Build();
 
@@ -140,10 +148,15 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseSession();
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseCors("MobileCors");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -172,7 +185,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorPages();
-
+app.MapControllers();
 app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}")

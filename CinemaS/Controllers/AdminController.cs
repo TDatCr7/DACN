@@ -36,6 +36,7 @@ namespace CinemaS.Controllers
                 return RedirectToAction("Index", "Home");
 
             return View();
+
         }
         private async Task<string?> GetCurrentAdminStaffIdAsync()
         {
