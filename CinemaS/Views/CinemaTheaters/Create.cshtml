@@ -54,31 +54,41 @@
 
                     <div class="col-md-6">
                         <label asp-for="CinemaTypeId" class="form-label">Loại phòng</label>
-                        <select asp-for="CinemaTypeId" class="form-select" id="cinemaTypeSelect">
-                            <option value="">-- Chọn loại phòng --</option>
-                            @if (ViewBag.CinemaTypes != null)
-                            {
-                                @foreach (var item in ViewBag.CinemaTypes)
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <select asp-for="CinemaTypeId" class="form-select" id="cinemaTypeSelect">
+                                <option value="">-- Chọn loại phòng --</option>
+                                @if (ViewBag.CinemaTypes != null)
                                 {
-                                    <option value="@item.Value">@item.Text</option>
+                                    @foreach (var item in ViewBag.CinemaTypes)
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
                                 }
-                            }
-                        </select>
+                            </select>
+                            <a asp-controller="CinemaTypes" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Xem danh sách loại phòng">
+                                <i class="fa-solid fa-list"></i>
+                            </a>
+                        </div>
                         <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
                         <label asp-for="MovieTheaterId" class="form-label">Rạp chiếu</label>
-                        <select asp-for="MovieTheaterId" class="form-select" id="movieTheaterSelect">
-                            <option value="">-- Chọn rạp --</option>
-                            @if (ViewBag.MovieTheaters != null)
-                            {
-                                @foreach (var item in ViewBag.MovieTheaters)
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <select asp-for="MovieTheaterId" class="form-select" id="movieTheaterSelect">
+                                <option value="">-- Chọn rạp --</option>
+                                @if (ViewBag.MovieTheaters != null)
                                 {
-                                    <option value="@item.Value">@item.Text</option>
+                                    @foreach (var item in ViewBag.MovieTheaters)
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
                                 }
-                            }
-                        </select>
+                            </select>
+                            <a asp-controller="MovieTheaters" asp-action="Index" class="btn btn-outline-secondary btn-sm" title="Xem danh sách rạp chiếu">
+                                <i class="fa-solid fa-list"></i>
+                            </a>
+                        </div>
                         <span asp-validation-for="MovieTheaterId" class="text-danger"></span>
                     </div>
                 </div>

@@ -36,6 +36,9 @@ namespace CinemaS.Models.ViewModels
         public string MovieTitle { get; set; } = default!;
         public string? MoviePoster { get; set; }
         public string CinemaTheater { get; set; } = default!;
+        public string? CinemaTheaterAddress { get; set; }
+        public string? TheaterName { get; set; }
+        public string? TheaterAddress { get; set; }
         public DateTime? ShowDate { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
