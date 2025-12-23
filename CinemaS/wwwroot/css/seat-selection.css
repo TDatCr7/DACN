@@ -60,23 +60,23 @@
     text-align: left; /* force left alignment */
 }
 
-.movie-details h2 {
-    font-size: 20px; /* slightly smaller to reduce width */
-    color: #ffd700;
-    margin: 0 0 6px 0;
-    line-height: 1.15;
-}
+    .movie-details h2 {
+        font-size: 20px; /* slightly smaller to reduce width */
+        color: #ffd700;
+        margin: 0 0 6px 0;
+        line-height: 1.15;
+    }
 
-.movie-details p {
-    font-size: 14px; /* slightly smaller */
-    color: #e0e0e0;
-    margin: 4px 0;
-}
+    .movie-details p {
+        font-size: 14px; /* slightly smaller */
+        color: #e0e0e0;
+        margin: 4px 0;
+    }
 
-.movie-details i {
-    color: #ffd700;
-    margin-right: 8px;
-}
+    .movie-details i {
+        color: #ffd700;
+        margin-right: 8px;
+    }
 
 /* ==== Màn hình ==== */
 .screen-container {
@@ -106,7 +106,7 @@
     scrollbar-width: thin;
     box-sizing: border-box;
     display: flex;
-    justify-content: flex-start; /* changed: default to left-align to remove large centered gap */
+    justify-content: center; /* changed: default to left-align to remove large centered gap */
     margin: 0 auto;
 }
 
@@ -264,18 +264,18 @@
     opacity: 0.5 !important;
 }
 
-.aisle-seat-visual:hover {
-    transform: none !important;
-    box-shadow: none !important;
-}
+    .aisle-seat-visual:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
 
-.aisle-seat-visual .aisle-marker {
-    font-size: 18px;
-    color: rgba(156, 163, 175, 0.6);
-    font-weight: bold;
-    letter-spacing: 2px;
-    user-select: none;
-}
+    .aisle-seat-visual .aisle-marker {
+        font-size: 18px;
+        color: rgba(156, 163, 175, 0.6);
+        font-weight: bold;
+        letter-spacing: 2px;
+        user-select: none;
+    }
 
 /* Icon người */
 .user-icon-wrapper {
