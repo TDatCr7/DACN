@@ -49,7 +49,7 @@
                     <div class="col-md-6">
                         <label asp-for="Name" class="form-label">Tên phòng</label>
                         <input asp-for="Name" class="form-control" placeholder="VD: Phòng 1, Phòng VIP A..." />
-                        <span asp-validation-for="Name" class="text-danger"></span>
+                        <span asp-validation-for="Name" class="text-danger">Vui lòng điền đủ thông tin</span>
                     </div>
 
                     <div class="col-md-6">
@@ -69,7 +69,7 @@
                                 <i class="fa-solid fa-list"></i>
                             </a>
                         </div>
-                        <span asp-validation-for="CinemaTypeId" class="text-danger"></span>
+                        <span asp-validation-for="CinemaTypeId" class="text-danger">Vui lòng điền đủ thông tin</span>
                     </div>
 
                     <div class="col-md-6">
@@ -89,7 +89,7 @@
                                 <i class="fa-solid fa-list"></i>
                             </a>
                         </div>
-                        <span asp-validation-for="MovieTheaterId" class="text-danger"></span>
+                        <span asp-validation-for="MovieTheaterId" class="text-danger">Vui lòng điền đủ thông tin</span>
                     </div>
                 </div>
             </form>
@@ -134,6 +134,14 @@
                     alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.map(err => "• " + err).join("\n"));
                 }
             });
+
+            // Hide text-danger messages after 3 seconds
+            setTimeout(() => {
+                const errorMessages = document.querySelectorAll('.text-danger');
+                errorMessages.forEach(message => {
+                    message.style.display = 'none';
+                });
+            }, 3000);
         })();
     </script>
 }
