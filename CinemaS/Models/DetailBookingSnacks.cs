@@ -21,7 +21,6 @@ namespace CinemaS.Models
     public int? TotalSnack { get; set; }
     [Column("Total_Price", TypeName="money")]
     public decimal? TotalPrice { get; set; }
-    // Composite Key (Snack_ID, Invoice_ID, Detail_Booking_Snack_ID) will be configured in DbContext
-
+    
     }
 }
