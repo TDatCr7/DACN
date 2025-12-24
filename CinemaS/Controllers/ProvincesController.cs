@@ -97,7 +97,7 @@ namespace CinemaS.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "❌ Dữ liệu không hợp lệ!";
+                ViewBag.Error = "❌ Dữ liệu không hợp lệ! Vui lòng kiểm tra lại.";
                 return View(province);
             }
 
@@ -110,7 +110,7 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"❌ Lỗi khi tạo: {ex.Message}";
+                ViewBag.Error = $"❌ Lỗi khi tạo: {ex.Message}";
                 return View(province);
             }
         }
@@ -147,7 +147,7 @@ namespace CinemaS.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "❌ Dữ liệu không hợp lệ!";
+                ViewBag.Error = "❌ Dữ liệu không hợp lệ! Vui lòng kiểm tra lại.";
                 return View(province);
             }
 
@@ -165,7 +165,13 @@ namespace CinemaS.Controllers
                     TempData["Error"] = "❌ Không tìm thấy bản ghi!";
                     return RedirectToAction(nameof(Index));
                 }
-                throw;
+                ViewBag.Error = "❌ Lỗi đồng bộ dữ liệu! Vui lòng thử lại.";
+                return View(province);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = $"❌ Lỗi khi cập nhật: {ex.Message}";
+                return View(province);
             }
         }
 

@@ -103,8 +103,18 @@ namespace CinemaS.Controllers
         }
 
         // GET: Snacks/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            try
+            {
+                var nextId = await GenerateNewIdAsync();
+                ViewBag.NextSnackId = nextId;
+            }
+            catch
+            {
+                ViewBag.NextSnackId = null;
+            }
+
             LoadDropdowns();
             var model = new Snacks { IsActive = true };
             return View(model);
@@ -115,30 +125,17 @@ namespace CinemaS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("SnackTypeId,Name,Price,Description,IsActive")] Snacks snacks, IFormFile? imageFile)
         {
-            // Bỏ qua validate ID và Image vì tự sinh/upload
             ModelState.Remove(nameof(snacks.SnackId));
             ModelState.Remove(nameof(snacks.Image));
 
-            Console.WriteLine("=== CREATE SNACK ===");
-            Console.WriteLine($"Name: {snacks?.Name}");
-            Console.WriteLine($"SnackTypeId: {snacks?.SnackTypeId}");
-            Console.WriteLine($"Price: {snacks?.Price}");
-
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("❌ ModelState INVALID");
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    Console.WriteLine($"   - {error.ErrorMessage}");
-                }
                 LoadDropdowns();
-                TempData["Error"] = "❌ Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(snacks);
             }
 
             try
             {
-                // Kiểm tra loại đồ ăn có tồn tại
                 var snackTypeExists = await _context.SnackTypes.AnyAsync(st => st.SnackTypeId == snacks.SnackTypeId);
                 if (!snackTypeExists)
                 {
@@ -147,14 +144,10 @@ namespace CinemaS.Controllers
                     return View(snacks);
                 }
 
-                // Auto-generate ID: SNK001, SNK002, SNK003...
                 snacks.SnackId = await GenerateNewIdAsync();
-                Console.WriteLine($"✅ Generated ID: {snacks.SnackId}");
 
-                // Xử lý upload ảnh
                 if (imageFile != null && imageFile.Length > 0)
                 {
-                    // Kiểm tra kích thước file (max 5MB)
                     if (imageFile.Length > 5 * 1024 * 1024)
                     {
                         TempData["Error"] = "❌ Kích thước ảnh không được vượt quá 5MB!";
@@ -162,7 +155,6 @@ namespace CinemaS.Controllers
                         return View(snacks);
                     }
 
-                    // Kiểm tra định dạng file
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
                     var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
                     if (!allowedExtensions.Contains(fileExtension))
@@ -173,11 +165,10 @@ namespace CinemaS.Controllers
                     }
 
                     snacks.Image = await SaveImageAsync(imageFile);
-                    Console.WriteLine($"✅ Image saved: {snacks.Image}");
                 }
                 else
                 {
-                    snacks.Image = "/images/snacks/default-snack.png"; // Ảnh mặc định
+                    snacks.Image = "/images/snacks/default-snack.png";
                 }
 
                 _context.Add(snacks);
@@ -188,12 +179,6 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ EXCEPTION: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"❌ INNER: {ex.InnerException.Message}");
-                }
-
                 LoadDropdowns();
                 TempData["Error"] = ex.InnerException == null
              ? $"❌ Lỗi: {ex.Message}"
@@ -235,19 +220,12 @@ namespace CinemaS.Controllers
 
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("❌ ModelState INVALID");
-                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    Console.WriteLine($"   - {error.ErrorMessage}");
-                }
                 LoadDropdowns();
-                TempData["Error"] = "❌ Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(snacks);
             }
 
             try
             {
-                // Lấy thông tin đồ ăn hiện tại
                 var existingSnack = await _context.Snacks
                     .AsNoTracking()
                  .FirstOrDefaultAsync(s => s.SnackId == id);
@@ -258,10 +236,8 @@ namespace CinemaS.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Xử lý upload ảnh mới
                 if (imageFile != null && imageFile.Length > 0)
                 {
-                    // Kiểm tra kích thước file (max 5MB)
                     if (imageFile.Length > 5 * 1024 * 1024)
                     {
                         TempData["Error"] = "❌ Kích thước ảnh không được vượt quá 5MB!";
@@ -269,7 +245,6 @@ namespace CinemaS.Controllers
                         return View(snacks);
                     }
 
-                    // Kiểm tra định dạng file
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
                     var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
                     if (!allowedExtensions.Contains(fileExtension))
@@ -279,23 +254,19 @@ namespace CinemaS.Controllers
                         return View(snacks);
                     }
 
-                    // Xóa ảnh cũ (nếu không phải ảnh mặc định)
                     if (!string.IsNullOrEmpty(existingSnack.Image) &&
                         !existingSnack.Image.Contains("default-snack.png"))
                     {
                         TryDeletePhysicalFile(existingSnack.Image);
                     }
 
-                    // Lưu ảnh mới
                     snacks.Image = await SaveImageAsync(imageFile);
                 }
                 else
                 {
-                    // Giữ nguyên ảnh cũ
                     snacks.Image = existingSnack.Image;
                 }
 
-                // Kiểm tra xem có đang được sử dụng trong đơn hàng không
                 var inUse = await _context.DetailBookingSnacks
            .AnyAsync(dbs => dbs.SnackId == id);
 
@@ -324,7 +295,6 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ EXCEPTION: {ex.Message}");
                 LoadDropdowns();
                 TempData["Error"] = $"❌ Lỗi: {ex.Message}";
                 return View(snacks);
@@ -368,7 +338,6 @@ namespace CinemaS.Controllers
         {
             try
             {
-                // Kiểm tra xem có đang được sử dụng không
                 var inUse = await _context.DetailBookingSnacks
                 .AnyAsync(dbs => dbs.SnackId == id);
 
@@ -381,7 +350,6 @@ namespace CinemaS.Controllers
                 var snacks = await _context.Snacks.FindAsync(id);
                 if (snacks != null)
                 {
-                    // Xóa file ảnh (nếu không phải ảnh mặc định)
                     if (!string.IsNullOrEmpty(snacks.Image) &&
                           !snacks.Image.Contains("default-snack.png"))
                     {
@@ -401,7 +369,6 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ DELETE ERROR: {ex.Message}");
                 TempData["Error"] = $"❌ Lỗi khi xóa: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
@@ -467,12 +434,11 @@ namespace CinemaS.Controllers
                 if (System.IO.File.Exists(fullPath))
                 {
                     System.IO.File.Delete(fullPath);
-                    Console.WriteLine($"🗑️ Deleted image: {fullPath}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"⚠️ Could not delete image: {ex.Message}");
+                // Silently fail
             }
         }
     }

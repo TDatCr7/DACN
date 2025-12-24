@@ -37,17 +37,24 @@
 
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
-            <form asp-action="Create" method="post" enctype="multipart/form-data" id="snackCreateForm">
+            <form asp-action="Create" method="post" enctype="multipart/form-data" id="snackCreateForm" novalidate>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <div id="validationMessage" class="text-danger mb-3" style="display:none;"></div>
 
                 <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                     Thông tin đồ ăn
                 </div>
 
+                @if (ViewBag.NextSnackId != null)
+                {
+                    <div class="alert alert-info mb-3" style="border-radius:10px; color:#000;">
+                        <i class="fa-solid fa-info-circle"></i> Mã đồ ăn tự động: <strong>@ViewBag.NextSnackId</strong>
+                    </div>
+                }
+
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="SnackTypeId" class="form-label">Loại đồ ăn</label>
+                        <label asp-for="SnackTypeId" class="form-label">Loại đồ ăn <span class="text-danger">*</span></label>
                         <select asp-for="SnackTypeId" class="form-select" asp-items="ViewBag.SnackTypeId">
                             <option value="">-- Chọn loại đồ ăn --</option>
                         </select>
@@ -55,13 +62,13 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label asp-for="Name" class="form-label">Tên đồ ăn</label>
+                        <label asp-for="Name" class="form-label">Tên đồ ăn <span class="text-danger">*</span></label>
                         <input asp-for="Name" class="form-control" placeholder="VD: Bắp rang bơ, Coca Cola..." />
                         <span asp-validation-for="Name" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
-                        <label asp-for="Price" class="form-label">Giá (VNĐ)</label>
+                        <label asp-for="Price" class="form-label">Giá (VNĐ) <span class="text-danger">*</span></label>
                         <input asp-for="Price" class="form-control" type="number" min="0" step="1000" placeholder="Nhập giá tiền" />
                         <span asp-validation-for="Price" class="text-danger"></span>
                     </div>
@@ -78,7 +85,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <label asp-for="Description" class="form-label">Mô tả</label>
                         <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
@@ -113,6 +120,47 @@
                 reader.readAsDataURL(file);
             }
         }
+
+        // Validation trước khi submit
+        (function () {
+            const form = document.getElementById('snackCreateForm');
+            const typeInput = document.querySelector('select[name="SnackTypeId"]');
+            const nameInput = document.querySelector('input[name="Name"]');
+            const priceInput = document.querySelector('input[name="Price"]');
+            const validationMsg = document.getElementById('validationMessage');
+            let hideTimeout = null;
+
+            function showValidationMessage(message) {
+                validationMsg.textContent = message;
+                validationMsg.style.display = 'block';
+                
+                if (hideTimeout) clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    validationMsg.style.display = 'none';
+                }, 3000);
+            }
+
+            form.addEventListener('submit', e => {
+                let hasEmpty = false;
+                let hasInvalid = false;
+
+                if (!typeInput.value) hasEmpty = true;
+                if (!nameInput.value.trim()) hasEmpty = true;
+                if (!priceInput.value || Number(priceInput.value) <= 0) {
+                    if (!priceInput.value) hasEmpty = true;
+                    else hasInvalid = true;
+                }
+
+                if (hasEmpty || hasInvalid) {
+                    e.preventDefault();
+                    if (hasEmpty) {
+                        showValidationMessage('Vui lòng điền đủ thông tin');
+                    } else {
+                        showValidationMessage('Thông tin không hợp lệ');
+                    }
+                }
+            });
+        })();
 
         // Ẩn alert sau 5s
         setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);

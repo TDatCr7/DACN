@@ -9,6 +9,49 @@
 <link rel="stylesheet" href="~/css/management.css" />
 <link rel="stylesheet" href="~/css/table.css" />
 
+<style>
+    /* Modal xác nhận xóa */
+    #deleteModal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        z-index: 1051;
+        min-width: 400px;
+    }
+    #deleteModal .modal-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: black;
+    }
+    #deleteModal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    #deleteModal .modal-body {
+        margin-bottom: 15px;
+        color: black;
+    }
+    .modal-backdrop-custom {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+    }
+</style>
+
 <div class="container-fluid mt-4">
 
     <!-- Header -->
@@ -101,10 +144,12 @@
                                    class="admin-icon-btn" title="Chỉnh sửa">
                                     <i class="fas fa-pen"></i>
                                 </a>
-                                <a asp-action="Delete" asp-route-id="@item.ShowTimeId" 
-                                   class="admin-icon-btn admin-icon-btn-danger" title="Xóa">
+                                <button type="button"
+                                        class="admin-icon-btn admin-icon-btn-danger" 
+                                        title="Xóa"
+                                        onclick="showDeletePopup('@item.ShowTimeId', '@item.MovieTitle')">
                                     <i class="fas fa-trash-can"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                     }
@@ -113,6 +158,20 @@
         </div>
     }
 
+</div>
+
+<!-- Modal Xác nhận xóa -->
+<div class="modal-backdrop-custom" id="modalBackdrop"></div>
+<div id="deleteModal">
+    <div class="modal-header">Xác nhận xóa</div>
+    <div class="modal-body" id="deleteMessage">Bạn có chắc chắn muốn xóa suất chiếu này không?</div>
+    <div class="modal-footer" id="deleteButtons">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+        <form id="deleteForm" method="post" style="display:inline;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger">Xóa</button>
+        </form>
+    </div>
 </div>
 
 @section Scripts {
@@ -125,5 +184,30 @@
                 setTimeout(() => alert.remove(), 500);
             });
         }, 5000);
+
+        let deleteId = null;
+
+        function showDeletePopup(id, movieTitle) {
+            deleteId = id;
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            const deleteForm = document.getElementById("deleteForm");
+
+            deleteForm.action = `/ShowTimes/Delete/${id}`;
+            document.getElementById("deleteMessage").innerText = `Bạn có chắc chắn muốn xóa suất chiếu phim "${movieTitle}" không?`;
+
+            modal.style.display = "block";
+            backdrop.style.display = "block";
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            modal.style.display = "none";
+            backdrop.style.display = "none";
+        }
+
+        // Đóng modal khi click vào backdrop
+        document.getElementById("modalBackdrop").addEventListener("click", closeModal);
     </script>
 }

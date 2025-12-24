@@ -37,9 +37,9 @@
 
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
-            <form asp-action="Create" method="post" id="movieTheaterCreateForm">
+            <form asp-action="Create" method="post" id="movieTheaterCreateForm" novalidate>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3" id="movieTheaterCreateFormSummary"></div>
 
                 <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                     Thông tin rạp chiếu
@@ -91,7 +91,7 @@
                         <label asp-for="IFrameCode" class="form-label">IFrame Code (Google Maps)</label>
                         <textarea asp-for="IFrameCode" class="form-control" rows="2" placeholder="Copy iframe từ Google Maps..."></textarea>
                         <span asp-validation-for="IFrameCode" class="text-danger"></span>
-                        <small class="form-text text-muted">
+                        <small>
                             <em>Dùng để hiển thị bản đồ vị trí rạp</em>
                         </small>
                     </div>
@@ -104,4 +104,80 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            var formId = '#movieTheaterCreateForm';
+            var summaryId = '#movieTheaterCreateFormSummary';
+            var $form = $(formId);
+            if ($form.length === 0) return;
+
+            // prevent native browser validation UI
+            $form.attr('novalidate', 'novalidate');
+
+            function clearFieldMessages() {
+                $form.find('span[data-valmsg-for], .field-validation-error, .field-validation-valid, label.error').text('');
+            }
+
+            function anyRequiredEmpty() {
+                var empty = false;
+                $form.find('input,select,textarea').each(function () {
+                    var $el = $(this);
+                    var hasRequiredAttr = typeof $el.attr('required') !== 'undefined';
+                    var dataReq = $el.data('val-required');
+                    if ((hasRequiredAttr || typeof dataReq !== 'undefined')) {
+                        var val = ($el.val() || '').toString().trim();
+                        var type = ($el.attr('type') || '').toLowerCase();
+                        if ((type === 'checkbox' || type === 'radio')) {
+                            if (!$form.find('[name="' + $el.attr('name') + '"]:checked').length) {
+                                empty = true;
+                                return false;
+                            }
+                        } else {
+                            if (val === '') {
+                                empty = true;
+                                return false;
+                            }
+                        }
+                    }
+                });
+                return empty;
+            }
+
+            function showSummaryMessage(message) {
+                var $summary = $form.find(summaryId);
+                if ($summary.length === 0) return;
+                $summary.text(message).addClass('text-danger');
+                setTimeout(function () {
+                    $summary.fadeOut('fast', function () { $(this).text('').show(); });
+                }, 3000);
+            }
+
+            $form.on('submit.customValidation', function (e) {
+                e.preventDefault();
+                clearFieldMessages();
+
+                var valid = true;
+                if (typeof $form.valid === 'function') {
+                    valid = $form.valid();
+                    clearFieldMessages();
+                } else {
+                    if (anyRequiredEmpty()) valid = false;
+                }
+
+                if (!valid) {
+                    if (anyRequiredEmpty()) {
+                        showSummaryMessage('Vui lòng điền đủ thông tin');
+                    } else {
+                        showSummaryMessage('Thông tin không hợp lệ');
+                    }
+                    return false;
+                }
+
+                // allow submit
+                $form.off('submit.customValidation');
+                $form[0].submit();
+            });
+        })();
+    </script>
 }

@@ -38,7 +38,7 @@
 				<i class="fas fa-arrow-left"></i> Quay lại
 			</button>
 
-			<form asp-action="Delete" method="post" style="display: inline;" onsubmit="return confirmDelete();">
+			<form asp-action="Delete" method="post" style="display: inline;">
 				<input type="hidden" asp-for="SnackTypeId" />
 				<button type="submit" class="btn btn-danger">
 					<i class="fas fa-trash"></i> Xóa
@@ -47,11 +47,3 @@
 		</div>
 	</div>
 </div>
-
-@section Scripts {
-	<script>
-		function confirmDelete() {
-			return confirm('Bạn có CHẮC CHẮN muốn xóa loại đồ ăn này không?');
-		}
-	</script>
-}

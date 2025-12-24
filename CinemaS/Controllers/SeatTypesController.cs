@@ -149,7 +149,6 @@ namespace CinemaS.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "❌ Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(seatTypes);
             }
 

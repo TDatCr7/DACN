@@ -37,7 +37,7 @@
 
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
-            <form asp-action="Create" method="post" id="cinemaTheaterCreateForm">
+            <form asp-action="Create" method="post" id="cinemaTheaterCreateForm" novalidate>
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -103,45 +103,77 @@
     <script>
         (function () {
             const form = document.getElementById('cinemaTheaterCreateForm');
-            const nameInput = document.getElementById('Name');
-            const cinemaTypeSelect = document.getElementById('cinemaTypeSelect');
-            const movieTheaterSelect = document.getElementById('movieTheaterSelect');
+            if (!form) return;
+
+            // Ensure native browser validation UI does not appear for this form
+            form.setAttribute('novalidate', 'novalidate');
+
+            // Helper to get field and its validation span inside this form only
+            const getField = (name) => form.querySelector('[name="' + name + '"]');
+            const getErrorSpan = (name) => form.querySelector('span[data-valmsg-for="' + name + '"]');
+
+            const nameInput = getField('Name');
+            const cinemaTypeSelect = getField('CinemaTypeId');
+            const movieTheaterSelect = getField('MovieTheaterId');
+
+            // Hide all validation messages inside this form
+            const hideMessages = () => {
+                const messages = form.querySelectorAll('.text-danger');
+                messages.forEach(m => { m.style.display = 'none'; });
+            };
+
+            // Initially hide validation spans
+            hideMessages();
+
+            let hideTimeout = null;
 
             form.addEventListener('submit', function (e) {
+                // Only validate this form submission
                 let isValid = true;
-                let errors = [];
 
-                if (!nameInput.value.trim()) {
+                // Clear previous messages
+                const nameSpan = getErrorSpan('Name');
+                const typeSpan = getErrorSpan('CinemaTypeId');
+                const theaterSpan = getErrorSpan('MovieTheaterId');
+
+                if (nameSpan) { nameSpan.style.display = 'none'; }
+                if (typeSpan) { typeSpan.style.display = 'none'; }
+                if (theaterSpan) { theaterSpan.style.display = 'none'; }
+
+                // Validate Name
+                if (!nameInput || !nameInput.value || !nameInput.value.trim()) {
                     isValid = false;
-                    errors.push('Tên phòng không được để trống');
+                    if (nameSpan) { nameSpan.textContent = 'Vui lòng điền đủ thông tin'; nameSpan.style.display = 'block'; }
                 } else if (nameInput.value.trim().length < 3) {
                     isValid = false;
-                    errors.push('Tên phòng phải có ít nhất 3 ký tự');
+                    if (nameSpan) { nameSpan.textContent = 'Thông tin không hợp lệ'; nameSpan.style.display = 'block'; }
                 }
 
-                if (!cinemaTypeSelect.value) {
+                // Validate CinemaTypeId
+                if (!cinemaTypeSelect || !cinemaTypeSelect.value) {
                     isValid = false;
-                    errors.push('Vui lòng chọn loại phòng');
+                    if (typeSpan) { typeSpan.textContent = 'Vui lòng điền đủ thông tin'; typeSpan.style.display = 'block'; }
                 }
 
-                if (!movieTheaterSelect.value) {
+                // Validate MovieTheaterId
+                if (!movieTheaterSelect || !movieTheaterSelect.value) {
                     isValid = false;
-                    errors.push('Vui lòng chọn rạp chiếu');
+                    if (theaterSpan) { theaterSpan.textContent = 'Vui lòng điền đủ thông tin'; theaterSpan.style.display = 'block'; }
                 }
 
                 if (!isValid) {
                     e.preventDefault();
-                    alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.map(err => "• " + err).join("\n"));
-                }
-            });
+                    e.stopImmediatePropagation();
 
-            // Hide text-danger messages after 3 seconds
-            setTimeout(() => {
-                const errorMessages = document.querySelectorAll('.text-danger');
-                errorMessages.forEach(message => {
-                    message.style.display = 'none';
-                });
-            }, 3000);
+                    // Clear any existing hide timeout and set a new one to hide messages after 3 seconds
+                    if (hideTimeout) clearTimeout(hideTimeout);
+                    hideTimeout = setTimeout(() => {
+                        hideMessages();
+                    }, 3000);
+                }
+
+                // If valid, allow natural submit flow (no change to existing server flow)
+            });
         })();
     </script>
 }

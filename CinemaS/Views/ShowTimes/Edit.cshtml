@@ -8,6 +8,14 @@
     var seatTypes = ViewBag.SeatTypes as IEnumerable<SeatTypes>;
 }
 
+<style>
+    /* Hide default validation messages and server-side validation */
+    [asp-validation-for],
+    [asp-validation-summary] {
+        display: none !important;
+    }
+</style>
+
 <div class="admin-shell admin-form-wrap">
     <div class="admin-panel">
 
@@ -29,6 +37,7 @@
                 <button type="submit"
                         form="showTimeEditForm"
                         class="btn btn-primary btn-sweep px-3"
+                        id="saveBtn"
                         style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
                     <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
                 </button>
@@ -42,47 +51,47 @@
                 Thông tin suất chiếu
             </div>
 
+            <!-- Custom validation message container -->
+            <div id="customValidationMessage" class="alert alert-danger" style="display:none; margin-bottom:16px;">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="validationMessageText"></span>
+            </div>
+
             <form asp-action="Edit" method="post" id="showTimeEditForm" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="ShowTimeId" />
                 <input type="hidden" asp-for="TotalCinema" />
                 <input type="hidden" asp-for="CreatedAt" />
                 <input type="hidden" asp-for="UpdatedAt" />
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label asp-for="MoviesId" class="form-label">Phim</label>
-                        <select asp-for="MoviesId" class="form-select" asp-items="@ViewBag.Movies">
+                        <select asp-for="MoviesId" class="form-select" asp-items="@ViewBag.Movies" id="movieSelect">
                             <option value="">-- Chọn phim --</option>
                         </select>
-                        <span asp-validation-for="MoviesId" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
                         <label asp-for="CinemaTheaterId" class="form-label">Phòng chiếu</label>
-                        <select asp-for="CinemaTheaterId" class="form-select" asp-items="@ViewBag.CinemaTheaters">
+                        <select asp-for="CinemaTheaterId" class="form-select" asp-items="@ViewBag.CinemaTheaters" id="cinemaSelect">
                             <option value="">-- Chọn phòng chiếu --</option>
                         </select>
-                        <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-4">
                         <label asp-for="ShowDate" class="form-label">Ngày chiếu</label>
-                        <input asp-for="ShowDate" type="date" class="form-control" value="@Model.ShowDate?.ToString("yyyy-MM-dd")" />
-                        <span asp-validation-for="ShowDate" class="text-danger"></span>
+                        <input asp-for="ShowDate" type="date" class="form-control" id="showDate" value="@Model.ShowDate?.ToString("yyyy-MM-dd")" />
                     </div>
 
                     <div class="col-md-4">
                         <label asp-for="StartTime" class="form-label">Giờ bắt đầu</label>
-                        <input asp-for="StartTime" type="time" class="form-control" value="@Model.StartTime?.ToString("HH:mm")" />
-                        <span asp-validation-for="StartTime" class="text-danger"></span>
+                        <input asp-for="StartTime" type="time" class="form-control" id="startTime" value="@Model.StartTime?.ToString("HH:mm")" />
                     </div>
 
                     <div class="col-md-4">
                         <label asp-for="EndTime" class="form-label">Giờ kết thúc</label>
-                        <input asp-for="EndTime" type="time" class="form-control" value="@Model.EndTime?.ToString("HH:mm")" />
-                        <span asp-validation-for="EndTime" class="text-danger"></span>
+                        <input asp-for="EndTime" type="time" class="form-control" id="endTime" value="@Model.EndTime?.ToString("HH:mm")" />
                     </div>
 
                     <div class="col-md-6">
@@ -100,7 +109,6 @@
                             VD: 10 = tăng 10% ; -20 = giảm 20%
                         </small>
                         <small class="text-danger" id="priceAdjustmentError" style="display:none;"></small>
-                        <span asp-validation-for="PriceAdjustmentPercent" class="text-danger"></span>
                     </div>
                 </div>
 
@@ -167,14 +175,19 @@
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
     <script>
-        // Tự ẩn thông báo sau 5s
-        setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
-        
-        // Price adjustment input validation and display
+        const form = document.getElementById('showTimeEditForm');
+        const saveBtn = document.getElementById('saveBtn');
+        const movieSelect = document.getElementById('movieSelect');
+        const cinemaSelect = document.getElementById('cinemaSelect');
+        const showDate = document.getElementById('showDate');
+        const startTime = document.getElementById('startTime');
+        const endTime = document.getElementById('endTime');
         const priceAdjustmentInput = document.getElementById('priceAdjustmentPercent');
         const priceAdjustmentError = document.getElementById('priceAdjustmentError');
         const seatPriceElements = document.querySelectorAll('.seat-base-price');
+        let validationTimeoutId = null;
 
+        // Price adjustment input validation and display
         // Restrict input to only -, +, and numbers (0-9)
         priceAdjustmentInput.addEventListener('input', function(e) {
             let value = this.value;
@@ -226,7 +239,8 @@
                 return true;
             }
         }
-                function stripFractional(value) {
+
+        function stripFractional(value) {
             if (!value) return '';
             // Allow + or - at start
             const match = value.match(/^([+-]?)(\d+)/);
@@ -240,6 +254,7 @@
                 updateAdjustedPrices();
             }
         });
+
         // Update adjusted prices for all seat types
         function updateAdjustedPrices() {
             let percent = parseFloat(priceAdjustmentInput.value) || 0;
@@ -266,13 +281,73 @@
         
         // Initialize adjusted prices on page load
         updateAdjustedPrices();
-    </script>
-    <script>
+
+        // Form validation on submit
+        function validateFormOnSubmit() {
+            const movieId = movieSelect.value;
+            const cinemaId = cinemaSelect.value;
+            const date = showDate.value;
+            const start = startTime.value;
+            const end = endTime.value;
+
+            let errors = [];
+
+            if (!movieId) {
+                errors.push('Vui lòng chọn phim');
+            }
+            if (!cinemaId) {
+                errors.push('Vui lòng chọn phòng chiếu');
+            }
+            if (!date) {
+                errors.push('Vui lòng chọn ngày chiếu');
+            }
+            if (!start) {
+                errors.push('Vui lòng chọn giờ bắt đầu');
+            }
+            if (!end) {
+                errors.push('Vui lòng chọn giờ kết thúc');
+            }
+
+            if (errors.length > 0) {
+                showValidationMessage(errors.join(' | '));
+                return false;
+            }
+
+            return true;
+        }
+
+        function showValidationMessage(message) {
+            const messageDiv = document.getElementById('customValidationMessage');
+            const messageText = document.getElementById('validationMessageText');
+            
+            messageText.textContent = message;
+            messageDiv.style.display = 'block';
+
+            // Clear previous timeout if exists
+            if (validationTimeoutId) {
+                clearTimeout(validationTimeoutId);
+            }
+
+            // Hide message after 3 seconds
+            validationTimeoutId = setTimeout(() => {
+                messageDiv.style.display = 'none';
+                validationTimeoutId = null;
+            }, 3000);
+        }
+
+        // Handle form submit
+        form.addEventListener('submit', (e) => {
+            if (!validateFormOnSubmit()) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Cinema theater select change - fetch total seats
         document.addEventListener('DOMContentLoaded', function () {
-            const cinemaTheaterSelect = document.querySelector('[asp-for="CinemaTheaterId"]');
             const totalCinemaInput = document.querySelector('[asp-for="TotalCinema"]');
 
-            cinemaTheaterSelect.addEventListener('change', async function () {
+            cinemaSelect.addEventListener('change', async function () {
                 const selectedTheaterId = this.value;
                 if (!selectedTheaterId) {
                     totalCinemaInput.value = '';

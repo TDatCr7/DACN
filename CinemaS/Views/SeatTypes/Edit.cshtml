@@ -38,10 +38,10 @@
                 Thông tin loại ghế
             </div>
 
-            <form asp-action="Edit" method="post" id="seatTypeEditForm">
+            <form asp-action="Edit" method="post" id="seatTypeEditForm" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="SeatTypeId" />
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                <div id="validationMessage" class="text-danger mb-2" style="display:none;"></div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -69,21 +69,40 @@
         // Tự động ẩn thông báo sau 5 giây
         setTimeout(() => document.querySelectorAll('.alert').forEach(a => a.style.display = 'none'), 5000);
 
-        // Kiểm tra form trước khi gửi
         document.addEventListener('DOMContentLoaded', () => {
-            const form = document.querySelector('form');
+            const form = document.getElementById('seatTypeEditForm');
             const name = document.getElementById('Name');
             const price = document.getElementById('Price');
+            const validationMsg = document.getElementById('validationMessage');
+            let hideTimeout = null;
+
+            function showValidationMessage(message) {
+                validationMsg.textContent = message;
+                validationMsg.style.display = 'block';
+                
+                if (hideTimeout) clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    validationMsg.style.display = 'none';
+                }, 3000);
+            }
 
             form.addEventListener('submit', e => {
-                let errors = [];
+                let hasEmpty = false;
+                let hasInvalid = false;
 
-                if (!name.value.trim()) errors.push("• Tên loại ghế không được để trống");
-                if (!price.value || price.value <= 0) errors.push("• Giá vé phải lớn hơn 0");
+                if (!name.value.trim()) hasEmpty = true;
+                if (!price.value || price.value <= 0) {
+                    if (!price.value) hasEmpty = true;
+                    else hasInvalid = true;
+                }
 
-                if (errors.length > 0) {
+                if (hasEmpty || hasInvalid) {
                     e.preventDefault();
-                    alert("⚠️ Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
+                    if (hasEmpty) {
+                        showValidationMessage('Vui lòng điền đủ thông tin');
+                    } else {
+                        showValidationMessage('Thông tin không hợp lệ');
+                    }
                 }
             });
         });

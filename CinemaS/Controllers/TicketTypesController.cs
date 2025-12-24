@@ -35,6 +35,7 @@ namespace CinemaS.Controllers
                 );
             }
 
+            ticketTypes = ticketTypes.OrderBy(t => t.TicketTypeId);
             return View(await ticketTypes.ToListAsync());
         }
 
@@ -57,8 +58,18 @@ namespace CinemaS.Controllers
         }
 
         // GET: TicketTypes/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            try
+            {
+                var nextId = await GenerateNewTicketTypeIdAsync();
+                ViewBag.NextTicketTypeId = nextId;
+            }
+            catch
+            {
+                ViewBag.NextTicketTypeId = null;
+            }
+
             return View();
         }
 
@@ -67,17 +78,39 @@ namespace CinemaS.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("TicketTypeId,Name,Description,Price")] TicketTypes ticketTypes)
+        public async Task<IActionResult> Create([Bind("Name,Description,Price")] TicketTypes ticketTypes)
         {
-            if (ModelState.IsValid)
+            ModelState.Remove(nameof(ticketTypes.TicketTypeId));
+
+            if (!ModelState.IsValid)
             {
+                return View(ticketTypes);
+            }
+
+            try
+            {
+                var nameExists = await _context.TicketTypes
+                    .AnyAsync(tt => tt.Name == ticketTypes.Name);
+
+                if (nameExists)
+                {
+                    TempData["Error"] = "❌ Tên loại vé đã tồn tại!";
+                    return View(ticketTypes);
+                }
+
+                ticketTypes.TicketTypeId = await GenerateNewTicketTypeIdAsync();
+
                 _context.Add(ticketTypes);
                 await _context.SaveChangesAsync();
-                TempData["Message"] = "Tạo loại vé mới thành công!";
+                
+                TempData["Message"] = $"✅ Tạo loại vé '{ticketTypes.Name}' thành công! (Mã: {ticketTypes.TicketTypeId})";
                 return RedirectToAction(nameof(Index));
             }
-            TempData["Error"] = "Không thể tạo loại vé. Vui lòng kiểm tra lại thông tin.";
-            return View(ticketTypes);
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"❌ Lỗi: {ex.InnerException?.Message ?? ex.Message}";
+                return View(ticketTypes);
+            }
         }
 
         // GET: TicketTypes/Edit/5
@@ -105,34 +138,62 @@ namespace CinemaS.Controllers
         {
             if (id != ticketTypes.TicketTypeId)
             {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(ticketTypes);
-                    await _context.SaveChangesAsync();
-                    TempData["Message"] = "Cập nhật loại vé thành công!";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TicketTypesExists(ticketTypes.TicketTypeId))
-                    {
-                        TempData["Error"] = "Loại vé không tồn tại.";
-                        return NotFound();
-                    }
-                    else
-                    {
-                        TempData["Error"] = "Có lỗi xảy ra khi cập nhật loại vé.";
-                        throw;
-                    }
-                }
+                TempData["Error"] = "❌ Mã loại vé không khớp!";
                 return RedirectToAction(nameof(Index));
             }
-            TempData["Error"] = "Không thể cập nhật loại vé. Vui lòng kiểm tra lại thông tin.";
-            return View(ticketTypes);
+
+            if (!ModelState.IsValid)
+            {
+                return View(ticketTypes);
+            }
+
+            try
+            {
+                if (!ticketTypes.TicketTypeId.StartsWith("TT") || ticketTypes.TicketTypeId.Length != 5)
+                {
+                    TempData["Error"] = "❌ Mã loại vé phải theo định dạng TTxxx (VD: TT001)!";
+                    return View(ticketTypes);
+                }
+
+                var inUse = await _context.Tickets
+                    .AnyAsync(t => t.TicketTypeId == id);
+
+                if (inUse)
+                {
+                    TempData["Warning"] = "⚠️ Loại vé này đang được sử dụng. Cập nhật sẽ ảnh hưởng đến các vé hiện có.";
+                }
+
+                var nameExists = await _context.TicketTypes
+                    .AnyAsync(tt => tt.Name == ticketTypes.Name && tt.TicketTypeId != id);
+
+                if (nameExists)
+                {
+                    TempData["Error"] = "❌ Tên loại vé đã tồn tại!";
+                    return View(ticketTypes);
+                }
+
+                _context.Update(ticketTypes);
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "✅ Cập nhật loại vé thành công!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!TicketTypesExists(ticketTypes.TicketTypeId))
+                {
+                    TempData["Error"] = "❌ Loại vé không tồn tại!";
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"❌ Lỗi: {ex.Message}";
+                return View(ticketTypes);
+            }
         }
 
         // GET: TicketTypes/Delete/5
@@ -158,24 +219,51 @@ namespace CinemaS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var ticketTypes = await _context.TicketTypes.FindAsync(id);
-            if (ticketTypes != null)
+            try
             {
+                var ticketTypes = await _context.TicketTypes.FindAsync(id);
+                if (ticketTypes == null)
+                {
+                    TempData["Error"] = "❌ Không tìm thấy loại vé cần xóa.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var inUse = await _context.Tickets.AnyAsync(t => t.TicketTypeId == id);
+                if (inUse)
+                {
+                    TempData["Error"] = "❌ Không thể xóa loại vé đang được sử dụng!";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 _context.TicketTypes.Remove(ticketTypes);
                 await _context.SaveChangesAsync();
-                TempData["Message"] = "Xóa loại vé thành công!";
+                TempData["Message"] = "✅ Xóa loại vé thành công!";
             }
-            else
+            catch (Exception ex)
             {
-                TempData["Error"] = "Không tìm thấy loại vé cần xóa.";
+                TempData["Error"] = $"❌ Lỗi: {ex.Message}";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        // ================== HELPER METHODS ==================
+
         private bool TicketTypesExists(string id)
         {
             return _context.TicketTypes.Any(e => e.TicketTypeId == id);
+        }
+
+        private async Task<string> GenerateNewTicketTypeIdAsync()
+        {
+            var last = await _context.TicketTypes
+                .OrderByDescending(tt => tt.TicketTypeId)
+                .FirstOrDefaultAsync();
+
+            if (last == null) return "TT001";
+
+            var lastNumber = int.Parse(last.TicketTypeId.Substring(2));
+            return $"TT{(lastNumber + 1):D3}";
         }
     }
 }

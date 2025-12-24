@@ -116,7 +116,6 @@ namespace CinemaS.Controllers
             if (!ModelState.IsValid)
             {
                 LoadDropdowns();
-                TempData["Error"] = "❌ Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(movieTheaters);
             }
 
@@ -182,7 +181,6 @@ namespace CinemaS.Controllers
             if (!ModelState.IsValid)
             {
                 LoadDropdowns();
-                TempData["Error"] = "❌ Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(movieTheaters);
             }
 

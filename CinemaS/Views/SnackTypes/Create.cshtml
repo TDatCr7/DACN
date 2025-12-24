@@ -42,17 +42,24 @@
 
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
-            <form asp-action="Create" method="post" id="snackTypeCreateForm">
+            <form asp-action="Create" method="post" id="snackTypeCreateForm" novalidate>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <div id="validationMessage" class="text-danger mb-3" style="display:none;"></div>
 
                 <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                     Thông tin loại đồ ăn
                 </div>
 
+                @if (ViewBag.NextSnackTypeId != null)
+                {
+                    <div class="alert alert-info mb-3" style="border-radius:10px; color:#000;">
+                        <i class="fa-solid fa-info-circle"></i> Mã loại đồ ăn tự động: <strong>@ViewBag.NextSnackTypeId</strong>
+                    </div>
+                }
+
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="Name" class="form-label">Tên loại</label>
+                        <label asp-for="Name" class="form-label">Tên loại <span class="text-danger">*</span></label>
                         <input asp-for="Name" class="form-control" placeholder="VD: Đồ uống, Bắp rang bơ..." />
                         <span asp-validation-for="Name" class="text-danger"></span>
                     </div>
@@ -71,4 +78,29 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const form = document.getElementById('snackTypeCreateForm');
+            const nameInput = document.querySelector('input[name="Name"]');
+            const validationMsg = document.getElementById('validationMessage');
+            let hideTimeout = null;
+
+            function showValidationMessage(message) {
+                validationMsg.textContent = message;
+                validationMsg.style.display = 'block';
+                
+                if (hideTimeout) clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    validationMsg.style.display = 'none';
+                }, 3000);
+            }
+
+            form.addEventListener('submit', e => {
+                if (!nameInput.value.trim()) {
+                    e.preventDefault();
+                    showValidationMessage('Vui lòng điền đủ thông tin');
+                }
+            });
+        })();
+    </script>
 }

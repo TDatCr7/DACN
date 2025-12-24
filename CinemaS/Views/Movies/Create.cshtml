@@ -30,7 +30,7 @@
         <div class="crud-body">
             <form id="movieCreateForm" asp-action="Create" enctype="multipart/form-data" novalidate>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                <div asp-validation-summary="ModelOnly" id="customValidationMsg" class="text-danger mb-2 d-none"></div>
 
                 <div class="row g-3">
                     <!-- LEFT -->
@@ -40,73 +40,73 @@
                                 <div class="col-md-4">
                                     <label asp-for="MoviesId" class="form-label">Mã</label>
                                     <input asp-for="MoviesId" class="form-control movie-input" required />
-                                    <span asp-validation-for="MoviesId" class="text-danger"></span>
+                                    <span asp-validation-for="MoviesId" class="text-danger" data-valmsg-for="MoviesId" data-valmsg-replace="true"></span>
                                 </div>
                                 <div class="col-md-8">
                                     <label asp-for="Title" class="form-label">Tên phim</label>
                                     <input asp-for="Title" class="form-control movie-input" required />
-                                    <span asp-validation-for="Title" class="text-danger"></span>
+                                    <span asp-validation-for="Title" class="text-danger" data-valmsg-for="Title" data-valmsg-replace="true"></span>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label asp-for="StatusId" class="form-label">Trạng thái</label>
                                     <select asp-for="StatusId" asp-items="ViewBag.StatusId" class="form-select movie-select" required></select>
-                                    <span asp-validation-for="StatusId" class="text-danger"></span>
+                                    <span asp-validation-for="StatusId" class="text-danger" data-valmsg-for="StatusId" data-valmsg-replace="true"></span>
                                 </div>
                                 <div class="col-md-6">
                                     <label asp-for="ReleaseDate" class="form-label">Khởi chiếu</label>
                                     <input asp-for="ReleaseDate" type="date" class="form-control movie-input" required />
-                                    <span asp-validation-for="ReleaseDate" class="text-danger"></span>
+                                    <span asp-validation-for="ReleaseDate" class="text-danger" data-valmsg-for="ReleaseDate" data-valmsg-replace="true"></span>
                                 </div>
 
                                 <div class="col-md-4">
                                     <label asp-for="Duration" class="form-label">Thời lượng (phút)</label>
                                     <input asp-for="Duration" type="number" min="1" class="form-control movie-input" required />
-                                    <span asp-validation-for="Duration" class="text-danger"></span>
+                                    <span asp-validation-for="Duration" class="text-danger" data-valmsg-for="Duration" data-valmsg-replace="true"></span>
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Age" class="form-label">Độ tuổi</label>
                                     <input asp-for="Age" type="number" min="0" class="form-control movie-input" required />
-                                    <span asp-validation-for="Age" class="text-danger"></span>
+                                    <span asp-validation-for="Age" class="text-danger" data-valmsg-for="Age" data-valmsg-replace="true"></span>
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Rating" class="form-label">Điểm IMDb /10</label>
                                     <input asp-for="Rating" type="number" step="0.1" min="0" max="10" class="form-control movie-input" required />
-                                    <span asp-validation-for="Rating" class="text-danger"></span>
+                                    <span asp-validation-for="Rating" class="text-danger" data-valmsg-for="Rating" data-valmsg-replace="true"></span>
                                 </div>
 
                                 <div class="col-md-4">
                                     <label asp-for="Language" class="form-label">Ngôn ngữ</label>
                                     <input asp-for="Language" class="form-control movie-input" required />
-                                    <span asp-validation-for="Language" class="text-danger"></span>
+                                    <span asp-validation-for="Language" class="text-danger" data-valmsg-for="Language" data-valmsg-replace="true"></span>
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="Country" class="form-label">Quốc gia</label>
                                     <input asp-for="Country" class="form-control movie-input" required />
-                                    <span asp-validation-for="Country" class="text-danger"></span>
+                                    <span asp-validation-for="Country" class="text-danger" data-valmsg-for="Country" data-valmsg-replace="true"></span>
                                 </div>
                                 <div class="col-md-4">
                                     <label asp-for="AudioOption" class="form-label">Âm thanh</label>
                                     <input asp-for="AudioOption" class="form-control movie-input" required />
-                                    <span asp-validation-for="AudioOption" class="text-danger"></span>
+                                    <span asp-validation-for="AudioOption" class="text-danger" data-valmsg-for="AudioOption" data-valmsg-replace="true"></span>
                                 </div>
 
                                 <div class="col-12">
                                     <label asp-for="TrailerLink" class="form-label">Trailer (YouTube)</label>
                                     <input asp-for="TrailerLink" class="form-control movie-input" required />
-                                    <span asp-validation-for="TrailerLink" class="text-danger"></span>
+                                    <span asp-validation-for="TrailerLink" class="text-danger" data-valmsg-for="TrailerLink" data-valmsg-replace="true"></span>
                                 </div>
 
                                 <div class="col-12">
                                     <label asp-for="Summary" class="form-label">Mô tả ngắn</label>
                                     <textarea asp-for="Summary" class="form-control movie-input" rows="2" required></textarea>
-                                    <span asp-validation-for="Summary" class="text-danger"></span>
+                                    <span asp-validation-for="Summary" class="text-danger" data-valmsg-for="Summary" data-valmsg-replace="true"></span>
                                 </div>
 
                                 <div class="col-12">
                                     <label asp-for="DetailDescription" class="form-label">Nội dung</label>
                                     <textarea asp-for="DetailDescription" class="form-control movie-input" rows="5" required></textarea>
-                                    <span asp-validation-for="DetailDescription" class="text-danger"></span>
+                                    <span asp-validation-for="DetailDescription" class="text-danger" data-valmsg-for="DetailDescription" data-valmsg-replace="true"></span>
                                 </div>
                             </div>
 
@@ -309,10 +309,87 @@
             bindCommaNameInput('input[name="newDirectors"]');
             bindCommaNameInput('input[name="newActors"]');
 
-            $('#movieCreateForm').on('submit', function (e) {
-                // 1) Let unobtrusive validate chạy trước
-                if (!$(this).valid()) {
+            // --- SUPPRESS default unobtrusive/server validation messages FOR THIS FORM ONLY ---
+            var $form = $('#movieCreateForm');
+
+            // clear any server-rendered messages in this form
+            $form.find('.field-validation-error, .field-validation-valid, .validation-summary-errors, .validation-summary-valid').text('');
+
+            // get or init validator for this form and suppress default placements
+            var validator = $form.data('validator') || $form.validate();
+            if (validator) {
+                validator.settings.errorPlacement = function () { /* prevent default message insertion */ };
+
+                // custom showErrors: populate per-field data-valmsg-for spans in this form with Vietnamese messages
+                validator.settings.showErrors = function (errorMap, errorList) {
+                    var self = this;
+
+                    // clear previous messages inside this form's data-valmsg-for spans
+                    $($form).find('[data-valmsg-for]').each(function () {
+                        $(this).text('');
+                    });
+
+                    // apply highlight/unhighlight as default would
+                    if (self.settings.unhighlight) {
+                        // unhighlight success elements
+                        $.each(self.successList || [], function (i, el) {
+                            try { self.settings.unhighlight.call(self, el, self.settings.errorClass, self.settings.validClass); } catch (e) { }
+                        });
+                    }
+
+                    // add errors to spans
+                    errorList = errorList || [];
+                    $.each(errorList, function (i, err) {
+                        var name = err.element.name || err.element.id;
+                        if (!name) return;
+                        var $span = $form.find('[data-valmsg-for="' + name + '"]');
+                        if ($span.length) {
+                            $span.text(err.message).removeClass('d-none');
+                        } else {
+                            // fallback: show in top summary if no span
+                            // do nothing here; top summary handled elsewhere
+                        }
+
+                        // apply highlight for the element
+                        try { if (self.settings.highlight) self.settings.highlight.call(self, err.element, self.settings.errorClass, self.settings.validClass); } catch (e) { }
+                    });
+
+                    // keep internal state
+                    this.errorList = errorList || [];
+                    this.errorMap = errorMap || {};
+                };
+            }
+
+            // helper to show custom message inside the form for 3s
+            function showFormMessage(msg) {
+                var $msg = $('#customValidationMsg');
+                $msg.text(msg).removeClass('d-none');
+                clearTimeout($form.data('validationTimeout'));
+                var t = setTimeout(function () { $msg.text(''); $msg.addClass('d-none');
+                    // also clear per-field messages after timeout
+                    $form.find('[data-valmsg-for]').each(function () { $(this).text(''); });
+                }, 3000);
+                $form.data('validationTimeout', t);
+            }
+
+            $form.on('submit', function (e) {
+                // 1) Let unobtrusive validate run (but showErrors will place messages into spans in Vietnamese)
+                var formValid = $form.valid();
+
+                if (!formValid) {
                     e.preventDefault();
+
+                    // determine if missing required values exist
+                    var errorList = (validator && validator.errorList) || [];
+                    var hasMissing = false;
+                    for (var i = 0; i < errorList.length; i++) {
+                        var el = errorList[i].element;
+                        try {
+                            if (el && el.validity && el.validity.valueMissing) { hasMissing = true; break; }
+                        } catch (ex) { }
+                    }
+
+                    showFormMessage(hasMissing ? 'Vui lòng điền đủ thông tin' : 'Thông tin không hợp lệ');
                     return;
                 }
 
@@ -340,14 +417,23 @@
                 const newActorsOk = isValidCommaNames(na);
 
                 if (!newDirectorsOk || !newActorsOk) {
-                    // không tạo thêm UI mới; chặn submit
                     e.preventDefault();
+                    showFormMessage('Thông tin không hợp lệ');
                     return;
                 }
 
                 if (!genresOk || !directorsOk || !actorsOk || !posterOk || !bannerOk) {
                     e.preventDefault();
+                    showFormMessage('Vui lòng điền đủ thông tin');
+                    toggleMsg('genresRequiredMsg', !genresOk);
+                    toggleMsg('directorsRequiredMsg', !directorsOk);
+                    toggleMsg('actorsRequiredMsg', !actorsOk);
+                    toggleMsg('posterRequiredMsg', !posterOk);
+                    toggleMsg('bannerRequiredMsg', !bannerOk);
+                    return;
                 }
+
+                // otherwise allow submit to proceed (do not change original flow)
             });
 
             // Hide msg realtime

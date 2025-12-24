@@ -42,7 +42,7 @@
             <form asp-action="Edit" method="post" id="ticketTypeEditForm" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="TicketTypeId" />
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                <div id="validationMessage" class="text-danger mb-2" style="display:none;"></div>
 
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -81,18 +81,38 @@
             const form = document.getElementById('ticketTypeEditForm');
             const nameInput = document.querySelector('input[name="Name"]');
             const priceInput = document.querySelector('input[name="Price"]');
+            const validationMsg = document.getElementById('validationMessage');
+            let hideTimeout = null;
+
+            function showValidationMessage(message) {
+                validationMsg.textContent = message;
+                validationMsg.style.display = 'block';
+                
+                if (hideTimeout) clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    validationMsg.style.display = 'none';
+                }, 3000);
+            }
 
             form.addEventListener('submit', e => {
-                const errors = [];
+                let hasEmpty = false;
+                let hasInvalid = false;
 
-                if (!nameInput.value.trim())
-                    errors.push("• Tên loại vé không được để trống");
-                if (!priceInput.value || Number(priceInput.value) <= 0)
-                    errors.push("• Giá phải lớn hơn 0");
+                if (!nameInput.value.trim()) {
+                    hasEmpty = true;
+                }
+                if (!priceInput.value || Number(priceInput.value) <= 0) {
+                    if (!priceInput.value) hasEmpty = true;
+                    else hasInvalid = true;
+                }
 
-                if (errors.length > 0) {
+                if (hasEmpty || hasInvalid) {
                     e.preventDefault();
-                    alert("Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
+                    if (hasEmpty) {
+                        showValidationMessage('Vui lòng điền đủ thông tin');
+                    } else {
+                        showValidationMessage('Thông tin không hợp lệ');
+                    }
                 }
             });
         });

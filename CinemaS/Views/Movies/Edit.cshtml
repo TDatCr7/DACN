@@ -38,7 +38,7 @@
             <form id="movieEditForm" asp-action="Edit" enctype="multipart/form-data" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="MoviesId" />
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                <div asp-validation-summary="ModelOnly" id="customValidationMsg" class="text-danger mb-2 d-none"></div>
 
                 <div class="row g-3">
                     <!-- LEFT: bọc panel giống CREATE (dùng class create-panel của CSS CREATE) -->
@@ -299,10 +299,51 @@
             bindCommaNameInput('input[name="newDirectors"]');
             bindCommaNameInput('input[name="newActors"]');
 
+            // --- SUPPRESS default unobtrusive/server validation messages FOR THIS FORM ONLY ---
+            var $form = $('#movieEditForm');
+
+            // clear any server-rendered messages in this form
+            $form.find('.field-validation-error, .field-validation-valid, .validation-summary-errors, .validation-summary-valid').text('');
+
+            // get or init validator for this form and suppress default placements
+            var validator = $form.data('validator') || $form.validate();
+            if (validator) {
+                validator.settings.errorPlacement = function () { /* no-op - prevent default message insertion */ };
+                validator.settings.showErrors = function (errorMap, errorList) {
+                    // keep internal state but do not display default messages
+                    this.errorList = errorList || [];
+                    this.errorMap = errorMap || {};
+                };
+            }
+
+            // helper to show custom message inside the form for 3s
+            function showFormMessage(msg) {
+                var $msg = $('#customValidationMsg');
+                $msg.text(msg).removeClass('d-none');
+                clearTimeout($form.data('validationTimeout'));
+                var t = setTimeout(function () { $msg.text(''); $msg.addClass('d-none'); }, 3000);
+                $form.data('validationTimeout', t);
+            }
+
             // validate select2 bắt buộc + validate 2 ô thêm mới
-            $('#movieEditForm').on('submit', function (e) {
-                if (!$(this).valid()) {
+            $form.on('submit', function (e) {
+                // 1) Let unobtrusive validate run (but it won't display default messages due to showErrors override)
+                var formValid = $form.valid();
+
+                if (!formValid) {
                     e.preventDefault();
+
+                    // examine validator.errorList to decide message type
+                    var errorList = (validator && validator.errorList) || [];
+                    var hasMissing = false;
+                    for (var i = 0; i < errorList.length; i++) {
+                        var el = errorList[i].element;
+                        try {
+                            if (el && el.validity && el.validity.valueMissing) { hasMissing = true; break; }
+                        } catch (ex) { }
+                    }
+
+                    showFormMessage(hasMissing ? 'Vui lòng điền đủ thông tin' : 'Thông tin không hợp lệ');
                     return;
                 }
 
@@ -310,19 +351,30 @@
                 const directorsOk = ($('#directorsSelect').val() || []).length > 0;
                 const actorsOk = ($('#actorsSelect').val() || []).length > 0;
 
-                toggleMsg('genresRequiredMsg', !genresOk);
-                toggleMsg('directorsRequiredMsg', !directorsOk);
-                toggleMsg('actorsRequiredMsg', !actorsOk);
-
+                // 4) Validate 2 ô thêm mới: chỉ chữ + space + dấu phẩy
                 const nd = document.querySelector('input[name="newDirectors"]')?.value || "";
                 const na = document.querySelector('input[name="newActors"]')?.value || "";
 
                 const newDirectorsOk = isValidCommaNames(nd);
                 const newActorsOk = isValidCommaNames(na);
 
-                if (!genresOk || !directorsOk || !actorsOk || !newDirectorsOk || !newActorsOk) {
+                if (!genresOk || !directorsOk || !actorsOk) {
                     e.preventDefault();
+                    showFormMessage('Vui lòng điền đủ thông tin');
+                    toggleMsg('genresRequiredMsg', !genresOk);
+                    toggleMsg('directorsRequiredMsg', !directorsOk);
+                    toggleMsg('actorsRequiredMsg', !actorsOk);
+                    return;
                 }
+
+                // If new names invalid -> show "Thông tin không hợp lệ"
+                if (!newDirectorsOk || !newActorsOk) {
+                    e.preventDefault();
+                    showFormMessage('Thông tin không hợp lệ');
+                    return;
+                }
+
+                // otherwise allow submit to proceed (do not change original flow)
             });
 
             $('#genresSelect').on('change', () => toggleMsg('genresRequiredMsg', ((($('#genresSelect').val() || []).length === 0))));

@@ -27,40 +27,4 @@
 			<div class="info-value"><strong>@Model.ShowTimeId</strong></div>
 
 			<div class="info-label">Giá gốc:</div>
-			<div class="info-value">@Model.OriginPrice VNĐ</div>
-
-			<div class="info-label">Ngày chiếu:</div>
-			<div class="info-value">@Model.ShowDate?.ToString("dd/MM/yyyy")</div>
-
-			<div class="info-label">Giờ bắt đầu:</div>
-			<div class="info-value">@Model.StartTime?.ToString("HH:mm")</div>
-
-			<div class="info-label">Giờ kết thúc:</div>
-			<div class="info-value">@Model.EndTime?.ToString("HH:mm")</div>
-
-			<div class="info-label">Ngày cập nhật:</div>
-			<div class="info-value">@Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
-		</div>
-
-		<div class="d-flex justify-content-between mt-4">
-			<button type="button" class="btn btn-secondary" onclick="history.back()">
-				<i class="fas fa-arrow-left"></i> Quay lại
-			</button>
-
-			<form asp-action="Delete" method="post" style="display: inline;" onsubmit="return confirmDelete();">
-				<input type="hidden" asp-for="ShowTimeId" />
-				<button type="submit" class="btn btn-danger">
-					<i class="fas fa-trash"></i> Xóa
-				</button>
-			</form>
-		</div>
-	</div>
-</div>
-
-@section Scripts {
-	<script>
-		function confirmDelete() {
-			return confirm('Bạn có CHẮC CHẮN muốn xóa suất chiếu này không?');
-		}
-	</script>
-}
+			<div class="info-value">@Model.OriginPrice?

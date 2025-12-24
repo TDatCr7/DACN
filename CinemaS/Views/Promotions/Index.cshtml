@@ -202,7 +202,6 @@
         }
     }
 
-    /* popup chi tiết khuyến mãi (custom như Genres) */
     /* popup chi tiết khuyến mãi */
     #promoDetailBackdrop {
         position: fixed;
@@ -223,7 +222,7 @@
 
     .promo-detail-card {
         width: 100%;
-        max-width: 760px; /* rộng hơn */
+        max-width: 760px;
         background: radial-gradient(circle at 0 0, rgba(59,130,246,.35), transparent 55%), radial-gradient(circle at 100% 0, rgba(124,58,237,.28), transparent 60%), #020617;
         border-radius: 22px;
         border: 1px solid rgba(148,163,255,.6);
@@ -246,7 +245,7 @@
     .promo-detail-body {
         padding: 18px 20px 18px;
         font-size: 14px;
-        display: grid; /* chia 2 cột */
+        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         column-gap: 32px;
         row-gap: 12px;
@@ -256,7 +255,7 @@
         margin-bottom: 0;
     }
 
-    .promo-detail-row-full { /* hàng chiếm hết 2 cột: Nội dung */
+    .promo-detail-row-full {
         grid-column: 1 / -1;
     }
 
@@ -287,13 +286,51 @@
         cursor: pointer;
     }
 
-    /* mobile: quay về 1 cột */
+    /* Modal xác nhận xóa */
+    #deleteModal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        z-index: 1051;
+        min-width: 400px;
+    }
+    #deleteModal .modal-header-custom {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: black;
+    }
+    #deleteModal .modal-footer-custom {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    #deleteModal .modal-body-custom {
+        margin-bottom: 15px;
+        color: black;
+    }
+    .modal-backdrop-delete {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+    }
+
     @@media (max-width: 767.98px) {
         .promo-detail-body {
             grid-template-columns: 1fr;
         }
-    }
-
     }
 </style>
 
@@ -457,18 +494,12 @@
                                         </a>
 
                                         <!-- Xóa -->
-                                        <form asp-action="Delete"
-                                              asp-route-id="@item.PromotionId"
-                                              method="post"
-                                              class="d-inline"
-                                              onsubmit="return confirm('Xóa chương trình khuyến mãi này?');">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit"
-                                                    class="admin-icon-btn danger"
-                                                    title="Xóa">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                                class="admin-icon-btn danger"
+                                                title="Xóa"
+                                                onclick="showDeletePopup('@item.PromotionId', '@(item.Code ?? item.Name)')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -517,21 +548,27 @@
                     <div id="promoDetailContent" class="promo-detail-desc"></div>
                 </div>
             </div>
-
         </div>
+    </div>
+</div>
+
+<!-- Modal Xác nhận xóa -->
+<div class="modal-backdrop-delete" id="modalBackdrop"></div>
+<div id="deleteModal">
+    <div class="modal-header-custom">Xác nhận xóa</div>
+    <div class="modal-body-custom" id="deleteMessage">Bạn có chắc chắn muốn xóa chương trình khuyến mãi này không?</div>
+    <div class="modal-footer-custom">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Hủy</button>
+        <form id="deleteForm" method="post" style="display:inline;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger">Xóa</button>
+        </form>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        // auto hide alert
-        (function () {
-            const alerts = document.querySelectorAll('.alert[data-auto-dismiss="true"]');
-            if (alerts.length > 0) {
-                setTimeout(() => alerts.forEach(a => a.classList.add('d-none')), 5000);
-            }
-        })();
-
+        // Popup chi tiết khuyến mãi
         function openPromotionDetail(btn) {
             const id = btn.dataset.id || "";
             const name = btn.dataset.name || "N/A";
@@ -560,5 +597,31 @@
                     closePromotionDetail();
                 }
             });
+
+        // Popup xác nhận xóa
+        let deleteId = null;
+
+        function showDeletePopup(id, name) {
+            deleteId = id;
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            const deleteForm = document.getElementById("deleteForm");
+
+            deleteForm.action = `/Promotions/Delete/${id}`;
+            document.getElementById("deleteMessage").innerText = `Bạn có chắc chắn muốn xóa chương trình khuyến mãi "${name}" không?`;
+
+            modal.style.display = "block";
+            backdrop.style.display = "block";
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            modal.style.display = "none";
+            backdrop.style.display = "none";
+        }
+
+        // Đóng modal khi click vào backdrop
+        document.getElementById("modalBackdrop").addEventListener("click", closeDeleteModal);
     </script>
 }

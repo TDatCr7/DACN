@@ -89,14 +89,14 @@ namespace CinemaS.Controllers
             if (id == null) return NotFound();
             var showTimes = await _context.ShowTimes.FirstOrDefaultAsync(m => m.ShowTimeId == id);
             if (showTimes == null) return NotFound();
-            
+
             // Load movie and theater info
             var movie = await _context.Movies.FirstOrDefaultAsync(m => m.MoviesId == showTimes.MoviesId);
             var theater = await _context.CinemaTheaters.FirstOrDefaultAsync(ct => ct.CinemaTheaterId == showTimes.CinemaTheaterId);
-            
+
             ViewBag.MovieTitle = movie?.Title;
             ViewBag.TheaterName = theater?.Name;
-            
+
             return View(showTimes);
         }
         // ======================= CREATE (GET) =======================
@@ -130,7 +130,6 @@ namespace CinemaS.Controllers
             if (!ModelState.IsValid)
             {
                 ReloadViewBags();
-                TempData["Error"] = "Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(showTime);
             }
 
@@ -256,6 +255,46 @@ namespace CinemaS.Controllers
                 ReloadViewBags();
                 return View(showTime);
             }
+        }
+
+        // ======================= CHECK OVERLAP (AJAX) =======================
+        [HttpGet]
+        public async Task<IActionResult> CheckOverlap(string cinemaTheaterId, DateTime showDate, string startTime, string endTime)
+        {
+            if (string.IsNullOrEmpty(cinemaTheaterId) || showDate == default || string.IsNullOrEmpty(startTime) || string.IsNullOrEmpty(endTime))
+            {
+                return Json(new { hasConflict = false });
+            }
+
+            if (!TimeSpan.TryParse(startTime, out var startSpan) || !TimeSpan.TryParse(endTime, out var endSpan))
+            {
+                return Json(new { hasConflict = false, error = "Invalid time format" });
+            }
+
+            var proposedStart = showDate.Date.Add(startSpan);
+            var proposedEnd = showDate.Date.Add(endSpan);
+
+            var conflict = await _context.ShowTimes
+                .Where(st => st.CinemaTheaterId == cinemaTheaterId &&
+                             st.ShowDate == showDate &&
+                            (
+                                (proposedStart >= st.StartTime && proposedStart < st.EndTime) ||
+                                (proposedEnd > st.StartTime && proposedEnd <= st.EndTime) ||
+                                (proposedStart <= st.StartTime && proposedEnd >= st.EndTime)
+                            ))
+                .Select(st => new { st.StartTime, st.EndTime })
+                .FirstOrDefaultAsync();
+
+            if (conflict != null)
+            {
+                return Json(new
+                {
+                    hasConflict = true,
+                    message = $"Phòng đã có suất chiếu từ {conflict.StartTime:HH:mm} đến {conflict.EndTime:HH:mm}"
+                });
+            }
+
+            return Json(new { hasConflict = false });
         }
 
         // ======================= HELPER =======================
