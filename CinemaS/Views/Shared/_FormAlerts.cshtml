@@ -1,0 +1,34 @@
+@* Partial view cho alert messages trong form Create/Edit *@
+@* Sử dụng ViewBag để hiển thị thông báo ngay tại trang hiện tại *@
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom:16px;">
+        <i class="fas fa-exclamation-circle"></i> @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (ViewBag.Warning != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="margin-bottom:16px;">
+        <i class="fas fa-exclamation-triangle"></i> @ViewBag.Warning
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (ViewBag.Message != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-bottom:16px;">
+        <i class="fas fa-check-circle"></i> @ViewBag.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (ViewBag.Info != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert" style="margin-bottom:16px;">
+        <i class="fas fa-info-circle"></i> @ViewBag.Info
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}

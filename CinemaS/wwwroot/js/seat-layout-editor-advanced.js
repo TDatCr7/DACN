@@ -307,7 +307,6 @@ async function handleRowMode(rowLabel) {
         return;
     }
 
-    // Enhanced validation: block operations on rows containing aisles
     // Find all seats in this row
     const seatsInRow = Array.from(document.querySelectorAll(`.seat-row[data-row-label="${rowLabel}"] .seat`));
     if (!seatsInRow.length) {
@@ -315,22 +314,24 @@ async function handleRowMode(rowLabel) {
         return;
     }
 
-    // If target is COUPLE, ensure each adjacent pair is valid and no aisle involved
-    const coupleTypeId = getSeatTypeIdByName('COUPLE');
-    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+    // ✅ FIX: Filter out aisle seats - only work with non-aisle seats
+    const nonAisleSeats = seatsInRow.filter(s => 
+        s.getAttribute('data-is-aisle') !== 'true' && s.getAttribute('data-seat-label')
+    );
 
-    // If any seat is an aisle, block the whole row operation
-    const hasAisle = seatsInRow.some(s => s.getAttribute('data-is-aisle') === 'true' || !s.getAttribute('data-seat-label'));
-    if (hasAisle) {
-        showToast('❌ Hàng chứa lối đi. Không thể thay đổi loại ghế cho hàng này', 'error');
+    if (!nonAisleSeats.length) {
+        showToast('⚠️ Hàng này chỉ có lối đi, không có ghế để thay đổi', 'warning');
         return;
     }
 
+    // If target is COUPLE, ensure each adjacent pair is valid (skip aisle seats)
+    const coupleTypeId = getSeatTypeIdByName('COUPLE');
+    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+
     if (isCoupleTarget) {
         // Verify that there exists valid adjacent partners for seats we would convert
-        // If no valid pairing possible for at least one seat, reject
-        for (const s of seatsInRow) {
-            const seatId = s.getAttribute('data-seat-id');
+        // Only check among non-aisle seats
+        for (const s of nonAisleSeats) {
             const isDeleted = s.getAttribute('data-is-deleted') === 'true';
             const isActive = s.getAttribute('data-is-active') === 'true';
             const pairId = s.getAttribute('data-pair-id');
@@ -393,24 +394,28 @@ async function handleColumnMode(columnIndex) {
         return;
     }
 
-    // Enhanced validation: block operations on columns containing aisles
+    // Find all seats in this column
     const seatsInCol = Array.from(document.querySelectorAll(`.seat[data-column-index="${columnIndex}"]`));
     if (!seatsInCol.length) {
         showToast('❌ Không tìm thấy cột', 'error');
         return;
     }
 
-    const coupleTypeId = getSeatTypeIdByName('COUPLE');
-    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+    // ✅ FIX: Filter out aisle seats - only work with non-aisle seats
+    const nonAisleSeats = seatsInCol.filter(s => 
+        s.getAttribute('data-is-aisle') !== 'true' && s.getAttribute('data-seat-label')
+    );
 
-    const hasAisle = seatsInCol.some(s => s.getAttribute('data-is-aisle') === 'true' || !s.getAttribute('data-seat-label'));
-    if (hasAisle) {
-        showToast('❌ Cột chứa lối đi. Không thể thay đổi loại ghế cho cột này', 'error');
+    if (!nonAisleSeats.length) {
+        showToast('⚠️ Cột này chỉ có lối đi, không có ghế để thay đổi', 'warning');
         return;
     }
 
+    const coupleTypeId = getSeatTypeIdByName('COUPLE');
+    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+
     if (isCoupleTarget) {
-        for (const s of seatsInCol) {
+        for (const s of nonAisleSeats) {
             const isDeleted = s.getAttribute('data-is-deleted') === 'true';
             const isActive = s.getAttribute('data-is-active') === 'true';
             const pairId = s.getAttribute('data-pair-id');
@@ -661,22 +666,23 @@ async function updateRowSeatType(rowLabel, seatTypeId) {
         return;
     }
 
-    // If target is COUPLE, ensure each adjacent pair is valid and no aisle involved
-    const coupleTypeId = getSeatTypeIdByName('COUPLE');
-    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+    // ✅ FIX: Filter out aisle seats - only validate non-aisle seats
+    const nonAisleSeats = seatsInRow.filter(s => 
+        s.getAttribute('data-is-aisle') !== 'true' && s.getAttribute('data-seat-label')
+    );
 
-    // If any seat is an aisle, block the whole row operation
-    const hasAisle = seatsInRow.some(s => s.getAttribute('data-is-aisle') === 'true' || !s.getAttribute('data-seat-label'));
-    if (hasAisle) {
-        showToast('❌ Hàng chứa lối đi. Không thể thay đổi loại ghế cho hàng này', 'error');
+    if (!nonAisleSeats.length) {
+        showToast('⚠️ Hàng này chỉ có lối đi, không có ghế để thay đổi', 'warning');
         return;
     }
 
+    // If target is COUPLE, ensure each adjacent pair is valid (skip aisle seats)
+    const coupleTypeId = getSeatTypeIdByName('COUPLE');
+    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+
     if (isCoupleTarget) {
         // Verify that there exists valid adjacent partners for seats we would convert
-        // If no valid pairing possible for at least one seat, reject
-        for (const s of seatsInRow) {
-            const seatId = s.getAttribute('data-seat-id');
+        for (const s of nonAisleSeats) {
             const isDeleted = s.getAttribute('data-is-deleted') === 'true';
             const isActive = s.getAttribute('data-is-active') === 'true';
             const pairId = s.getAttribute('data-pair-id');
@@ -741,17 +747,21 @@ async function updateColumnSeatType(columnIndex, seatTypeId) {
         return;
     }
 
-    const coupleTypeId = getSeatTypeIdByName('COUPLE');
-    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+    // ✅ FIX: Filter out aisle seats - only validate non-aisle seats
+    const nonAisleSeats = seatsInCol.filter(s => 
+        s.getAttribute('data-is-aisle') !== 'true' && s.getAttribute('data-seat-label')
+    );
 
-    const hasAisle = seatsInCol.some(s => s.getAttribute('data-is-aisle') === 'true' || !s.getAttribute('data-seat-label'));
-    if (hasAisle) {
-        showToast('❌ Cột chứa lối đi. Không thể thay đổi loại ghế cho cột này', 'error');
+    if (!nonAisleSeats.length) {
+        showToast('⚠️ Cột này chỉ có lối đi, không có ghế để thay đổi', 'warning');
         return;
     }
 
+    const coupleTypeId = getSeatTypeIdByName('COUPLE');
+    const isCoupleTarget = coupleTypeId && seatTypeId === coupleTypeId;
+
     if (isCoupleTarget) {
-        for (const s of seatsInCol) {
+        for (const s of nonAisleSeats) {
             const isDeleted = s.getAttribute('data-is-deleted') === 'true';
             const isActive = s.getAttribute('data-is-active') === 'true';
             const pairId = s.getAttribute('data-pair-id');

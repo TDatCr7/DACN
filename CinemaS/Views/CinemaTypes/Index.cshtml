@@ -196,14 +196,6 @@
                     document.getElementById('deleteForm').submit();
                 }
             }
-
-            setTimeout(() => {
-                document.querySelectorAll('.alert').forEach(alert => {
-                    alert.style.transition = 'opacity 0.5s ease';
-                    alert.style.opacity = '0';
-                    setTimeout(() => alert.remove(), 500);
-                });
-            }, 5000);
         </script>
         }
     </div>

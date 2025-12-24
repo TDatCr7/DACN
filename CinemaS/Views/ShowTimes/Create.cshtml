@@ -7,6 +7,14 @@
     var seatTypes = ViewBag.SeatTypes as IEnumerable<SeatTypes>;
 }
 
+<style>
+    /* Hide default validation messages and server-side validation */
+    [asp-validation-for],
+    [asp-validation-summary] {
+        display: none !important;
+    }
+</style>
+
 <div class="admin-shell admin-form-wrap">
     <div class="admin-panel">
 
@@ -29,6 +37,7 @@
                 <button type="submit"
                         form="showTimeCreateForm"
                         class="btn btn-primary btn-sweep px-3"
+                        id="createBtn"
                         style="border-radius:999px; padding:9px 20px; font-size:14px; font-weight:900; white-space:nowrap;">
                     <i class="fa-solid fa-circle-plus me-1"></i> Tạo
                 </button>
@@ -42,7 +51,12 @@
 
             <form asp-action="Create" method="post" id="showTimeCreateForm">
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <!-- Custom validation message container -->
+                <div id="customValidationMessage" class="alert alert-danger" style="display:none; margin-bottom:16px;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="validationMessageText"></span>
+                </div>
 
                 <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                     Thông tin suất chiếu
@@ -67,7 +81,6 @@
                                 <i class="fa-solid fa-video"></i>
                             </a>
                         </div>
-                        <span asp-validation-for="MoviesId" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
@@ -88,14 +101,12 @@
                                 <i class="fa-solid fa-building"></i>
                             </a>
                         </div>
-                        <span asp-validation-for="CinemaTheaterId" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
                         <label asp-for="ShowDate" class="form-label">Ngày chiếu</label>
                         <input asp-for="ShowDate" type="date" class="form-control" id="showDate"
                                min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                        <span asp-validation-for="ShowDate" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
@@ -121,6 +132,13 @@
                         </small>
                     </div>
 
+                    <div class="col-12">
+                        <div id="overlapWarning" class="alert alert-warning" style="display:none;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span id="overlapMessage"></span>
+                        </div>
+                    </div>
+
                     <div class="col-md-6">
                         <label asp-for="PriceAdjustmentPercent" class="form-label">Điều chỉnh giá suất chiếu (%)</label>
                         <div class="input-group">
@@ -138,7 +156,6 @@
                             VD: 10 = tăng 10% ; -20 = giảm 20%
                         </small>
                         <small class="text-danger" id="priceAdjustmentError" style="display:none;"></small>
-                        <span asp-validation-for="PriceAdjustmentPercent" class="text-danger"></span>
                     </div>
                 </div>
 
@@ -313,6 +330,7 @@
         const durationInfo = document.getElementById('movieDurationInfo');
         const durationSpan = document.getElementById('movieDuration');
         let userEditedEndTime = false;
+        let validationTimeoutId = null;
 
         form.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault();
@@ -369,6 +387,117 @@
             startTime.value = '';
             endTime.value = '';
             userEditedEndTime = false;
+        });
+
+        // Overlap check function
+        async function checkOverlap() {
+            const cinemaId = cinemaSelect.value;
+            const date = showDate.value;
+            const start = startTime.value;
+            const end = endTime.value;
+
+            if (!cinemaId || !date || !start || !end) {
+                document.getElementById('overlapWarning').style.display = 'none';
+                document.getElementById('createBtn').disabled = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ShowTimes/CheckOverlap?cinemaTheaterId=${cinemaId}&showDate=${date}&startTime=${start}&endTime=${end}`);
+                const result = await response.json();
+
+                const warningDiv = document.getElementById('overlapWarning');
+                const messageSpan = document.getElementById('overlapMessage');
+                const createBtn = document.getElementById('createBtn');
+
+                if (result.hasConflict) {
+                    messageSpan.textContent = result.message;
+                    warningDiv.style.display = 'block';
+                    createBtn.disabled = true;
+                    createBtn.classList.add('btn-secondary');
+                    createBtn.classList.remove('btn-primary');
+                } else {
+                    warningDiv.style.display = 'none';
+                    createBtn.disabled = false;
+                    createBtn.classList.remove('btn-secondary');
+                    createBtn.classList.add('btn-primary');
+                }
+            } catch (error) {
+                console.error('Error checking overlap:', error);
+                document.getElementById('createBtn').disabled = false;
+            }
+        }
+
+        // Add event listeners for overlap check
+        cinemaSelect.addEventListener('change', checkOverlap);
+        showDate.addEventListener('change', checkOverlap);
+        startTime.addEventListener('change', checkOverlap);
+        endTime.addEventListener('change', checkOverlap);
+
+        // Form validation on submit
+        function validateFormOnSubmit() {
+            const movieId = movieSelect.value;
+            const cinemaId = cinemaSelect.value;
+            const date = showDate.value;
+            const start = startTime.value;
+            const end = endTime.value;
+            const overlapWarning = document.getElementById('overlapWarning');
+            const hasOverlapConflict = overlapWarning.style.display !== 'none';
+
+            let errors = [];
+
+            if (!movieId) {
+                errors.push('Vui lòng chọn phim');
+            }
+            if (!cinemaId) {
+                errors.push('Vui lòng chọn phòng chiếu');
+            }
+            if (!date) {
+                errors.push('Vui lòng chọn ngày chiếu');
+            }
+            if (!start) {
+                errors.push('Vui lòng chọn giờ bắt đầu');
+            }
+            if (!end) {
+                errors.push('Vui lòng chọn giờ kết thúc');
+            }
+            if (hasOverlapConflict) {
+                errors.push('Suất chiếu bị trùng với suất chiếu khác');
+            }
+
+            if (errors.length > 0) {
+                showValidationMessage(errors.join(' | '));
+                return false;
+            }
+
+            return true;
+        }
+
+        function showValidationMessage(message) {
+            const messageDiv = document.getElementById('customValidationMessage');
+            const messageText = document.getElementById('validationMessageText');
+            
+            messageText.textContent = message;
+            messageDiv.style.display = 'block';
+
+            // Clear previous timeout if exists
+            if (validationTimeoutId) {
+                clearTimeout(validationTimeoutId);
+            }
+
+            // Hide message after 3 seconds
+            validationTimeoutId = setTimeout(() => {
+                messageDiv.style.display = 'none';
+                validationTimeoutId = null;
+            }, 3000);
+        }
+
+        // Handle form submit
+        form.addEventListener('submit', (e) => {
+            if (!validateFormOnSubmit()) {
+                e.preventDefault();
+                return false;
+            }
         });
     </script>
 }

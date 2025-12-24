@@ -1159,7 +1159,11 @@ namespace CinemaS.Controllers
                         .Where(s => s.CinemaTheaterId == request.CinemaTheaterId && s.RowIndex == request.RowLabel)
                         .ToListAsync();
 
-                    var seatsToDelete = allRowSeats.Where(s => !s.IsDeleted).ToList();
+                    // ✅ FIX: Skip aisle seats when deleting
+                    var seatsToDelete = allRowSeats.Where(s => !s.IsDeleted && !s.IsAisle).ToList();
+
+                    if (!seatsToDelete.Any())
+                        return Json(new { success = false, message = "Không có ghế hợp lệ để xóa (có thể chỉ có lối đi)" });
 
                     var bookedSeatIds = await _context.Tickets
                         .Where(t => seatsToDelete.Select(s => s.SeatId).Contains(t.SeatId) && t.Status == 2)
@@ -1200,6 +1204,7 @@ namespace CinemaS.Controllers
                             seatTypeName = st?.Name ?? "NORMAL",
                             isActive = seat.IsActive,
                             isDeleted = true,
+                            isAisle = seat.IsAisle,
                             pairId = (string?)null,
                             label = seat.Label,
                             rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1208,7 +1213,7 @@ namespace CinemaS.Controllers
                     }
 
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Đã xóa {seatsToDelete.Count} ghế trong hàng {request.RowLabel}", affectedSeats });
+                    return Json(new { success = true, message = $"Đã xóa {seatsToDelete.Count} ghế trong hàng {request.RowLabel} (bỏ qua lối đi)", affectedSeats });
                 }
 
                 // ✅ HANDLE RESTORE ACTION
@@ -1218,11 +1223,16 @@ namespace CinemaS.Controllers
                     if (normalType == null)
                         return Json(new { success = false, message = "Không tìm thấy loại ghế NORMAL" });
 
+                    // ✅ FIX: Skip aisle seats when restoring
                     var seatsToRestore = await _context.Seats
                         .Where(s => s.CinemaTheaterId == request.CinemaTheaterId 
                                  && s.RowIndex == request.RowLabel 
+                                 && !s.IsAisle
                                  && (s.IsDeleted || !s.IsActive))
                         .ToListAsync();
+
+                    if (!seatsToRestore.Any())
+                        return Json(new { success = false, message = "Không có ghế nào cần khôi phục" });
 
                     var affectedSeats = new List<object>();
 
@@ -1240,6 +1250,7 @@ namespace CinemaS.Controllers
                             seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
                             isActive = seat.IsActive,
                             isDeleted = seat.IsDeleted,
+                            isAisle = seat.IsAisle,
                             pairId = seat.PairId,
                             label = seat.Label,
                             rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1254,11 +1265,16 @@ namespace CinemaS.Controllers
                 // ✅ HANDLE BROKEN ACTION
                 if (actionType == "BROKEN")
                 {
+                    // ✅ FIX: Skip aisle seats when marking broken
                     var rowSeats = await _context.Seats
                         .Where(s => s.CinemaTheaterId == request.CinemaTheaterId 
                                  && s.RowIndex == request.RowLabel 
-                                 && !s.IsDeleted)
+                                 && !s.IsDeleted
+                                 && !s.IsAisle)
                         .ToListAsync();
+
+                    if (!rowSeats.Any())
+                        return Json(new { success = false, message = "Không có ghế hợp lệ để đánh dấu hỏng (có thể chỉ có lối đi)" });
 
                     var bookedSeatIds = await _context.Tickets
                         .Where(t => rowSeats.Select(s => s.SeatId).Contains(t.SeatId) && t.Status == 2)
@@ -1269,7 +1285,6 @@ namespace CinemaS.Controllers
                         return Json(new { success = false, message = $"Có {bookedSeatIds.Count} ghế đã được đặt, không thể thay đổi" });
 
                     var affectedSeats = new List<object>();
-                    var normalType = await _context.SeatTypes.FirstOrDefaultAsync(st => st.Name == "NORMAL");
 
                     foreach (var seat in rowSeats)
                     {
@@ -1296,6 +1311,7 @@ namespace CinemaS.Controllers
                             seatTypeName = st?.Name ?? "NORMAL",
                             isActive = false,
                             isDeleted = seat.IsDeleted,
+                            isAisle = seat.IsAisle,
                             pairId = (string?)null,
                             label = seat.Label,
                             rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1304,7 +1320,7 @@ namespace CinemaS.Controllers
                     }
 
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Đã đánh dấu {rowSeats.Count} ghế hỏng trong hàng {request.RowLabel}", affectedSeats });
+                    return Json(new { success = true, message = $"Đã đánh dấu {rowSeats.Count} ghế hỏng trong hàng {request.RowLabel} (bỏ qua lối đi)", affectedSeats });
                 }
 
                 // ✅ HANDLE NORMAL SEAT TYPES (NORMAL, VIP, COUPLE)
@@ -1312,14 +1328,16 @@ namespace CinemaS.Controllers
                 if (seatType == null)
                     return Json(new { success = false, message = "Loại ghế không tồn tại" });
 
+                // ✅ FIX: Skip aisle seats when changing seat type - only get non-aisle seats
                 var allSeats = await _context.Seats
                     .Where(s => s.CinemaTheaterId == request.CinemaTheaterId 
                              && s.RowIndex == request.RowLabel 
-                             && !s.IsDeleted)
+                             && !s.IsDeleted
+                             && !s.IsAisle)
                     .ToListAsync();
 
                 if (!allSeats.Any())
-                    return Json(new { success = false, message = "Không tìm thấy ghế trong hàng này" });
+                    return Json(new { success = false, message = "Không có ghế hợp lệ trong hàng này (có thể chỉ có lối đi)" });
 
                 // Check for booked seats
                 var bookedSeats = await _context.Tickets
@@ -1344,7 +1362,7 @@ namespace CinemaS.Controllers
                     }
                 }
 
-                // Update all seats
+                // Update all non-aisle seats
                 foreach (var seat in allSeats)
                 {
                     seat.SeatTypeId = request.SeatTypeId;
@@ -1355,10 +1373,11 @@ namespace CinemaS.Controllers
                     affectedSeatsList.Add(new
                     {
                         seatId = seat.SeatId,
-                        seatTypeId = seat.SeatId,
-                        seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
+                        seatTypeId = seat.SeatTypeId,
+                        seatTypeName = seatType.Name,
                         isActive = seat.IsActive,
                         isDeleted = seat.IsDeleted,
+                        isAisle = seat.IsAisle,
                         pairId = seat.PairId,
                         label = seat.Label,
                         rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1368,12 +1387,12 @@ namespace CinemaS.Controllers
 
                 await _context.SaveChangesAsync();
 
-                Console.WriteLine($"✅ UpdateRowSeatType SUCCESS: {affectedSeatsList.Count} seats updated in row {request.RowLabel}");
+                Console.WriteLine($"✅ UpdateRowSeatType SUCCESS: {affectedSeatsList.Count} seats updated in row {request.RowLabel} (skipped aisles)");
 
                 return Json(new
                 {
                     success = true,
-                    message = $"Đã cập nhật {affectedSeatsList.Count} ghế trong hàng {request.RowLabel}",
+                    message = $"Đã cập nhật {affectedSeatsList.Count} ghế trong hàng {request.RowLabel} (bỏ qua lối đi)",
                     affectedSeats = affectedSeatsList
                 });
             }
@@ -1405,7 +1424,11 @@ namespace CinemaS.Controllers
                         .Where(s => s.CinemaTheaterId == request.CinemaTheaterId && s.ColumnIndex == request.ColumnIndex)
                         .ToListAsync();
 
-                    var seatsToDelete = allColumnSeats.Where(s => !s.IsDeleted).ToList();
+                    // ✅ FIX: Skip aisle seats when deleting
+                    var seatsToDelete = allColumnSeats.Where(s => !s.IsDeleted && !s.IsAisle).ToList();
+
+                    if (!seatsToDelete.Any())
+                        return Json(new { success = false, message = "Không có ghế hợp lệ để xóa (có thể chỉ có lối đi)" });
 
                     var bookedSeatIds = await _context.Tickets
                         .Where(t => seatsToDelete.Select(s => s.SeatId).Contains(t.SeatId) && t.Status == 2)
@@ -1446,6 +1469,7 @@ namespace CinemaS.Controllers
                             seatTypeName = st?.Name ?? "NORMAL",
                             isActive = seat.IsActive,
                             isDeleted = true,
+                            isAisle = seat.IsAisle,
                             pairId = (string?)null,
                             label = seat.Label,
                             rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1454,7 +1478,7 @@ namespace CinemaS.Controllers
                     }
 
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Đã xóa {seatsToDelete.Count} ghế trong cột {request.ColumnIndex}", affectedSeats });
+                    return Json(new { success = true, message = $"Đã xóa {seatsToDelete.Count} ghế trong cột {request.ColumnIndex} (bỏ qua lối đi)", affectedSeats });
                 }
 
                 // ✅ HANDLE RESTORE ACTION
@@ -1464,11 +1488,16 @@ namespace CinemaS.Controllers
                     if (normalType == null)
                         return Json(new { success = false, message = "Không tìm thấy loại ghế NORMAL" });
 
+                    // ✅ FIX: Skip aisle seats when restoring
                     var seatsToRestore = await _context.Seats
                         .Where(s => s.CinemaTheaterId == request.CinemaTheaterId 
                                  && s.ColumnIndex == request.ColumnIndex 
+                                 && !s.IsAisle
                                  && (s.IsDeleted || !s.IsActive))
                         .ToListAsync();
+
+                    if (!seatsToRestore.Any())
+                        return Json(new { success = false, message = "Không có ghế nào cần khôi phục" });
 
                     var affectedSeats = new List<object>();
 
@@ -1486,6 +1515,7 @@ namespace CinemaS.Controllers
                             seatTypeName = (await _context.SeatTypes.FindAsync(seat.SeatTypeId))?.Name ?? "NORMAL",
                             isActive = seat.IsActive,
                             isDeleted = seat.IsDeleted,
+                            isAisle = seat.IsAisle,
                             pairId = seat.PairId,
                             label = seat.Label,
                             rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1500,11 +1530,16 @@ namespace CinemaS.Controllers
                 // ✅ HANDLE BROKEN ACTION
                 if (actionType == "BROKEN")
                 {
+                    // ✅ FIX: Skip aisle seats when marking broken
                     var columnSeats = await _context.Seats
                         .Where(s => s.CinemaTheaterId == request.CinemaTheaterId 
                                  && s.ColumnIndex == request.ColumnIndex 
-                                 && !s.IsDeleted)
+                                 && !s.IsDeleted
+                                 && !s.IsAisle)
                         .ToListAsync();
+
+                    if (!columnSeats.Any())
+                        return Json(new { success = false, message = "Không có ghế hợp lệ để đánh dấu hỏng (có thể chỉ có lối đi)" });
 
                     var bookedSeatIds = await _context.Tickets
                         .Where(t => columnSeats.Select(s => s.SeatId).Contains(t.SeatId) && t.Status == 2)
@@ -1541,6 +1576,7 @@ namespace CinemaS.Controllers
                             seatTypeName = st?.Name ?? "NORMAL",
                             isActive = false,
                             isDeleted = seat.IsDeleted,
+                            isAisle = seat.IsAisle,
                             pairId = (string?)null,
                             label = seat.Label,
                             rowNumber = GetRowNumberFromLabel(seat.RowIndex),
@@ -1549,7 +1585,7 @@ namespace CinemaS.Controllers
                     }
 
                     await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = $"Đã đánh dấu {columnSeats.Count} ghế hỏng trong cột {request.ColumnIndex}", affectedSeats });
+                    return Json(new { success = true, message = $"Đã đánh dấu {columnSeats.Count} ghế hỏng trong cột {request.ColumnIndex} (bỏ qua lối đi)", affectedSeats });
                 }
 
                 // ✅ HANDLE NORMAL SEAT TYPES (NORMAL, VIP, COUPLE)
@@ -1560,7 +1596,8 @@ namespace CinemaS.Controllers
                 var allSeats = await _context.Seats
                     .Where(s => s.CinemaTheaterId == request.CinemaTheaterId 
                              && s.ColumnIndex == request.ColumnIndex 
-                             && !s.IsDeleted)
+                             && !s.IsDeleted
+                             && !s.IsAisle)
                     .ToListAsync();
 
                 if (!allSeats.Any())
@@ -1613,12 +1650,12 @@ namespace CinemaS.Controllers
 
                 await _context.SaveChangesAsync();
 
-                Console.WriteLine($"✅ UpdateColumnSeatType SUCCESS: {affectedSeatsList.Count} seats updated in column {request.ColumnIndex}");
+                Console.WriteLine($"✅ UpdateColumnSeatType SUCCESS: {affectedSeatsList.Count} seats updated in column {request.ColumnIndex} (skipped aisles)");
 
                 return Json(new
                 {
                     success = true,
-                    message = $"Đã cập nhật {affectedSeatsList.Count} ghế trong cột {request.ColumnIndex}",
+                    message = $"Đã cập nhật {affectedSeatsList.Count} ghế trong cột {request.ColumnIndex} (bỏ qua lối đi)",
                     affectedSeats = affectedSeatsList
                 });
             }
@@ -2025,7 +2062,7 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ RestoreSeatFromAisle ERROR: {ex.Message}");
+                Console.WriteLine($"❌ RestoreSeatFromAisle ERROR: {ex.Message}"); 
                 return Json(new { success = false, message = $"Lỗi: {ex.Message}" });
             }
         }

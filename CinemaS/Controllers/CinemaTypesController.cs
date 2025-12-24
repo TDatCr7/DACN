@@ -93,14 +93,8 @@ namespace CinemaS.Controllers
             // Remove ID from ModelState validation
             ModelState.Remove(nameof(cinemaTypes.CinemaTypeId));
 
-            Console.WriteLine("=== CREATE CINEMA TYPE ===");
-            Console.WriteLine($"Name: {cinemaTypes?.Name}");
-            Console.WriteLine($"Code: {cinemaTypes?.Code}");
-
             if (!ModelState.IsValid)
             {
-                Console.WriteLine("❌ ModelState INVALID");
-                TempData["Error"] = "Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(cinemaTypes);
             }
 
@@ -108,7 +102,6 @@ namespace CinemaS.Controllers
             {
                 // Auto-generate ID: CTY001, CTY002, CTY003...
                 cinemaTypes!.CinemaTypeId = await GenerateNewCinemaTypeIdAsync();
-                Console.WriteLine($"Generated ID: {cinemaTypes.CinemaTypeId}");
 
                 _context.Add(cinemaTypes);
                 await _context.SaveChangesAsync();
@@ -118,12 +111,6 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ EXCEPTION: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"❌ INNER: {ex.InnerException.Message}");
-                }
-
                 TempData["Error"] = ex.InnerException == null
                 ? $"Lỗi: {ex.Message}"
                  : $"Lỗi: {ex.Message} | Chi tiết: {ex.InnerException.Message}";
@@ -159,7 +146,6 @@ namespace CinemaS.Controllers
 
             if (!ModelState.IsValid)
             {
-                TempData["Error"] = "Vui lòng kiểm tra lại thông tin đã nhập!";
                 return View(cinemaTypes);
             }
 
@@ -193,7 +179,6 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ EXCEPTION: {ex.Message}");
                 TempData["Error"] = $"Lỗi: {ex.Message}";
                 return View(cinemaTypes);
             }
@@ -255,7 +240,6 @@ namespace CinemaS.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ DELETE ERROR: {ex.Message}");
                 TempData["Error"] = $"Lỗi khi xóa: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }

@@ -39,31 +39,38 @@
 
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
 
-            <form asp-action="Create" method="post" id="ticketTypeCreateForm">
+            <form asp-action="Create" method="post" id="ticketTypeCreateForm" novalidate>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                <div id="validationMessage" class="text-danger mb-3" style="display:none;"></div>
 
                 <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                     Thông tin loại vé
                 </div>
 
+                @if (ViewBag.NextTicketTypeId != null)
+                {
+                    <div class="alert alert-info mb-3" style="border-radius:10px; color:#000;">
+                        <i class="fa-solid fa-info-circle"></i> Mã loại vé tự động: <strong>@ViewBag.NextTicketTypeId</strong>
+                    </div>
+                }
+
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="Name" class="form-label">Tên loại vé</label>
+                        <label asp-for="Name" class="form-label">Tên loại vé <span class="text-danger">*</span></label>
                         <input asp-for="Name" class="form-control" placeholder="Ví dụ: Người lớn, Trẻ em, HSSV..." />
                         <span asp-validation-for="Name" class="text-danger"></span>
                     </div>
 
                     <div class="col-md-6">
+                        <label asp-for="Price" class="form-label">Giá vé (VNĐ) <span class="text-danger">*</span></label>
+                        <input asp-for="Price" type="number" min="0" class="form-control" placeholder="Ví dụ: 75000" />
+                        <span asp-validation-for="Price" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-12">
                         <label asp-for="Description" class="form-label">Mô tả</label>
                         <textarea asp-for="Description" class="form-control" rows="3" placeholder="Mô tả ngắn gọn điều kiện áp dụng (nếu có)..."></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label asp-for="Price" class="form-label">Giá vé (VNĐ)</label>
-                        <input asp-for="Price" type="number" min="0" class="form-control" placeholder="Ví dụ: 75000" />
-                        <span asp-validation-for="Price" class="text-danger"></span>
                     </div>
                 </div>
             </form>
@@ -79,18 +86,38 @@
             const form = document.getElementById('ticketTypeCreateForm');
             const nameInput = document.querySelector('input[name="Name"]');
             const priceInput = document.querySelector('input[name="Price"]');
+            const validationMsg = document.getElementById('validationMessage');
+            let hideTimeout = null;
+
+            function showValidationMessage(message) {
+                validationMsg.textContent = message;
+                validationMsg.style.display = 'block';
+                
+                if (hideTimeout) clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => {
+                    validationMsg.style.display = 'none';
+                }, 3000);
+            }
 
             form.addEventListener('submit', e => {
-                const errors = [];
+                let hasEmpty = false;
+                let hasInvalid = false;
 
-                if (!nameInput.value.trim())
-                    errors.push("• Tên loại vé không được để trống");
-                if (!priceInput.value || Number(priceInput.value) <= 0)
-                    errors.push("• Giá phải lớn hơn 0");
+                if (!nameInput.value.trim()) {
+                    hasEmpty = true;
+                }
+                if (!priceInput.value || Number(priceInput.value) <= 0) {
+                    if (!priceInput.value) hasEmpty = true;
+                    else hasInvalid = true;
+                }
 
-                if (errors.length > 0) {
+                if (hasEmpty || hasInvalid) {
                     e.preventDefault();
-                    alert("Vui lòng kiểm tra lại:\n\n" + errors.join("\n"));
+                    if (hasEmpty) {
+                        showValidationMessage('Vui lòng điền đủ thông tin');
+                    } else {
+                        showValidationMessage('Thông tin không hợp lệ');
+                    }
                 }
             });
         })();

@@ -95,6 +95,81 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
+        (function () {
+            const form = document.getElementById('cinemaTheaterEditForm');
+            if (!form) return;
+
+            // Ensure browser native validation UI does not appear for this form
+            form.setAttribute('novalidate', 'novalidate');
+
+            const getField = (name) => form.querySelector('[name="' + name + '"]');
+            const getErrorSpan = (name) => form.querySelector('span[data-valmsg-for="' + name + '"]');
+
+            const nameInput = getField('Name');
+            const cinemaTypeSelect = getField('CinemaTypeId');
+            const movieTheaterSelect = getField('MovieTheaterId');
+
+            const hideMessages = () => {
+                const messages = form.querySelectorAll('.text-danger');
+                messages.forEach(m => { m.style.display = 'none'; });
+            };
+
+            // Initially hide validation messages in this form
+            hideMessages();
+
+            let hideTimeout = null;
+
+            form.addEventListener('submit', function (e) {
+                let isValid = true;
+
+                // Clear previous messages inside this form
+                const nameSpan = getErrorSpan('Name');
+                const typeSpan = getErrorSpan('CinemaTypeId');
+                const theaterSpan = getErrorSpan('MovieTheaterId');
+                const summary = form.querySelector('[asp-validation-summary]') || form.querySelector('div[asp-validation-summary]') || form.querySelector('.text-danger');
+
+                if (nameSpan) { nameSpan.style.display = 'none'; }
+                if (typeSpan) { typeSpan.style.display = 'none'; }
+                if (theaterSpan) { theaterSpan.style.display = 'none'; }
+                if (summary) { summary.style.display = 'none'; summary.textContent = ''; }
+
+                // Validate Name
+                if (!nameInput || !nameInput.value || !nameInput.value.trim()) {
+                    isValid = false;
+                    if (nameSpan) { nameSpan.textContent = 'Vui lòng điền đủ thông tin'; nameSpan.style.display = 'block'; }
+                } else if (nameInput.value.trim().length < 3) {
+                    isValid = false;
+                    if (nameSpan) { nameSpan.textContent = 'Thông tin không hợp lệ'; nameSpan.style.display = 'block'; }
+                }
+
+                // Validate CinemaTypeId
+                if (!cinemaTypeSelect || !cinemaTypeSelect.value) {
+                    isValid = false;
+                    if (typeSpan) { typeSpan.textContent = 'Vui lòng điền đủ thông tin'; typeSpan.style.display = 'block'; }
+                }
+
+                // Validate MovieTheaterId
+                if (!movieTheaterSelect || !movieTheaterSelect.value) {
+                    isValid = false;
+                    if (theaterSpan) { theaterSpan.textContent = 'Vui lòng điền đủ thông tin'; theaterSpan.style.display = 'block'; }
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+
+                    // Auto-hide messages after 3 seconds
+                    if (hideTimeout) clearTimeout(hideTimeout);
+                    hideTimeout = setTimeout(() => {
+                        hideMessages();
+                    }, 3000);
+                }
+
+                // If valid, allow normal submit flow
+            });
+
+            // Keep fading out generic alerts if present (non-validation)
+            setTimeout(() => $('.alert').fadeOut('slow'), 5000);
+        })();
     </script>
 }

@@ -34,6 +34,9 @@
 
         <div style="height:1px;background:rgba(148,163,255,.18);margin:8px 0 14px;"></div>
 
+        @* Alert messages for current page *@
+        <partial name="_FormAlerts" />
+
         <div class="admin-form-card" style="background:transparent;border:none;box-shadow:none;padding:0;">
             <div class="mb-2" style="font-weight:900;color:#c7d2fe;letter-spacing:.3px;">
                 Thông tin tỉnh/thành phố
@@ -79,9 +82,4 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-
-    <script>
-        // Tự động ẩn thông báo
-        setTimeout(() => $('.alert').fadeOut('slow'), 5000);
-    </script>
 }

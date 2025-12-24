@@ -7,6 +7,49 @@
 
 <link rel="stylesheet" href="~/css/management.css" />
 
+<style>
+    /* Modal xác nhận xóa */
+    #deleteModal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        z-index: 1051;
+        min-width: 400px;
+    }
+    #deleteModal .modal-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: black;
+    }
+    #deleteModal .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    #deleteModal .modal-body {
+        margin-bottom: 15px;
+        color: black;
+    }
+    .modal-backdrop-custom {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+    }
+</style>
+
 <div class="admin-shell">
     <div class="admin-panel">
 
@@ -121,11 +164,12 @@
 								   title="Chỉnh sửa">
 									<i class="fa-solid fa-pen"></i>
 								</a>
-								<a asp-action="Delete" asp-route-id="@item.MovieTheaterId"
-								   class="admin-icon-btn admin-icon-btn-danger"
-								   title="Xóa">
+								<button type="button"
+								        class="admin-icon-btn admin-icon-btn-danger"
+								        title="Xóa"
+								        onclick="showDeletePopup('@item.MovieTheaterId', '@item.Name')">
 									<i class="fa-solid fa-trash-can"></i>
-								</a>
+								</button>
 							</td>
 						</tr>
 						index++;
@@ -151,3 +195,46 @@
 	<div class="mt-4"></div>
 </div>
 </div>
+
+<!-- Modal Xác nhận xóa -->
+<div class="modal-backdrop-custom" id="modalBackdrop"></div>
+<div id="deleteModal">
+    <div class="modal-header">Xác nhận xóa</div>
+    <div class="modal-body" id="deleteMessage">Bạn có chắc chắn muốn xóa rạp chiếu này không?</div>
+    <div class="modal-footer" id="deleteButtons">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+        <form id="deleteForm" method="post" style="display:inline;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger">Xóa</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let deleteId = null;
+
+        function showDeletePopup(id, name) {
+            deleteId = id;
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            const deleteForm = document.getElementById("deleteForm");
+
+            deleteForm.action = `/MovieTheaters/Delete/${id}`;
+            document.getElementById("deleteMessage").innerText = `Bạn có chắc chắn muốn xóa rạp chiếu "${name}" không?`;
+
+            modal.style.display = "block";
+            backdrop.style.display = "block";
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("deleteModal");
+            const backdrop = document.getElementById("modalBackdrop");
+            modal.style.display = "none";
+            backdrop.style.display = "none";
+        }
+
+        // Đóng modal khi click vào backdrop
+        document.getElementById("modalBackdrop").addEventListener("click", closeModal);
+    </script>
+}

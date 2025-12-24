@@ -30,16 +30,25 @@
 			<div class="info-value">@Model.Name</div>
 
 			<div class="info-label">Giá:</div>
-			<div class="info-value">@Model.Price VNĐ</div>
+			<div class="info-value">@Model.Price?.ToString("N0") VNĐ</div>
 
 			<div class="info-label">Hình ảnh:</div>
-			<div class="info-value">@Model.Image</div>
+			<div class="info-value">
+				@if (!string.IsNullOrEmpty(Model.Image))
+				{
+					<img src="@Model.Image" alt="@Model.Name" style="max-width:100px; border-radius:8px;" />
+				}
+				else
+				{
+					<span class="text-muted">Không có ảnh</span>
+				}
+			</div>
 
 			<div class="info-label">Mô tả:</div>
 			<div class="info-value">@Model.Description</div>
 
 			<div class="info-label">Trạng thái:</div>
-			<div class="info-value">@(Model.IsActive ? "Hoạt động" : "Không hoạt động")</div>
+			<div class="info-value">@(Model.IsActive == true ? "Hoạt động" : "Không hoạt động")</div>
 		</div>
 
 		<div class="d-flex justify-content-between mt-4">
@@ -47,7 +56,7 @@
 				<i class="fas fa-arrow-left"></i> Quay lại
 			</button>
 
-			<form asp-action="Delete" method="post" style="display: inline;" onsubmit="return confirmDelete();">
+			<form asp-action="Delete" method="post" style="display: inline;">
 				<input type="hidden" asp-for="SnackId" />
 				<button type="submit" class="btn btn-danger">
 					<i class="fas fa-trash"></i> Xóa
@@ -56,11 +65,3 @@
 		</div>
 	</div>
 </div>
-
-@section Scripts {
-	<script>
-		function confirmDelete() {
-			return confirm('Bạn có CHẮC CHẮN muốn xóa đồ ăn này không?');
-		}
-	</script>
-}
