@@ -529,15 +529,12 @@
         let promoPercent = null;
         let promoDiscountAmount = 0;
 
-        // ✅ FIX: Khai báo biến appliedPromo để lưu thông tin promotion
         let appliedPromo = null;
-
-        // ✅ FIX: Khai báo biến currentCustomerInfo để lưu thông tin khách hàng
         let currentCustomerInfo = null;
 
         const PROMO_VALIDATE_URL = '/Admin/ValidatePromotion';
 
-                async function readJsonSafe(res) {
+        async function readJsonSafe(res) {
             const status = res.status;
             const redirected = res.redirected;
             const url = res.url;
@@ -574,7 +571,6 @@
             }
         }
 
-
         function toQueryString(obj) {
             const p = new URLSearchParams();
             for (const [k, v] of Object.entries(obj || {})) {
@@ -585,14 +581,12 @@
         }
 
         async function fetchJsonAuto(url, payload) {
-            // thử POST JSON trước
             let res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload || {})
             });
 
-            // nếu server không cho POST -> thử GET
             if (res.status === 405) {
                 const qs = toQueryString(payload || {});
                 const urlGet = qs ? `${url}?${qs}` : url;
@@ -620,13 +614,9 @@
             return (n || 0).toLocaleString('vi-VN') + ' đ';
         }
 
-        // ✅ FIX: Ghế đôi = giá × 2
+        // ✅ FIX: Tính tổng ghế - không nhân đôi vì giá trong selectedSeats đã là tổng giá
         function getSeatTotal() {
-            return selectedSeats.reduce((sum, s) => {
-                const base = s.price || 0;
-                const finalPrice = s.isCouple ? base * 2 : base;
-                return sum + finalPrice;
-            }, 0);
+            return selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
         }
 
         function getSnackTotal() {
@@ -680,7 +670,6 @@
             if (subTotalSpan) subTotalSpan.textContent = formatVND(subTotal);
             if (snackTotalInline) snackTotalInline.textContent = formatVND(snackTotal);
 
-            // render danh sách snack (text-only)
             if (snackListEl) {
                 if (!selectedSnacks.length) {
                     snackListEl.innerHTML = `<div class="snack-empty">Chưa chọn</div>`;
@@ -712,7 +701,6 @@
             if (totalPriceSpan) totalPriceSpan.textContent = formatVND(totalAfter);
             if (btnBook) btnBook.disabled = (selectedSeats.length === 0);
 
-            // subtotal thay đổi sau khi áp mã => reset
             if (appliedPromo && appliedPromo.subTotalSnapshot !== subTotal) {
                 resetPromoUI('Mã đã bị gỡ vì tổng tiền thay đổi.', 'promo-msg-warn');
                 const promoInput = document.getElementById('promoCode');
@@ -720,7 +708,6 @@
                 if (totalPriceSpan) totalPriceSpan.textContent = formatVND(subTotal);
             }
         }
-
 
         async function applyPromo() {
             const code = (document.getElementById('promoCode')?.value || '').trim();
@@ -853,23 +840,29 @@
                     const userIcons = element.querySelector('.user-icons');
                     if (userIcons) userIcons.style.display = 'none';
 
-                    ids.forEach(id => {
-                        selectedSeats = selectedSeats.filter(s => s.id !== id);
+                    // ✅ FIX: Xóa entry ghế đôi (dựa vào allIds)
+                    selectedSeats = selectedSeats.filter(s => {
+                        if (s.allIds) {
+                            return !ids.some(id => s.allIds.includes(id));
+                        }
+                        return !ids.includes(s.id);
                     });
                 } else {
                     element.classList.add('selected');
                     const userIcons = element.querySelector('.user-icons');
                     if (userIcons) userIcons.style.display = 'flex';
 
-                    // ✅ FIX: Ghế đôi = cộng cả 2 ghế vào danh sách
-                    for (let i = 0; i < ids.length; i++) {
-                        selectedSeats.push({
-                            id: ids[i],
-                            label: labels[i] || ids[i],
-                            price: prices[i] ?? 0,
-                            isCouple: true
-                        });
-                    }
+                    // ✅ FIX: Lưu ghế đôi như 1 entry với tổng giá của cả 2 ghế
+                    const totalPrice = prices.reduce((sum, p) => sum + p, 0);
+                    const combinedLabel = labels.join('-');
+                    
+                    selectedSeats.push({
+                        id: ids[0],
+                        allIds: ids,
+                        label: combinedLabel,
+                        price: totalPrice,
+                        isCouple: true
+                    });
                 }
             } else {
                 const id = element.getAttribute('data-seat-id');
@@ -1046,7 +1039,8 @@
             showBookingLoading(true);
 
             try {
-                const allSeatIds = Array.from(new Set(selectedSeats.map(s => s.id)));
+                // ✅ FIX: Gửi tất cả IDs (sử dụng allIds nếu là ghế đôi)
+                const allSeatIds = selectedSeats.flatMap(s => s.allIds || [s.id]);
 
                 const snacksData = selectedSnacks.map(snack => ({
                     snackId: snack.id,
@@ -1080,7 +1074,6 @@
                 currentInvoiceId = bookData.invoiceId;
                 currentInvoiceAmount = bookData.totalPrice || 0;
 
-                // Lưu promo vào Invoice (chỉ khi đang còn hợp lệ theo subtotal hiện tại)
                 const subTotalNow = getSubTotal();
                 if (appliedPromo && appliedPromo.code && appliedPromo.subTotalSnapshot === subTotalNow) {
                     try {
@@ -1239,7 +1232,7 @@
                             el.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 16px;"></i>';
                         }
 
-                        selectedSeats = selectedSeats.filter(s => s.id !== id);
+                        selectedSeats = selectedSeats.filter(s => s.id !== id && (!s.allIds || !s.allIds.includes(id)));
                     }
                 });
 
@@ -1260,8 +1253,12 @@
                         const userIcons = el.querySelector('.user-icons');
                         if (userIcons) userIcons.style.display = 'none';
 
-                        ids.forEach(id => {
-                            selectedSeats = selectedSeats.filter(s => s.id !== id);
+                        // ✅ FIX: Xóa entry ghế đôi khỏi selectedSeats
+                        selectedSeats = selectedSeats.filter(s => {
+                            if (s.allIds) {
+                                return !ids.some(id => s.allIds.includes(id));
+                            }
+                            return !ids.includes(s.id);
                         });
                     }
                 });
@@ -1280,7 +1277,7 @@
             if (ov) ov.classList.remove('show');
         }
 
-                async function payWithVnPayFromMethod() {
+        async function payWithVnPayFromMethod() {
             if (!currentInvoiceId || !currentInvoiceAmount) {
                 showBookingToast('❌ Thiếu thông tin hóa đơn.', 'error');
                 return;
@@ -1303,7 +1300,6 @@
                     return;
                 }
 
-                // nếu server trả JSON lỗi thì show message; nếu không có JSON thì show theo HTTP
                 const msg = payData?.message
                     || (res.status === 405 ? 'Sai method cho /Payment/Create (server không cho POST/GET theo cách hiện tại).' : null)
                     || 'Không tạo được URL thanh toán VNPay.';
@@ -1316,8 +1312,7 @@
             }
         }
 
-
-                async function payWithCash() {
+        async function payWithCash() {
             if (!currentInvoiceId) {
                 showBookingToast('❌ Thiếu mã hóa đơn.', 'error');
                 return;
@@ -1347,7 +1342,6 @@
                 showBookingLoading(false);
             }
         }
-
 
         function syncSeatOverflowClass() {
             const wrapper = document.querySelector('.seat-layout-scroll-wrapper');

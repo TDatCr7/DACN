@@ -915,12 +915,9 @@
             syncTotalsToUI();
         }
 
+        // ✅ FIX: Tính tổng ghế - không nhân đôi vì giá trong selectedSeats đã là tổng giá
         function getSeatTotal() {
-            return selectedSeats.reduce((sum, s) => {
-                const base = s.price || 0;
-                const finalPrice = s.isCouple ? base * 2 : base;
-                return sum + finalPrice;
-            }, 0);
+            return selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
         }
 
         function renderSnackSummaryList() {
@@ -1056,20 +1053,30 @@
                     element.classList.remove('selected');
                     const userIcons = element.querySelector('.user-icons');
                     if (userIcons) userIcons.style.display = 'none';
-                    ids.forEach(id => { selectedSeats = selectedSeats.filter(s => s.id !== id); });
+                    
+                    // ✅ FIX: Xóa entry ghế đôi (dựa vào allIds)
+                    selectedSeats = selectedSeats.filter(s => {
+                        if (s.allIds) {
+                            return !ids.some(id => s.allIds.includes(id));
+                        }
+                        return !ids.includes(s.id);
+                    });
                 } else {
                     element.classList.add('selected');
                     const userIcons = element.querySelector('.user-icons');
                     if (userIcons) userIcons.style.display = 'flex';
 
-                    for (let i = 0; i < ids.length; i++) {
-                        selectedSeats.push({
-                            id: ids[i],
-                            label: labels[i] || ids[i],
-                            price: prices[i] ?? 0,
-                            isCouple: true
-                        });
-                    }
+                    // ✅ FIX: Lưu ghế đôi như 1 entry với tổng giá của cả 2 ghế
+                    const totalPrice = prices.reduce((sum, p) => sum + p, 0);
+                    const combinedLabel = labels.join('-');
+                    
+                    selectedSeats.push({
+                        id: ids[0],
+                        allIds: ids,
+                        label: combinedLabel,
+                        price: totalPrice,
+                        isCouple: true
+                    });
                 }
             } else {
                 const id = element.getAttribute('data-seat-id');
@@ -1336,7 +1343,8 @@
             showBookingLoading(true);
 
             try {
-                const allSeatIds = Array.from(new Set(selectedSeats.map(s => s.id)));
+                // ✅ FIX: Gửi tất cả IDs (sử dụng allIds nếu là ghế đôi)
+                const allSeatIds = selectedSeats.flatMap(s => s.allIds || [s.id]);
 
                 const snacksData = selectedSnacks.map(snack => ({
                     snackId: snack.id,
@@ -1412,7 +1420,7 @@
                         if (!existingIcon) {
                             el.innerHTML = '<i class="fas fa-check" style="color: white; font-size: 16px;"></i>';
                         }
-                        selectedSeats = selectedSeats.filter(s => s.id !== id);
+                        selectedSeats = selectedSeats.filter(s => s.id !== id && (!s.allIds || !s.allIds.includes(id)));
                     }
                 });
 
@@ -1430,7 +1438,14 @@
                         }
                         const userIcons = el.querySelector('.user-icons');
                         if (userIcons) userIcons.style.display = 'none';
-                        ids.forEach(id => selectedSeats = selectedSeats.filter(s => s.id !== id));
+                        
+                        // ✅ FIX: Xóa entry ghế đôi khỏi selectedSeats
+                        selectedSeats = selectedSeats.filter(s => {
+                            if (s.allIds) {
+                                return !ids.some(id => s.allIds.includes(id));
+                            }
+                            return !ids.includes(s.id);
+                        });
                     }
                 });
 
