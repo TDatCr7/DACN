@@ -275,6 +275,10 @@ namespace CinemaS.Services
 
             var qrImageBytes = GenerateQrImage(qrContent.ToQrString(), 8);
 
+            // ✅ Get invoice to check for promotion/discount
+            var invoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
             using var ms = new MemoryStream();
             using var writer = new PdfWriter(ms);
             using var pdf = new PdfDocument(writer);
@@ -303,39 +307,75 @@ namespace CinemaS.Services
             // Title
             var title = new Paragraph("VÉ XEM PHIM - CINEMAS")
                 .SetFont(boldFont)
-                .SetFontSize(18)
+                .SetFontSize(16)
                 .SetTextAlignment(TextAlignment.CENTER)
-                .SetMarginBottom(20);
-            document.Add(title);
+                .SetMarginBottom(10);
+
+            // reduce overall margins so content fits on a single page
+            document.SetMargins(20, 20, 20, 20);
+
+            // Use a container to keep the main block together on one page
+            var mainDiv = new iText.Layout.Element.Div().SetKeepTogether(true);
+
+            mainDiv.Add(title);
 
             // QR Code
             var qrImage = new Image(ImageDataFactory.Create(qrImageBytes))
-                .SetWidth(120)
-                .SetHeight(120)
-                .SetHorizontalAlignment(HorizontalAlignment.CENTER);
-            document.Add(qrImage);
+                .SetWidth(100)
+                .SetHeight(100)
+                .SetHorizontalAlignment(HorizontalAlignment.CENTER)
+                .SetMarginBottom(8);
+            mainDiv.Add(qrImage);
 
-            document.Add(new Paragraph().SetMarginBottom(15));
+            mainDiv.Add(new Paragraph().SetMarginBottom(6));
 
             // Movie info
-            document.Add(CreateInfoParagraphWithFont("PHIM:", validation.MovieTitle ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("RẠP:", validation.TheaterName ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("PHÒNG:", validation.RoomName ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("KHÁCH HÀNG:", validation.CustomerName ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("EMAIL:", validation.CustomerEmail ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{(validation.TotalPrice ?? 0):N0} VNĐ", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("PHIM:", validation.MovieTitle ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A", boldFont, font));
 
-            // Footer note
+            // FIX: Show Room and Theater on same line
+            string theaterRoom = $"{validation.RoomName ?? "N/A"} - {validation.TheaterName ?? "N/A"}";
+            mainDiv.Add(CreateInfoParagraphWithFont("PHÒNG - RẠP:", theaterRoom, boldFont, font));
+
+            mainDiv.Add(CreateInfoParagraphWithFont("KHÁCH HÀNG:", validation.CustomerName ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("EMAIL:", validation.CustomerEmail ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A", boldFont, font));
+
+            // Add discount information if promotion exists
+            bool hasPromotion = invoice != null && !string.IsNullOrWhiteSpace(invoice.PromotionId);
+            if (hasPromotion && invoice.OriginalTotal.HasValue && invoice.OriginalTotal.Value > 0)
+            {
+                decimal originalTotal = invoice.OriginalTotal.Value;
+                decimal payableAmount = invoice.TotalPrice ?? 0m;
+                decimal discountAmount = originalTotal - payableAmount;
+
+                if (discountAmount > 0)
+                {
+                    mainDiv.Add(CreateInfoParagraphWithFont("TỔNG TIỀN (GỐC):", $"{originalTotal:N0} VNĐ", boldFont, font));
+                    mainDiv.Add(CreateInfoParagraphWithFont("GIẢM GIÁ:", $"{discountAmount:N0} VNĐ", boldFont, font));
+                    mainDiv.Add(CreateInfoParagraphWithFont("TỔNG CỘNG:", $"{payableAmount:N0} VNĐ", boldFont, font));
+                }
+                else
+                {
+                    mainDiv.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{payableAmount:N0} VNĐ", boldFont, font));
+                }
+            }
+            else
+            {
+                mainDiv.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{(invoice?.TotalPrice ?? validation.TotalPrice ?? 0):N0} VNĐ", boldFont, font));
+            }
+
+            document.Add(mainDiv);
+
+            // Footer note (keep small and after main block)
             var footer = new Paragraph("Vui lòng mang theo vé điện tử này khi đến rạp. Xuất trình mã QR để được kiểm tra vé.")
                 .SetFont(font)
                 .SetFontSize(9)
                 .SetTextAlignment(TextAlignment.CENTER)
-                .SetMarginTop(20)
+                .SetMarginTop(12)
                 .SetFontColor(ColorConstants.GRAY);
             document.Add(footer);
 
@@ -353,6 +393,10 @@ namespace CinemaS.Services
             if (!validation.IsValid)
                 return null;
 
+            // ✅ Get invoice to check for promotion/discount
+            var invoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
             using var ms = new MemoryStream();
             using var writer = new PdfWriter(ms);
             using var pdf = new PdfDocument(writer);
@@ -381,39 +425,75 @@ namespace CinemaS.Services
             // Title
             var title = new Paragraph("VÉ XEM PHIM - CINEMAS")
                 .SetFont(boldFont)
-                .SetFontSize(18)
+                .SetFontSize(16)
                 .SetTextAlignment(TextAlignment.CENTER)
-                .SetMarginBottom(20);
-            document.Add(title);
+                .SetMarginBottom(10);
+
+            // reduce overall margins so content fits on a single page
+            document.SetMargins(20, 20, 20, 20);
+
+            // Use a container to keep the main block together on one page
+            var mainDiv = new iText.Layout.Element.Div().SetKeepTogether(true);
+
+            mainDiv.Add(title);
 
             // QR Code (reuse provided bytes)
             var qrImage = new Image(ImageDataFactory.Create(qrImageBytes))
-                .SetWidth(120)
-                .SetHeight(120)
-                .SetHorizontalAlignment(HorizontalAlignment.CENTER);
-            document.Add(qrImage);
+                .SetWidth(100)
+                .SetHeight(100)
+                .SetHorizontalAlignment(HorizontalAlignment.CENTER)
+                .SetMarginBottom(8);
+            mainDiv.Add(qrImage);
 
-            document.Add(new Paragraph().SetMarginBottom(15));
+            mainDiv.Add(new Paragraph().SetMarginBottom(6));
 
             // Movie info - use helper method with font
-            document.Add(CreateInfoParagraphWithFont("PHIM:", validation.MovieTitle ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("RẠP:", validation.TheaterName ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("PHÒNG:", validation.RoomName ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("KHÁCH HÀNG:", validation.CustomerName ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("EMAIL:", validation.CustomerEmail ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A", boldFont, font));
-            document.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{(validation.TotalPrice ?? 0):N0} VNĐ", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("PHIM:", validation.MovieTitle ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("MÃ HÓA ĐƠN:", validation.InvoiceId ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("GHẾ:", validation.SeatLabels != null ? string.Join(", ", validation.SeatLabels) : "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("NGÀY CHIẾU:", validation.ShowDate?.ToString("dd/MM/yyyy") ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("GIỜ CHIẾU:", validation.ShowTime?.ToString("HH:mm") ?? "N/A", boldFont, font));
 
-            // Footer note
+            // FIX: Show Room and Theater on same line
+            string theaterRoom = $"{validation.RoomName ?? "N/A"} - {validation.TheaterName ?? "N/A"}";
+            mainDiv.Add(CreateInfoParagraphWithFont("PHÒNG - RẠP:", theaterRoom, boldFont, font));
+
+            mainDiv.Add(CreateInfoParagraphWithFont("KHÁCH HÀNG:", validation.CustomerName ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("EMAIL:", validation.CustomerEmail ?? "N/A", boldFont, font));
+            mainDiv.Add(CreateInfoParagraphWithFont("NGÀY ĐẶT:", validation.BookingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A", boldFont, font));
+
+            // Add discount information if promotion exists
+            bool hasPromotion = invoice != null && !string.IsNullOrWhiteSpace(invoice.PromotionId);
+            if (hasPromotion && invoice.OriginalTotal.HasValue && invoice.OriginalTotal.Value > 0)
+            {
+                decimal originalTotal = invoice.OriginalTotal.Value;
+                decimal payableAmount = invoice.TotalPrice ?? 0m;
+                decimal discountAmount = originalTotal - payableAmount;
+
+                if (discountAmount > 0)
+                {
+                    mainDiv.Add(CreateInfoParagraphWithFont("TỔNG TIỀN (GỐC):", $"{originalTotal:N0} VNĐ", boldFont, font));
+                    mainDiv.Add(CreateInfoParagraphWithFont("GIẢM GIÁ:", $"{discountAmount:N0} VNĐ", boldFont, font));
+                    mainDiv.Add(CreateInfoParagraphWithFont("TỔNG CỘNG:", $"{payableAmount:N0} VNĐ", boldFont, font));
+                }
+                else
+                {
+                    mainDiv.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{payableAmount:N0} VNĐ", boldFont, font));
+                }
+            }
+            else
+            {
+                mainDiv.Add(CreateInfoParagraphWithFont("TỔNG TIỀN:", $"{(invoice?.TotalPrice ?? validation.TotalPrice ?? 0):N0} VNĐ", boldFont, font));
+            }
+
+            document.Add(mainDiv);
+
+            // Footer note (keep small and after main block)
             var footer = new Paragraph("Vui lòng mang theo vé điện tử này khi đến rạp. Xuất trình mã QR để được kiểm tra vé.")
                 .SetFont(font)
                 .SetFontSize(9)
                 .SetTextAlignment(TextAlignment.CENTER)
-                .SetMarginTop(20)
+                .SetMarginTop(12)
                 .SetFontColor(ColorConstants.GRAY);
             document.Add(footer);
 

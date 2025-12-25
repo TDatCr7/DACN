@@ -521,8 +521,18 @@ namespace CinemaS.Controllers
                     HttpContext.Session.Remove($"pending:{invoice.InvoiceId}");
                     HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
 
+                    // ✅ FIX: Populate discount info BEFORE sending email
                     if (vm.Detail != null)
+                    {
+                        var di = await GetDiscountInfoAsync(invoice.InvoiceId, invoice.TotalPrice);
+                        vm.Detail.OriginalAmount = di.original;
+                        vm.Detail.DiscountAmount = di.discount;
+                        vm.Detail.PayableAmount = di.payable;
+                        vm.Detail.DiscountPercent = di.percent;
+                        vm.Detail.PromotionName = di.promoName;
+                        
                         await SendTicketEmailAsync(invoice, vm.Detail);
+                    }
                 }
                 catch (DbUpdateException)
                 {
@@ -563,8 +573,18 @@ namespace CinemaS.Controllers
                     HttpContext.Session.Remove($"pending:{invoice.InvoiceId}");
                     HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
 
+                    // ✅ FIX: Populate discount info BEFORE sending email
                     if (vm.Detail != null)
+                    {
+                        var di = await GetDiscountInfoAsync(invoice.InvoiceId, invoice.TotalPrice);
+                        vm.Detail.OriginalAmount = di.original;
+                        vm.Detail.DiscountAmount = di.discount;
+                        vm.Detail.PayableAmount = di.payable;
+                        vm.Detail.DiscountPercent = di.percent;
+                        vm.Detail.PromotionName = di.promoName;
+                        
                         await SendTicketEmailAsync(invoice, vm.Detail);
+                    }
                 }
             }
             else
@@ -1732,23 +1752,7 @@ namespace CinemaS.Controllers
 
             string txnId = $"PT{nextNum:D8}";
 
-            // ✅ NEW: PaidAt lưu UTC nhưng lấy theo payDate (giờ VN) nếu có
-            DateTime? paidAtUtc = null;
-            if (status == 1 && !string.IsNullOrWhiteSpace(payDate))
-            {
-                var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-                if (DateTime.TryParseExact(
-                        payDate.Trim(),
-                        "yyyyMMddHHmmss",
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        System.Globalization.DateTimeStyles.None,
-                        out var vnPayLocal))
-                {
-                    paidAtUtc = TimeZoneInfo.ConvertTimeToUtc(vnPayLocal, tz);
-                }
-            }
-
-            var transaction = new PaymentTransactions
+            var cashTxn = new PaymentTransactions
             {
                 PaymentTransactionId = txnId,
                 InvoiceId = invoiceId,
@@ -1764,12 +1768,19 @@ namespace CinemaS.Controllers
                 UpdatedAt = DateTime.UtcNow,
 
                 // ✅ FIX: dùng paidAtUtc nếu parse được, fallback UtcNow
-                PaidAt = status == 1 ? (paidAtUtc ?? DateTime.UtcNow) : null,
+                PaidAt = status == 1 ? (DateTime.TryParseExact(
+                        payDate.Trim(),
+                        "yyyyMMddHHmmss",
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None,
+                        out var vnPayLocal)
+                    ? TimeZoneInfo.ConvertTimeToUtc(vnPayLocal, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"))
+                    : DateTime.UtcNow) : null,
 
                 RefundedAt = null
             };
 
-            _context.PaymentTransactions.Add(transaction);
+            _context.PaymentTransactions.Add(cashTxn);
         }
 
 
@@ -1880,6 +1891,9 @@ namespace CinemaS.Controllers
                 : string.Empty;
 
             bool hasSnacks = d.SnackItems != null && d.SnackItems.Count > 0;
+            
+            // ✅ Check if there's discount information
+            bool hasDiscount = d.DiscountAmount > 0 && d.OriginalAmount > d.PayableAmount;
 
             // QR code handling
             string qrHtml = string.Empty;
@@ -1918,9 +1932,11 @@ namespace CinemaS.Controllers
     th { text-align: left; border-bottom: 1px solid #000; padding: 5px 0; font-size: 11px; text-transform: uppercase; }
     td { padding: 10px 0; border-bottom: 1px dotted #ccc; font-size: 13px; }
     
-    .total-box { border-top: 2px solid #000; margin-top: 20px; padding-top: 10px; display: flex; justify-content: flex-end; }
-    .total-row { display: flex; gap: 40px; align-items: baseline; }
-    .grand-total { font-weight: bold; }
+    .total-box { border-top: 2px solid #000; margin-top: 20px; padding-top: 10px; }
+    .total-row { display: flex; gap: 40px; align-items: baseline; justify-content: flex-end; margin-bottom: 5px; }
+    .subtotal-row { color: #666; font-size: 13px; }
+    .discount-row { color: #22c55e; font-size: 13px; }
+    .grand-total { font-weight: bold; font-size: 16px; }
 
     .footer { text-align: center; margin-top: 50px; font-size: 11px; font-style: italic; border-top: 1px solid #eee; padding-top: 10px; }
 ");
@@ -1948,8 +1964,21 @@ namespace CinemaS.Controllers
                 sb.Append("</tbody></table>");
             }
 
-            // Total
-            sb.Append("<div class='total-box'><div class='total-row'><span>TỔNG CỘNG (VND): </span><span class='grand-total'>" + (d.TicketTotal + d.SnackTotal - d.DiscountAmount).ToString("N0") + "</span></div></div>");
+            // ✅ Total with discount information
+            sb.Append("<div class='total-box'>");
+            
+            if (hasDiscount)
+            {
+                sb.Append("<div class='total-row subtotal-row'><span>TỔNG TIỀN (GỐC):</span><span>" + d.OriginalAmount.ToString("N0") + " VND</span></div>");
+                sb.Append("<div class='total-row discount-row'><span>GIẢM GIÁ:</span><span>-" + d.DiscountAmount.ToString("N0") + " VND</span></div>");
+                sb.Append("<div class='total-row'><span>TỔNG CỘNG (VND):</span><span class='grand-total'>" + d.PayableAmount.ToString("N0") + "</span></div>");
+            }
+            else
+            {
+                sb.Append("<div class='total-row'><span>TỔNG CỘNG (VND):</span><span class='grand-total'>" + (d.TicketTotal + d.SnackTotal).ToString("N0") + "</span></div>");
+            }
+            
+            sb.Append("</div>");
 
             sb.Append("<div class='footer'>Cảm ơn quý khách đã sử dụng dịch vụ.</div></div></body></html>");
             return sb.ToString();
