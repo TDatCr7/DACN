@@ -115,6 +115,30 @@
                     <div class="admin-user-detail-value">@statusText</div>
                 </div>
             </div>
+
+            @if (hasGoogleLink)
+            {
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-map-location-dot"></i> Bản đồ vị trí</div>
+                    <div class="admin-user-detail-value">
+                        <iframe src="@googleLink" 
+                                width="100%" 
+                                height="400" 
+                                style="border:0;" 
+                                allowfullscreen="" 
+                                loading="lazy" 
+                                referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="admin-user-detail-item wide">
+                    <div class="admin-user-detail-label"><i class="fa-solid fa-map-location-dot"></i> Bản đồ vị trí</div>
+                    <div class="admin-user-detail-value">Chưa có dữ liệu bản đồ.</div>
+                </div>
+            }
         </div>
     </div>
 </div>
