@@ -252,6 +252,7 @@
             this.value = value;
             updateAdjustedPrices();
             validateAdjustmentPercent();
+            updateButtonState();
         });
 
         // Validate the adjustment percentage is between -100 and 100
@@ -280,6 +281,32 @@
             }
         }
 
+        // Update button state based on validations
+        function updateButtonState() {
+            const hasOverlap = document.getElementById('overlapWarning').style.display !== 'none';
+            let priceValid = true;
+            let value = priceAdjustmentInput.value.trim();
+            if (value === '-' || value === '+' || value === '.') {
+                priceValid = false;
+            } else {
+                let numValue = parseFloat(value) || 0;
+                if (value !== '' && (numValue < -100 || numValue > 100)) {
+                    priceValid = false;
+                }
+            }
+            
+            const createBtn = document.getElementById('createBtn');
+            if (hasOverlap || !priceValid) {
+                createBtn.disabled = true;
+                createBtn.classList.add('btn-secondary');
+                createBtn.classList.remove('btn-primary');
+            } else {
+                createBtn.disabled = false;
+                createBtn.classList.remove('btn-secondary');
+                createBtn.classList.add('btn-primary');
+            }
+        }
+
         // Update adjusted prices for all seat types
         function updateAdjustedPrices() {
             let percent = parseFloat(priceAdjustmentInput.value) || 0;
@@ -301,8 +328,14 @@
         }
 
         // Initialize on page load
-        priceAdjustmentInput.addEventListener('blur', validateAdjustmentPercent);
-        priceAdjustmentInput.addEventListener('change', validateAdjustmentPercent);
+        priceAdjustmentInput.addEventListener('blur', () => {
+            validateAdjustmentPercent();
+            updateButtonState();
+        });
+        priceAdjustmentInput.addEventListener('change', () => {
+            validateAdjustmentPercent();
+            updateButtonState();
+        });
 
         // Movie duration and time handling
         const moviesData = {
@@ -398,7 +431,7 @@
 
             if (!cinemaId || !date || !start || !end) {
                 document.getElementById('overlapWarning').style.display = 'none';
-                document.getElementById('createBtn').disabled = false;
+                updateButtonState();
                 return;
             }
 
@@ -413,18 +446,13 @@
                 if (result.hasConflict) {
                     messageSpan.textContent = result.message;
                     warningDiv.style.display = 'block';
-                    createBtn.disabled = true;
-                    createBtn.classList.add('btn-secondary');
-                    createBtn.classList.remove('btn-primary');
                 } else {
                     warningDiv.style.display = 'none';
-                    createBtn.disabled = false;
-                    createBtn.classList.remove('btn-secondary');
-                    createBtn.classList.add('btn-primary');
                 }
+                updateButtonState();
             } catch (error) {
                 console.error('Error checking overlap:', error);
-                document.getElementById('createBtn').disabled = false;
+                updateButtonState();
             }
         }
 
