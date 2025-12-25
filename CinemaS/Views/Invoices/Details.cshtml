@@ -23,7 +23,17 @@
     var emailText = string.IsNullOrWhiteSpace(Model.Email) ? "N/A" : Model.Email;
     var phoneText = string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "N/A" : Model.PhoneNumber;
     var totalTicketText = (Model.TotalTicket ?? 0).ToString();
-    var totalPriceText = (Model.TotalPrice ?? 0).ToString("#,0") + " VNĐ";
+    
+    // ✅ Calculate discount info
+    bool hasPromotion = !string.IsNullOrWhiteSpace(Model.PromotionId);
+    decimal originalTotal = Model.OriginalTotal ?? Model.TotalPrice ?? 0;
+    decimal payableAmount = Model.TotalPrice ?? 0;
+    decimal discountAmount = hasPromotion ? (originalTotal - payableAmount) : 0;
+    
+    var originalTotalText = originalTotal.ToString("#,0") + " VNĐ";
+    var discountAmountText = discountAmount.ToString("#,0") + " VNĐ";
+    var totalPriceText = payableAmount.ToString("#,0") + " VNĐ";
+    
     var statusText = StatusText(Model.Status);
     var createdAtText = Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
     var updatedAtText = Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
@@ -109,10 +119,30 @@
                     <div class="admin-user-detail-value">@totalTicketText</div>
                 </div>
 
-                <div class="admin-user-detail-item">
-                    <div class="admin-user-detail-label"><i class="fa-solid fa-money-bill"></i> Tổng tiền</div>
-                    <div class="admin-user-detail-value">@totalPriceText</div>
-                </div>
+                @if (hasPromotion && discountAmount > 0)
+                {
+                    <div class="admin-user-detail-item">
+                        <div class="admin-user-detail-label"><i class="fa-solid fa-money-bill"></i> Tổng tiền (gốc)</div>
+                        <div class="admin-user-detail-value">@originalTotalText</div>
+                    </div>
+
+                    <div class="admin-user-detail-item">
+                        <div class="admin-user-detail-label"><i class="fa-solid fa-tag"></i> Giảm giá</div>
+                        <div class="admin-user-detail-value" style="color:#22c55e;">-@discountAmountText</div>
+                    </div>
+
+                    <div class="admin-user-detail-item">
+                        <div class="admin-user-detail-label"><i class="fa-solid fa-money-check-alt"></i> Tổng cộng (phải trả)</div>
+                        <div class="admin-user-detail-value" style="color:#fbbf24;font-weight:900;">@totalPriceText</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="admin-user-detail-item">
+                        <div class="admin-user-detail-label"><i class="fa-solid fa-money-bill"></i> Tổng tiền</div>
+                        <div class="admin-user-detail-value">@totalPriceText</div>
+                    </div>
+                }
 
                 <div class="admin-user-detail-item">
                     <div class="admin-user-detail-label"><i class="fa-solid fa-toggle-on"></i> Trạng thái</div>
