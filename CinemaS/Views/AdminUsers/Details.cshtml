@@ -131,6 +131,20 @@
                             <i class="fa-solid fa-shield-halved"></i> @(isAdmin ? "Admin" : "User")
                         </span>
                     </div>
+
+                    <div style="margin-bottom:16px; padding:12px 14px; border-radius:14px; background:rgba(15,23,42,.55); border:1px solid rgba(148,163,255,.18);">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                            <i class="fa-solid fa-crown" style="color:#fbbf24;"></i>
+                            <span style="font-size:12px; text-transform:uppercase; font-weight:900; letter-spacing:.2px; color:#c7d2fe;">Hạng thành viên</span>
+                        </div>
+                        <div style="font-size:16px; font-weight:900; color:#fef9c3;">
+                            @(Model.RankName ?? "Chưa xác định")
+                        </div>
+                        <div style="margin-top:6px; font-size:12px; color:#9aa5c6; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-star" style="color:#fbbf24;"></i>
+                            <span>Điểm tích lũy: <strong style="color:#e5e7eb;">@(Model.SavePoint.ToString("#,0"))</strong></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -168,11 +182,6 @@
                 <div class="admin-user-detail-item">
                     <div class="admin-user-detail-label"><i class="fa-solid fa-venus-mars"></i> Giới tính</div>
                     <div class="admin-user-detail-value">@genderText</div>
-                </div>
-
-                <div class="admin-user-detail-item wide">
-                    <div class="admin-user-detail-label"><i class="fa-solid fa-coins"></i> Điểm thưởng</div>
-                    <div class="admin-user-detail-value">@Model.SavePoint</div>
                 </div>
             </div>
 

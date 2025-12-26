@@ -10,6 +10,7 @@ using CinemaS.VNPAY;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,17 +24,20 @@ namespace CinemaS.Controllers
         private readonly CinemaContext _context;
         private readonly IEmailSender _emailSender;
         private readonly IQrTicketService _qrService;
+        private readonly UserManager<AppUser> _userManager;
 
         public PaymentController(
             IConfiguration cfg,
             CinemaContext context,
             IEmailSender emailSender,
-            IQrTicketService qrService)
+            IQrTicketService qrService,
+            UserManager<AppUser> userManager)
         {
             _cfg = cfg;
             _context = context;
             _emailSender = emailSender;
             _qrService = qrService;
+            _userManager = userManager;
         }
 
         /* ===================== Promotion ===================== */
@@ -2006,6 +2010,28 @@ namespace CinemaS.Controllers
             }
         }
 
+        // ✅ THÊM MỚI: Helper để cập nhật Membership_Rank_ID dựa trên điểm hiện tại
+        private async Task UpdateUserMembershipRankAsync(Users user)
+        {
+            if (user == null) return;
+
+            var totalPoints = user.SavePoint ?? 0;
+
+            // Tìm hạng phù hợp dựa trên tổng điểm
+            var newRank = await _context.MembershipRanks
+                .AsNoTracking()
+                .Where(r => (r.RequirePoint ?? 0) <= totalPoints && (r.MaxPoint == null || totalPoints <= r.MaxPoint))
+                .OrderByDescending(r => (r.RequirePoint ?? 0))
+                .FirstOrDefaultAsync();
+
+            if (newRank != null && !string.Equals(user.MembershipRankId, newRank.MembershipRankId, StringComparison.OrdinalIgnoreCase))
+            {
+                user.MembershipRankId = newRank.MembershipRankId;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+        }
+
         private async Task AwardPointsForInvoiceAsync(Invoices invoice)
         {
             if (invoice == null) return;
@@ -2018,6 +2044,25 @@ namespace CinemaS.Controllers
                 .FirstOrDefaultAsync(u => u.UserId == invoice.CustomerId);
 
             if (user == null) return;
+ 
+            // Chỉ award điểm nếu user tương ứng có tài khoản Identity thuộc role "User"
+            try
+            {
+                if (string.IsNullOrWhiteSpace(user.Email)) return;
+                var appUser = await _userManager.FindByEmailAsync(user.Email);
+                if (appUser == null) return;
+                
+                // Nếu user là Admin thì không award điểm
+                var isAdminRole = await _userManager.IsInRoleAsync(appUser, "Admin");
+                if (isAdminRole) return;
+
+                var isUserRole = await _userManager.IsInRoleAsync(appUser, "User");
+                if (!isUserRole) return;
+            }
+            catch
+            {
+                return;
+            }
 
             // Chặn tạo trùng lịch sử cho cùng invoice + user
             bool existedHistory = await _context.PointHistories.AsNoTracking()
@@ -2025,33 +2070,48 @@ namespace CinemaS.Controllers
 
             if (existedHistory) return;
 
-            var rank = await _context.Set<MembershipRank>()
+            // ✅ THAY ĐỔI: Lấy rank hiện tại ĐỂ TRỢ GIÚP LỰC TÍNH điểm
+            // Nhưng điểm sẽ được tính từ giá thực tế của hóa đơn (Invoices.TotalPrice)
+            // KHÔNG phụ thuộc vào rank cũ của user
+            var currentRank = await _context.MembershipRanks
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.MembershipRankId == user.MembershipRankId);
 
-            int pointPerTicket = rank?.PointReturnTicket ?? 0;
-            int pointPerCombo = rank?.PointReturnCombo ?? 0;
+            // ✅ Tính điểm dựa trên TotalPrice (giá đã thanh toán)
+            // Công thức: Cứ 1000 đ = 1 điểm
+            decimal payableAmount = invoice.TotalPrice ?? 0m;
+            int earnedPoints = (int)(payableAmount / 1000m);
 
-            // Số vé: ưu tiên đếm Tickets theo InvoiceId (chuẩn nhất)
-            int ticketCount = await _context.Tickets.AsNoTracking()
-                .CountAsync(t => t.InvoiceId == invoice.InvoiceId);
+            if (earnedPoints <= 0) return;
 
-            if (ticketCount <= 0)
-                ticketCount = invoice.TotalTicket ?? 0;
-
-            // Số combo/snack: tổng quantity từ DetailBookingSnacks
-            int snackQty = await _context.DetailBookingSnacks.AsNoTracking()
-                .Where(d => d.InvoiceId == invoice.InvoiceId)
-                .SumAsync(d => (int)(d.TotalSnack ?? 0));
-
-            int earned = (ticketCount * pointPerTicket) + (snackQty * pointPerCombo);
-            if (earned <= 0) return;
-
-            // Cộng điểm vào Users.SavePoint
-            user.SavePoint = (user.SavePoint ?? 0) + earned;
+            // ✅ Cộng điểm trực tiếp vào SavePoint
+            user.SavePoint = (user.SavePoint ?? 0) + earnedPoints;
             user.UpdatedAt = DateTime.UtcNow;
+ 
+            // ✅ Cập nhật MembershipRankId nếu đạt điều kiện hạng mới
+            try
+            {
+                var totalPoints = user.SavePoint ?? 0;
+                
+                // Tìm hạng phù hợp dựa trên tổng điểm
+                var newRank = await _context.MembershipRanks
+                    .AsNoTracking()
+                    .Where(r => (r.RequirePoint ?? 0) <= totalPoints && (r.MaxPoint == null || totalPoints <= r.MaxPoint))
+                    .OrderByDescending(r => (r.RequirePoint ?? 0))
+                    .FirstOrDefaultAsync();
 
-            // Tạo Point_Histories
+                if (newRank != null && !string.Equals(user.MembershipRankId, newRank.MembershipRankId, StringComparison.OrdinalIgnoreCase))
+                {
+                    user.MembershipRankId = newRank.MembershipRankId;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+            catch
+            {
+                // Nếu có lỗi khi cập nhật rank, vẫn tiếp tục cộng điểm
+            }
+
+            // ✅ Tạo lịch sử điểm
             var newId = await NextPointHistoryIdSafeAsync();
 
             _context.PointHistories.Add(new PointHistories
@@ -2059,8 +2119,8 @@ namespace CinemaS.Controllers
                 PointHistoryId = newId,
                 UserId = user.UserId,
                 InvoiceId = invoice.InvoiceId,
-                ChangeAmount = earned,
-                Reason = $"+{earned} điểm từ hóa đơn {invoice.InvoiceId}",
+                ChangeAmount = earnedPoints,
+                Reason = $"+{earnedPoints} điểm từ thanh toán ({payableAmount.ToString("N0")} đ)",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             });

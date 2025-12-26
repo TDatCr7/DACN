@@ -6,8 +6,9 @@
     ViewData["Title"] = "Thông tin tài khoản";
     Layout = "/Views/Shared/_Layout.cshtml";
 
-    var pointPercent = Model.MaxPoint > 0
-        ? Math.Min(100, (int)(Model.CurrentPoint * 100.0 / Model.MaxPoint))
+    var nextThreshold = Model.NextRankThreshold ?? Model.CurrentRank?.MaxPoint ?? 10000;
+    var pointPercent = nextThreshold > 0
+        ? Math.Min(100, (int)(Model.CurrentPoint * 100.0 / nextThreshold))
         : 0;
 
     string displayName = Model.Input?.FullName ?? Model.Username ?? "Khách hàng";
@@ -771,7 +772,7 @@
                         
                         <div class="side-badge">
                             <span class="side-badge-dot @(Model.CurrentPoint > 0 ? "is-active" : "is-inactive")"></span>
-                            <span>GL Friends</span>
+                            <span>@(Model.CurrentRank?.Name ?? "GL Friends")</span>
                         </div>
 
                     </div>
@@ -784,7 +785,7 @@
                     </div>
                     <div class="side-point-text">
                         <span>@Model.CurrentPoint.ToString("#,0") điểm</span>
-                        <span>@Model.MaxPoint.ToString("#,0")</span>
+                        <span>@(Model.NextRankThreshold?.ToString("#,0") ?? "∞")</span>
                     </div>
                 </div>
 
@@ -878,9 +879,9 @@
                 <!-- THÀNH VIÊN GL CINEMA -->
                 <div class="section" data-section="member">
                     <div class="member-header">
-                        <div class="member-title">ĐĂNG KÝ THÀNH VIÊN GL CINEMA</div>
+                        <div class="member-title">HẠNG THÀNH VIÊN: @(Model.CurrentRank?.Name ?? "Chưa có hạng")</div>
                         <div class="member-point">
-                            Điểm hiện tại: @Model.CurrentPoint.ToString("#,0") / @Model.MaxPoint.ToString("#,0")
+                            Điểm hiện tại: @Model.CurrentPoint.ToString("#,0")
                         </div>
                     </div>
 
@@ -892,38 +893,23 @@
 
                     <div class="member-cols">
                         <div class="member-card">
-                            <div class="member-card-title">GL FRIEND</div>
-                            <p>Được cấp lần đầu khi bạn mua vé tại GL Cinema.</p>
-                            <p><strong>Quyền lợi:</strong></p>
-                            <ul>
-                                <li>Được tích lũy điểm theo giá trị mua vé và bắp nước.</li>
-                                <li>Được tham gia các chương trình dành riêng cho thành viên.</li>
-                            </ul>
+                            <div class="member-card-title">QUYỀN LỢI HIỆN TẠI</div>
+                            <p>@(Model.RankBenefits ?? "Không có quyền lợi đặc biệt.")</p>
                         </div>
-                        <div class="member-card">
-                            <div class="member-card-title">GL VIP</div>
-                            <p>Được cấp khi tích lũy đủ 10.000 điểm.</p>
-                            <p><strong>Quyền lợi:</strong></p>
-                            <ul>
-                                <li>Ưu đãi giảm giá vé và bắp nước cao hơn.</li>
-                                <li>Cơ hội tham gia các sự kiện đặc biệt của GL Cinema.</li>
-                            </ul>
-                        </div>
+                        @if (Model.NextRankName != null)
+                        {
+                            <div class="member-card">
+                                <div class="member-card-title">LÊN HẠNG @Model.NextRankName</div>
+                                <p>Cần @Model.NextRankThreshold?.ToString("#,0") điểm</p>
+                                <p>Còn thiếu @((Model.NextRankThreshold - Model.CurrentPoint)?.ToString("#,0")) điểm</p>
+                            </div>
+                        }
                     </div>
 
                     <div class="member-cta">
-                        @if (Model.IsGlFriend)
-                        {
-                            <button type="button" class="member-btn active">
-                                Bạn đã là thành viên GL FRIEND
-                            </button>
-                        }
-                        else
-                        {
-                            <button type="button" class="member-btn inactive">
-                                Bạn chưa là thành viên GL FRIEND
-                            </button>
-                        }
+                        <button type="button" class="member-btn active">
+                            Hạng hiện tại: @(Model.CurrentRank?.Name ?? "Chưa có hạng")
+                        </button>
                     </div>
                 </div>
 

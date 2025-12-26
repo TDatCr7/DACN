@@ -1,4 +1,3 @@
-
 #nullable disable
 
 using System;
@@ -65,6 +64,15 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
         public int CurrentPoint { get; set; }
         public int MaxPoint => TargetPoint;
         public bool IsGlFriend { get; set; }
+
+        // =========================
+        // Membership Rank properties
+        // =========================
+        public MembershipRank CurrentRank { get; set; }
+        public string RankBenefits { get; set; }
+        public int? NextRankThreshold { get; set; }
+        public string NextRankName { get; set; }
+
 
         // =========================
         // 4) History list (DÙNG InvoiceHistoryVM trong CinemaS.Models.ViewModels)
@@ -172,7 +180,35 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 return;
             }
 
-            // ===== Load invoices =====
+            // ✅ THAY ĐỔI: Sử dụng SavePoint từ DB (không tính lại nếu admin đã set)
+            // SavePoint = null/empty => Chưa tính lần nào => Tính từ lịch sử
+            // SavePoint = 0 hoặc > 0 => Đã được set (bởi admin hoặc hệ thống) => Dùng giá trị này
+            
+            if (customer.SavePoint == null)
+            {
+                // Lần đầu tiên: tính điểm từ lịch sử thanh toán
+                CurrentPoint = await RecalculatePointsAsync(customer.UserId);
+                customer.SavePoint = CurrentPoint;
+                customer.UpdatedAt = DateTime.UtcNow;
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch
+                {
+                    // Nếu lỗi lưu, vẫn hiển thị điểm được tính
+                }
+            }
+            else
+            {
+                // ✅ SavePoint đã có giá trị (bao gồm = 0 từ admin, hoặc > 0 từ thanh toán)
+                // Sử dụng giá trị này, KHÔNG tính lại
+                CurrentPoint = customer.SavePoint.Value;
+            }
+
+            IsGlFriend = CurrentPoint > 0;
+
+            // ===== Load invoices for history =====
             var invoices = await _context.Invoices.AsNoTracking()
                 .Where(i => i.CustomerId == customer.UserId)
                 .OrderByDescending(i => i.CreatedAt)
@@ -236,76 +272,97 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 return (BaseTotal: baseTotal, DiscountAmount: 0m, PaidTotal: baseTotal);
             }
 
-
             // ===== priceMap: key invoiceId -> (BaseTotal, DiscountAmount, PaidTotal) =====
             var priceMap = new System.Collections.Generic.Dictionary<string, (decimal BaseTotal, decimal DiscountAmount, decimal PaidTotal)>();
             foreach (var inv in invoices)
             {
-                // inv.InvoiceId có thể null/empty: nếu hệ thống đảm bảo có thì ok; nếu không, vẫn guard
                 if (!string.IsNullOrWhiteSpace(inv.InvoiceId))
                     priceMap[inv.InvoiceId] = await GetPriceBreakdownAsync(inv);
             }
 
-            // ===== Điểm: tính theo GIÁ GỐC (BaseTotal) của invoice đã thanh toán (Status == 1) =====
-            var paidInvoices = invoices
-                .Where(i => i.Status == 1)
+            // ===== Determine membership rank and next rank =====
+            var ranks = await _context.MembershipRanks.AsNoTracking().ToListAsync();
+
+            // Current rank: where RequirePoint <= CurrentPoint and (MaxPoint == null or CurrentPoint <= MaxPoint)
+            CurrentRank = ranks
+                .Where(r => (r.RequirePoint ?? 0) <= CurrentPoint && (r.MaxPoint == null || CurrentPoint <= r.MaxPoint))
+                .OrderByDescending(r => (r.RequirePoint ?? 0))
+                .FirstOrDefault();
+
+            // Fallback: if no exact match, pick highest RequirePoint <= CurrentPoint
+            if (CurrentRank == null)
+            {
+                CurrentRank = ranks
+                    .Where(r => (r.RequirePoint ?? 0) <= CurrentPoint)
+                    .OrderByDescending(r => (r.RequirePoint ?? 0))
+                    .FirstOrDefault();
+            }
+
+            RankBenefits = CurrentRank?.Description;
+
+            // Next rank: smallest RequirePoint > CurrentPoint
+            var next = ranks
+                .Where(r => (r.RequirePoint ?? int.MaxValue) > CurrentPoint)
+                .OrderBy(r => (r.RequirePoint ?? int.MaxValue))
+                .FirstOrDefault();
+
+            NextRankThreshold = next?.RequirePoint;
+            NextRankName = next?.Name;
+
+            // ===== Build History (tối ưu: batch load thay vì N+1 query) =====
+            // Lấy tất cả ShowTimeIds từ tickets
+            var ticketsByInvoice = await _context.Tickets.AsNoTracking()
+                .Where(t => invoiceIds.Contains(t.InvoiceId))
+                .GroupBy(t => t.InvoiceId)
+                .Select(g => new { InvoiceId = g.Key, FirstTicket = g.OrderBy(t => t.TicketId).FirstOrDefault() })
+                .ToListAsync();
+
+            var showTimeIds = ticketsByInvoice
+                .Where(x => x.FirstTicket != null)
+                .Select(x => x.FirstTicket.ShowTimeId)
+                .Distinct()
                 .ToList();
 
-            // Điểm: luôn theo GIÁ GỐC (OriginalTotal); fallback sum line items nếu thiếu
-            var computedPoint = 0;
-            foreach (var inv in paidInvoices)
-            {
-                var baseTotal = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
-                    ? inv.OriginalTotal.Value
-                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+            // Batch load ShowTimes, Movies, CinemaTheaters
+            var showTimes = await _context.ShowTimes.AsNoTracking()
+                .Where(st => showTimeIds.Contains(st.ShowTimeId))
+                .ToListAsync();
 
-                computedPoint += (int)(baseTotal / 1000m);
-            }
+            var movieIds = showTimes.Select(st => st.MoviesId).Distinct().ToList();
+            var theaterIds = showTimes.Select(st => st.CinemaTheaterId).Distinct().ToList();
 
+            var movies = await _context.Movies.AsNoTracking()
+                .Where(m => movieIds.Contains(m.MoviesId))
+                .ToDictionaryAsync(m => m.MoviesId);
 
-            CurrentPoint = computedPoint;
-            IsGlFriend = computedPoint > 0;
+            var cinemaTheaters = await _context.CinemaTheaters.AsNoTracking()
+                .Where(c => theaterIds.Contains(c.CinemaTheaterId))
+                .ToListAsync();
 
-            // ===== Đồng bộ SavePoint vào Users table nếu lệch =====
-            if (customer.SavePoint != computedPoint)
-            {
-                customer.SavePoint = computedPoint;
-                customer.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-            }
+            var showTimeMap = showTimes.ToDictionary(st => st.ShowTimeId);
+            var cinemaTheaterMap = cinemaTheaters.ToDictionary(c => c.CinemaTheaterId);
 
-            // ===== Build History =====
+            // ===== Build history from invoices =====
             foreach (var inv in invoices)
             {
-                // ---- Lấy thông tin movie/room/showtime từ ticket đầu tiên (nếu có) ----
-                var firstTicket = await _context.Tickets.AsNoTracking()
-                    .Where(t => t.InvoiceId == inv.InvoiceId)
-                    .OrderBy(t => t.TicketId)
-                    .FirstOrDefaultAsync();
-
                 string movie = null;
                 string room = null;
                 DateTime? showDate = null;
                 DateTime? startTime = null;
 
-                if (firstTicket != null)
+                var ticketRecord = ticketsByInvoice.FirstOrDefault(x => x.InvoiceId == inv.InvoiceId);
+                if (ticketRecord?.FirstTicket != null)
                 {
-                    var st = await _context.ShowTimes.AsNoTracking()
-                        .FirstOrDefaultAsync(s => s.ShowTimeId == firstTicket.ShowTimeId);
-
-                    if (st != null)
+                    if (showTimeMap.TryGetValue(ticketRecord.FirstTicket.ShowTimeId, out var st))
                     {
                         showDate = st.ShowDate;
                         startTime = st.StartTime;
 
-                        var mv = await _context.Movies.AsNoTracking()
-                            .FirstOrDefaultAsync(m => m.MoviesId == st.MoviesId);
+                        if (movies.TryGetValue(st.MoviesId, out var mv))
+                            movie = mv.Title;
 
-                        var ct = await _context.CinemaTheaters.AsNoTracking()
-                            .FirstOrDefaultAsync(c => c.CinemaTheaterId == st.CinemaTheaterId);
-
-                        movie = mv?.Title;
-                        room = ct?.Name;
+                        if (cinemaTheaterMap.TryGetValue(st.CinemaTheaterId, out var ct))
+                            room = ct.Name;
                     }
                 }
 
@@ -318,28 +375,21 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 }
                 else
                 {
-                    // FIX lỗi tuple mất tên: PHẢI gán named tuple
                     var baseTotalFallback = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
-                    ? inv.OriginalTotal.Value
-                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+                        ? inv.OriginalTotal.Value
+                        : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
 
                     p = (BaseTotal: baseTotalFallback, DiscountAmount: 0m, PaidTotal: inv.TotalPrice ?? baseTotalFallback);
-
                 }
 
-                // ---- Add history item (TotalPrice = PaidTotal; BaseTotalPrice = BaseTotal) ----
+                // ---- Add history item ----
                 History.Add(new InvoiceHistoryVM
                 {
                     InvoiceId = inv.InvoiceId,
                     CreatedAt = inv.CreatedAt,
                     Status = inv.Status ?? 0,
-
-                    // Tổng cộng (hiển thị): số đã thanh toán (sau giảm)
                     TotalPrice = p.PaidTotal,
-
-                    // Giá gốc: dùng cho tính điểm ở view
                     BaseTotalPrice = p.BaseTotal,
-
                     MovieTitle = movie,
                     Room = room,
                     ShowDate = showDate,
@@ -348,6 +398,47 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             }
         }
 
+        // ===== Helper: Tính lại điểm từ lịch sử thanh toán =====
+        private async Task<int> RecalculatePointsAsync(string userId)
+        {
+            var invoices = await _context.Invoices.AsNoTracking()
+                .Where(i => i.CustomerId == userId)
+                .ToListAsync();
+
+            var invoiceIds = invoices.Select(i => i.InvoiceId).ToList();
+
+            // Map hóa đơn đã thanh toán
+            var paidTxnMap = await _context.PaymentTransactions.AsNoTracking()
+                .Where(pt => invoiceIds.Contains(pt.InvoiceId) && pt.Status == 1)
+                .GroupBy(pt => pt.InvoiceId)
+                .Select(g => new
+                {
+                    InvoiceId = g.Key,
+                    Amount = g.OrderByDescending(x => (DateTime?)(x.PaidAt ?? x.UpdatedAt ?? x.CreatedAt))
+                              .Select(x => x.Amount)
+                              .FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.InvoiceId, x => (decimal)x.Amount);
+
+            var paidInvoiceIds = new System.Collections.Generic.HashSet<string>(paidTxnMap.Keys);
+
+            // Tính điểm từ giá gốc (OriginalTotal)
+            var computedPoint = 0;
+            foreach (var inv in invoices)
+            {
+                if (string.IsNullOrWhiteSpace(inv.InvoiceId)) continue;
+                if (!paidInvoiceIds.Contains(inv.InvoiceId)) continue;
+
+                var baseTotal = (inv.OriginalTotal.HasValue && inv.OriginalTotal.Value > 0m)
+                    ? inv.OriginalTotal.Value
+                    : await GetInvoiceBaseTotalAsync(inv.InvoiceId, inv.TotalPrice);
+
+                computedPoint += (int)(baseTotal / 1000m);
+            }
+
+            // Cap stored points to 99,999
+            return Math.Min(computedPoint, 99999);
+        }
         // =========================
         // 9) GET: load page
         // =========================
@@ -447,9 +538,53 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             return RedirectToPage();
         }
 
+        // ===== ✅ NEW: Tính lại điểm (dùng trong management page hoặc admin) =====
+        public async Task<IActionResult> OnPostRecalculatePointsAsync(string userId)
+        {
+            // Chỉ Admin hoặc user chính mình mới có thể
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+                return Forbid();
+
+            if (!User.IsInRole("Admin"))
+            {
+                var customer = await _context.Users.FirstOrDefaultAsync(u => u.Email == currentUser.Email);
+                if (customer?.UserId != userId)
+                    return Forbid();
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null)
+                return NotFound("User not found.");
+
+            // Tính lại điểm
+            var newPoints = await RecalculatePointsAsync(userId);
+            user.SavePoint = newPoints;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // Cập nhật rank
+            try
+            {
+                var newRank = await _context.MembershipRanks.AsNoTracking()
+                    .Where(r => (r.RequirePoint ?? 0) <= newPoints && (r.MaxPoint == null || newPoints <= r.MaxPoint))
+                    .OrderByDescending(r => (r.RequirePoint ?? 0))
+                    .FirstOrDefaultAsync();
+
+                if (newRank != null && user.MembershipRankId != newRank.MembershipRankId)
+                {
+                    user.MembershipRankId = newRank.MembershipRankId;
+                }
+            }
+            catch { }
+
+            await _context.SaveChangesAsync();
+
+            StatusMessage = $"Đã tính lại điểm thành công! Tổng điểm: {newPoints:#,0}";
+            return RedirectToPage();
+        }
         // =========================
         // 12) GET: Modal chi tiết hóa đơn (VÉ / SNACK)
-      
+
         public async Task<IActionResult> OnGetTicketDetailModalAsync(string invoiceId)
         {
             if (string.IsNullOrWhiteSpace(invoiceId))
@@ -704,7 +839,7 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
                 // ---- Thời gian mua ----
                 string createdText = invoice.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
 
-           
+
                 string cinemaName = null;
                 string cinemaAddr = null;
 
@@ -803,3 +938,4 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
         }
     }
 }
+

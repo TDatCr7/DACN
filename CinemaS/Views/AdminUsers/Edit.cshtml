@@ -1,4 +1,4 @@
-﻿@* Views/AdminUsers/Edit.cshtml (FIX: popup center + bỏ nút dưới (Quay lại/Lưu) vì đã có nút trên) *@
+﻿@* Views/AdminUsers/Edit.cshtml *@
 @model CinemaS.ViewModels.AdminUsers.AdminUserEditVm
 @{
     ViewData["Title"] = "Chỉnh sửa tài khoản";
@@ -46,6 +46,21 @@
                 <span class="ms-2 role-chip" style="cursor:default;">
                     <i class="fa-solid fa-user-shield"></i> @accountType
                 </span>
+            </div>
+
+            <!-- ✅ Khu vực hiển thị Rank hiện tại -->
+            <div style="margin-bottom:16px; padding:12px 14px; border-radius:14px; background:rgba(15,23,42,.55); border:1px solid rgba(148,163,255,.18);">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                    <i class="fa-solid fa-crown" style="color:#fbbf24;"></i>
+                    <span style="font-size:12px; text-transform:uppercase; font-weight:900; letter-spacing:.2px; color:#c7d2fe;">Hạng thành viên</span>
+                </div>
+                <div style="font-size:16px; font-weight:900; color:#fef9c3;">
+                    @(Model.RankName ?? "Chưa xác định")
+                </div>
+                <div style="margin-top:6px; font-size:12px; color:#9aa5c6; display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-star" style="color:#fbbf24;"></i>
+                    <span>Điểm tích lũy: <strong style="color:#e5e7eb;">@(Model.SavePoint.ToString("#,0"))</strong></span>
+                </div>
             </div>
 
             <form asp-action="Edit" method="post" id="adminUserEditForm">
@@ -101,10 +116,12 @@
                         <span asp-validation-for="Gender" class="text-danger"></span>
                     </div>
 
+                    <!-- ✅ Thêm trường điểm tích lũy để admin có thể chỉnh sửa -->
                     <div class="col-md-6">
-                        <label asp-for="SavePoint" class="form-label">Điểm thưởng</label>
+                        <label asp-for="SavePoint" class="form-label">Điểm tích lũy</label>
                         <input asp-for="SavePoint" type="number" min="0" class="form-control" />
                         <span asp-validation-for="SavePoint" class="text-danger"></span>
+                        <small style="color:#9aa5c6; font-weight:700;">Bậc hạng sẽ tự động cập nhật dựa trên điểm này</small>
                     </div>
 
                     <div class="col-12">
@@ -125,7 +142,6 @@
 
                 <div class="col-12 mt-2">
                     <div class="field-group">
-                        
                         <div class="d-flex flex-wrap" id="rolesWrap">
                             @foreach (var rname in Model.AllRoles)
                             {
@@ -236,14 +252,12 @@
             });
 
             // ===== 2) KHÓA ROLE CHO TỚI KHI OTP VERIFY XONG =====
-            // state lưu trong sessionStorage theo tab (reload vẫn còn trong tab)
             const OTP_OK_KEY = 'AdminRoleOtpVerified';
             function setRolesEnabled(enabled) {
                 roleCheckboxes.forEach(cb => cb.disabled = !enabled);
                 roleChips.forEach(chip => chip.classList.toggle('is-disabled', !enabled));
             }
 
-            // mặc định: khóa cho tới khi verify
             const otpVerified = sessionStorage.getItem(OTP_OK_KEY) === '1';
             setRolesEnabled(otpVerified);
 
@@ -336,6 +350,11 @@
                     const fd = new FormData();
                     if (antiToken) fd.append('__RequestVerificationToken', antiToken);
 
+                    const targetInput = document.querySelector('#adminUserEditForm input[name="Id"]');
+                    if (targetInput && targetInput.value) {
+                        fd.append('targetUserId', targetInput.value);
+                    }
+
                     const data = await postForm(urlSend, fd);
 
                     if (!data || data.ok !== true) {
@@ -376,12 +395,11 @@
                         return;
                     }
 
-                    // verify OK -> mở role + lưu state + auto đóng popup
                     sessionStorage.setItem(OTP_OK_KEY, '1');
                     setRolesEnabled(true);
 
                     setMsg(data.message || 'Xác minh thành công.', 'success');
-                    closeModal(); // yêu cầu: bấm xác minh xong tự động ẩn popup
+                    closeModal();
                 } catch (e) {
                     setMsg(e && e.message ? e.message : 'Xác minh OTP lỗi.', 'error');
                 } finally {

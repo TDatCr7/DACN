@@ -39,5 +39,9 @@ namespace CinemaS.ViewModels.AdminUsers
         public string? AvatarPath { get; set; }
         public IList<string> SelectedRoles { get; set; } = new List<string>();
         public IList<string> AllRoles { get; set; } = new List<string>();
+
+        // ✅ THÊM: Thông tin Rank hiện tại
+        public string? MembershipRankId { get; set; }
+        public string? RankName { get; set; }
     }
 }

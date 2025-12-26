@@ -109,21 +109,104 @@ using (var scope = app.Services.CreateScope())
     // Seed Membership Rank
     if (!await context.MembershipRanks.AnyAsync())
     {
-        var rank = new MembershipRank
+        var ranks = new List<MembershipRank>
+    {
+        new MembershipRank
         {
             MembershipRankId = "MR00000001",
-            Name = "Basic",
+            Name = "Thành viên mới",
             RequirePoint = 0,
-            PointReturnTicket = 0,
-            PointReturnCombo = 0,
+            MaxPoint = 999,
+            TicketDiscountPercent = 0m,
+            SnackDiscountPercent = 0m,
+            PointMultiplier = 1.0m,
+            OnlyNormalSeat = false,
             PriorityLevel = 1,
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
-        };
+            Description = "Mua vé giá tiêu chuẩn, không ưu đãi",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        },
+        new MembershipRank
+        {
+            MembershipRankId = "MR00000002",
+            Name = "Thành viên Đồng",
+            RequirePoint = 1000,
+            MaxPoint = 2999,
+            TicketDiscountPercent = 3m,
+            SnackDiscountPercent = 0m,
+            PointMultiplier = 1.0m,
+            OnlyNormalSeat = true,
+            PriorityLevel = 2,
+            Description = "Giảm 3% giá vé (chỉ ghế thường)",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        },
+        new MembershipRank
+        {
+            MembershipRankId = "MR00000003",
+            Name = "Thành viên Bạc",
+            RequirePoint = 3000,
+            MaxPoint = 5999,
+            TicketDiscountPercent = 5m,
+            SnackDiscountPercent = 0m,
+            PointMultiplier = 1.1m,
+            OnlyNormalSeat = false,
+            PriorityLevel = 3,
+            Description = "Giảm 5% giá vé (mọi loại), nhân điểm x1.1",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        },
+        new MembershipRank
+        {
+            MembershipRankId = "MR00000004",
+            Name = "Thành viên Vàng",
+            RequirePoint = 6000,
+            MaxPoint = 9999,
+            TicketDiscountPercent = 10m,
+            SnackDiscountPercent = 2m,
+            PointMultiplier = 1.2m,
+            OnlyNormalSeat = false,
+            PriorityLevel = 4,
+            Description = "Giảm 10% vé, giảm 2% đồ ăn & nước, nhân điểm x1.2",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        },
+        new MembershipRank
+        {
+            MembershipRankId = "MR00000005",
+            Name = "Thành viên Kim Cương",
+            RequirePoint = 10000,
+            MaxPoint = 49999,
+            TicketDiscountPercent = 15m,
+            SnackDiscountPercent = 5m,
+            PointMultiplier = 1.3m,
+            OnlyNormalSeat = false,
+            PriorityLevel = 5,
+            Description = "Giảm 15% vé, giảm 5% đồ ăn & nước, nhân điểm x1.3",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        },
+        new MembershipRank
+        {
+            MembershipRankId = "MR00000006",
+            Name = "Thành viên Pha lê",
+            RequirePoint = 50000,
+            MaxPoint = 99999,
+            TicketDiscountPercent = 30m,
+            SnackDiscountPercent = 10m,
+            PointMultiplier = 1.5m,
+            OnlyNormalSeat = false,
+            PriorityLevel = 6,
+            Description = "Giảm 30% vé, giảm 10% đồ ăn & nước, nhân điểm x1.5",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }
+    };
 
-        await context.MembershipRanks.AddAsync(rank);
+        await context.MembershipRanks.AddRangeAsync(ranks);
         await context.SaveChangesAsync();
     }
+
 
     if (!await context.SeatTypes.AnyAsync())
     {

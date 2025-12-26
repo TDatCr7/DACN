@@ -24,6 +24,10 @@ namespace CinemaS.Controllers
         private const string RoleOtpExpireKey = "AdminRoleOtp_ExpireAtUtcTicks";
         private const string RoleOtpVerifiedUntilKey = "AdminRoleOtp_VerifiedUntilUtcTicks";
         private const string RoleOtpLastSentKey = "AdminRoleOtp_LastSentUtcTicks";
+        // thêm: target user id/email và verified-for-user id
+        private const string RoleOtpTargetUserIdKey = "AdminRoleOtp_TargetUserId";
+        private const string RoleOtpTargetEmailKey = "AdminRoleOtp_TargetEmail";
+        private const string RoleOtpVerifiedUserIdKey = "AdminRoleOtp_VerifiedForUserId";
 
         private static readonly TimeSpan RoleOtpLifetime = TimeSpan.FromMinutes(5);   // OTP sống 5p (gửi/nhập)
         private static readonly TimeSpan RoleChangeWindow = TimeSpan.FromMinutes(3);  // cửa sổ đổi quyền 3p
@@ -166,7 +170,15 @@ namespace CinemaS.Controllers
                 Gender = profile?.Gender,
                 SavePoint = profile?.SavePoint ?? 0,
                 AgeFromBirth = ageFromBirth,
-                AvatarPath = profile?.AvatarUrl
+                AvatarPath = profile?.AvatarUrl,
+
+                // thêm MembershipRankId và RankName
+                MembershipRankId = profile?.MembershipRankId,
+                RankName = profile != null
+                    ? (await _context.MembershipRanks.AsNoTracking()
+                        .FirstOrDefaultAsync(r => r.MembershipRankId == profile.MembershipRankId))
+                        ?.Name ?? "Chưa xác định"
+                    : "Chưa xác định"
             };
 
             ViewData["Title"] = "Thông tin tài khoản";
@@ -264,6 +276,54 @@ namespace CinemaS.Controllers
                 age = parsedAge;
             }
 
+            // ✅ Lấy Users profile từ bảng Users
+            Users? profile = null;
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                profile = await _context.Set<Users>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Email == user.Email);
+            }
+
+            // ✅ Lấy thông tin Rank
+            string? membershipRankId = null;
+            string? rankName = null;
+
+            if (profile != null)
+            {
+                membershipRankId = profile.MembershipRankId;
+
+                // Load tên hạng từ MembershipRanks
+                var rank = await _context.MembershipRanks
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.MembershipRankId == membershipRankId);
+
+                if (rank != null)
+                {
+                    rankName = rank.Name ?? "Chưa xác định";
+                }
+                else
+                {
+                    // Nếu MembershipRankId null hoặc không tìm thấy, fallback: xác định rank theo SavePoint
+                    var sp = profile.SavePoint ?? 0;
+                    var fallbackRank = await _context.MembershipRanks
+                        .AsNoTracking()
+                        .Where(r => (r.RequirePoint ?? 0) <= sp && (r.MaxPoint == null || sp <= r.MaxPoint))
+                        .OrderByDescending(r => (r.RequirePoint ?? 0))
+                        .FirstOrDefaultAsync();
+
+                    if (fallbackRank != null)
+                    {
+                        membershipRankId = fallbackRank.MembershipRankId;
+                        rankName = fallbackRank.Name ?? "Chưa xác định";
+                    }
+                    else
+                    {
+                        rankName = "Chưa xác định";
+                    }
+                }
+            }
+
             var vm = new AdminUserEditVm
             {
                 Id = user.Id,
@@ -278,7 +338,11 @@ namespace CinemaS.Controllers
                 AllRoles = await _roleManager.Roles
                     .OrderBy(r => r.Name)
                     .Select(r => r.Name!)
-                    .ToListAsync()
+                    .ToListAsync(),
+                // ✅ Gán thông tin Rank
+                MembershipRankId = membershipRankId,
+                RankName = rankName ?? "Chưa xác định",
+                SavePoint = profile?.SavePoint ?? 0
             };
 
             ViewData["Title"] = "Chỉnh sửa tài khoản";
@@ -292,6 +356,16 @@ namespace CinemaS.Controllers
         {
             if (id != vm.Id)
                 return NotFound();
+
+            // ✅ THÊM: Validation để giới hạn SavePoint max = 99,999
+            if (vm.SavePoint > 99999)
+            {
+                vm.SavePoint = 99999;
+            }
+            if (vm.SavePoint < 0)
+            {
+                vm.SavePoint = 0;
+            }
 
             vm.AllRoles = await _roleManager.Roles
                 .OrderBy(r => r.Name)
@@ -310,8 +384,12 @@ namespace CinemaS.Controllers
 
             user.FullName = vm.FullName;
             user.Address = vm.Address;
-            user.Email = vm.Email;
-            user.UserName = vm.Email;
+            // only update email/username if provided to avoid setting to null
+            if (!string.IsNullOrWhiteSpace(vm.Email))
+            {
+                user.Email = vm.Email;
+                user.UserName = vm.Email;
+            }
             user.PhoneNumber = vm.PhoneNumber;
             user.Age = vm.Age?.ToString();
 
@@ -325,25 +403,56 @@ namespace CinemaS.Controllers
                 return View(vm);
             }
 
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var selectedRole = vm.SelectedRoles?.FirstOrDefault(); // chỉ lấy 1
-
-            // bắt buộc phải chọn role
-            if (string.IsNullOrWhiteSpace(selectedRole))
+            // ✅ THÊM: Cập nhật SavePoint và tự động tính MembershipRankId dựa trên điểm mới
+            if (!string.IsNullOrEmpty(user.Email))
             {
-                ModelState.AddModelError("SelectedRoles", "Vui lòng chọn 1 quyền.");
-                ViewData["Title"] = "Chỉnh sửa tài khoản";
-                return View(vm);
+                var profile = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == user.Email);
+
+                if (profile != null)
+                {
+                    // Cập nhật SavePoint (đã được validate ở trên)
+                    profile.SavePoint = vm.SavePoint;
+                    profile.UpdatedAt = DateTime.UtcNow;
+
+                    // Tìm hạng phù hợp dựa trên điểm mới
+                    var newRank = await _context.MembershipRanks
+                        .AsNoTracking()
+                        .Where(r => (r.RequirePoint ?? 0) <= vm.SavePoint && (r.MaxPoint == null || vm.SavePoint <= r.MaxPoint))
+                        .OrderByDescending(r => (r.RequirePoint ?? 0))
+                        .FirstOrDefaultAsync();
+
+                    if (newRank != null)
+                    {
+                        profile.MembershipRankId = newRank.MembershipRankId;
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
             }
 
-            var isRoleChanging = currentRoles.Count != 1 || !string.Equals(currentRoles[0], selectedRole, StringComparison.OrdinalIgnoreCase);
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            var selectedRole = vm.SelectedRoles?.FirstOrDefault();
+
+            // ✅ THÊM: Kiểm tra xem admin có chọn role hay không
+            bool adminExplicitlySelected = !string.IsNullOrWhiteSpace(selectedRole);
+
+            // ✅ THÊM: Nếu không chọn role, mặc định gán "User"
+            if (string.IsNullOrWhiteSpace(selectedRole))
+            {
+                selectedRole = "User";
+            }
+
+            // ✅ THAY ĐỔI: Chỉ yêu cầu OTP nếu admin CHỦ ĐỘNG chọn role (không phải mặc định)
+            var isRoleChanging = adminExplicitlySelected && (currentRoles.Count != 1 || !string.Equals(currentRoles.FirstOrDefault() ?? "", selectedRole ?? "", StringComparison.OrdinalIgnoreCase));
 
             if (isRoleChanging)
             {
                 var untilStr = HttpContext.Session.GetString(RoleOtpVerifiedUntilKey);
-                if (!long.TryParse(untilStr, out var untilTicks))
+                var verifiedFor = HttpContext.Session.GetString(RoleOtpVerifiedUserIdKey);
+                if (!long.TryParse(untilStr, out var untilTicks) || string.IsNullOrWhiteSpace(verifiedFor) || !string.Equals(verifiedFor, id, StringComparison.Ordinal))
                 {
-                    ModelState.AddModelError(string.Empty, "Cần xác minh Gmail (OTP) trước khi đổi quyền.");
+                    ModelState.AddModelError(string.Empty, "Cần xác minh Gmail (OTP) cho tài khoản này trước khi đổi quyền.");
                     ViewData["Title"] = "Chỉnh sửa tài khoản";
                     return View(vm);
                 }
@@ -352,6 +461,7 @@ namespace CinemaS.Controllers
                 if (DateTimeOffset.UtcNow > until)
                 {
                     HttpContext.Session.Remove(RoleOtpVerifiedUntilKey);
+                    HttpContext.Session.Remove(RoleOtpVerifiedUserIdKey);
                     ModelState.AddModelError(string.Empty, "Hết thời gian đổi quyền (3 phút). Vui lòng xác minh Gmail lại.");
                     ViewData["Title"] = "Chỉnh sửa tài khoản";
                     return View(vm);
@@ -368,8 +478,21 @@ namespace CinemaS.Controllers
                 }
 
                 HttpContext.Session.Remove(RoleOtpVerifiedUntilKey);
+                HttpContext.Session.Remove(RoleOtpVerifiedUserIdKey);
             }
+            else if (!adminExplicitlySelected && currentRoles.FirstOrDefault() != selectedRole)
+            {
+                // ✅ THÊM: Nếu admin để trống (mặc định "User"), cập nhật role mà không cần OTP
+                var rr = await SetSingleRoleAsync(user, selectedRole);
+                if (!rr.Succeeded)
+                {
+                    foreach (var e in rr.Errors)
+                        ModelState.AddModelError(string.Empty, e.Description);
 
+                    ViewData["Title"] = "Chỉnh sửa tài khoản";
+                    return View(vm);
+                }
+            }
 
             return RedirectToAction(nameof(Index));
         }
@@ -413,7 +536,7 @@ namespace CinemaS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SendRoleOtp()
+        public async Task<IActionResult> SendRoleOtp(string? targetUserId)
         {
             // admin đang thao tác
             var admin = await _userManager.GetUserAsync(User);
@@ -436,14 +559,32 @@ namespace CinemaS.Controllers
                 }
             }
 
+            // quyết định gửi cho ai: nếu có targetUserId thì gửi cho email của tài khoản đó, còn không thì gửi cho admin
+            string sendToEmail = admin.Email;
+            string targetToStore = string.Empty;
+            if (!string.IsNullOrWhiteSpace(targetUserId))
+            {
+                var targetUser = await _userManager.FindByIdAsync(targetUserId);
+                if (targetUser != null && !string.IsNullOrWhiteSpace(targetUser.Email))
+                {
+                    sendToEmail = targetUser.Email;
+                    targetToStore = targetUserId;
+                }
+            }
+
             var code = new Random().Next(100000, 999999).ToString();
 
             session.SetString(RoleOtpCodeKey, code);
             session.SetString(RoleOtpExpireKey, now.Add(RoleOtpLifetime).UtcTicks.ToString());
             session.SetString(RoleOtpLastSentKey, now.UtcTicks.ToString());
 
+            // lưu target thông tin
+            session.SetString(RoleOtpTargetUserIdKey, targetToStore ?? string.Empty);
+            session.SetString(RoleOtpTargetEmailKey, sendToEmail ?? string.Empty);
+
             // reset cửa sổ đổi quyền
             session.Remove(RoleOtpVerifiedUntilKey);
+            session.Remove(RoleOtpVerifiedUserIdKey);
 
             var subject = "OTP xác minh đổi quyền CinemaS";
             var body = $@"
@@ -452,7 +593,7 @@ namespace CinemaS.Controllers
 
             try
             {
-                await _emailSender.SendEmailAsync(admin.Email, subject, body);
+                await _emailSender.SendEmailAsync(sendToEmail, subject, body);
             }
             catch
             {
@@ -466,7 +607,7 @@ namespace CinemaS.Controllers
             return Json(new
             {
                 ok = true,
-                message = $"Đã gửi OTP tới {admin.Email}.",
+                message = $"Đã gửi OTP tới {sendToEmail}.",
                 otpLifetimeSeconds = (int)RoleOtpLifetime.TotalSeconds
             });
         }
@@ -481,6 +622,7 @@ namespace CinemaS.Controllers
 
             var storedCode = session.GetString(RoleOtpCodeKey);
             var expireStr = session.GetString(RoleOtpExpireKey);
+            var targetUserId = session.GetString(RoleOtpTargetUserIdKey) ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(storedCode) || string.IsNullOrWhiteSpace(expireStr))
                 return Json(new { ok = false, message = "Chưa gửi OTP hoặc OTP đã hết hạn." });
@@ -495,9 +637,10 @@ namespace CinemaS.Controllers
             if (!string.Equals(storedCode, (otp ?? "").Trim(), StringComparison.Ordinal))
                 return Json(new { ok = false, message = "OTP không đúng." });
 
-            // OTP đúng -> mở cửa sổ đổi quyền 3 phút
+            // OTP đúng -> mở cửa sổ đổi quyền 3 phút và ghi nhận tài khoản được verify
             var verifiedUntil = now.Add(RoleChangeWindow).UtcTicks.ToString();
             session.SetString(RoleOtpVerifiedUntilKey, verifiedUntil);
+            session.SetString(RoleOtpVerifiedUserIdKey, targetUserId ?? string.Empty);
 
             return Json(new
             {
@@ -522,5 +665,153 @@ namespace CinemaS.Controllers
             return await _userManager.AddToRoleAsync(user, role);
         }
 
+        // ✅ THÊM MỚI: API để load danh sách các hạng thành viên có sẵn
+        [HttpPost("LoadAvailableRanks")]
+        [Authorize(Roles = "Admin")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> LoadAvailableRanks(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return Json(new { success = false, message = "Thiếu User ID." });
+
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy người dùng." });
+
+            // Lấy danh sách tất cả các hạng
+            var ranks = await _context.MembershipRanks
+                .AsNoTracking()
+                .OrderBy(r => (r.RequirePoint ?? 0))
+                .Select(r => new
+                {
+                    id = r.MembershipRankId,
+                    name = r.Name ?? "Chưa xác định",
+                    minPoints = (r.RequirePoint ?? 0),
+                    maxPoints = (r.MaxPoint ?? 0),
+                    description = r.Description
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, ranks = ranks });
+        }
+
+        // ✅ THÊM MỚI: API để admin cập nhật Membership_Rank_ID của user
+        [HttpPost("UpdateUserRank")]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateUserRank(string userId, string rankId)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(rankId))
+                return Json(new { ok = false, message = "Thiếu User ID hoặc Rank ID." });
+
+            // Kiểm tra rank tồn tại
+            var rankExists = await _context.MembershipRanks
+                .AsNoTracking()
+                .AnyAsync(r => r.MembershipRankId == rankId);
+
+            if (!rankExists)
+                return Json(new { ok = false, message = "Hạng không tồn tại." });
+
+            // Lấy user từ bảng Users
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null)
+                return Json(new { ok = false, message = "Không tìm thấy người dùng." });
+
+            var oldRankId = user.MembershipRankId;
+
+            // Cập nhật rank
+            user.MembershipRankId = rankId;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                // Lấy tên rank mới
+                var newRank = await _context.MembershipRanks
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.MembershipRankId == rankId);
+
+                var rankName = newRank?.Name ?? "Chưa xác định";
+
+                return Json(new
+                {
+                    ok = true,
+                    message = $"Đã cập nhật hạng thành viên thành {rankName}",
+                    rankId = rankId,
+                    rankName = rankName,
+                    savePoint = user.SavePoint ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, message = "Lỗi cập nhật: " + ex.Message });
+            }
+        }
+
+        // ✅ THÊM MỚI: API để admin cập nhật Membership_Rank_ID dựa trên điểm hiện tại
+        [HttpPost("RecalculateUserRank")]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecalculateUserRank(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return Json(new { ok = false, message = "Thiếu User ID." });
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user == null)
+                return Json(new { ok = false, message = "Không tìm thấy người dùng." });
+
+            var totalPoints = user.SavePoint ?? 0;
+
+            // Tìm hạng phù hợp dựa trên điểm
+            var newRank = await _context.MembershipRanks
+                .AsNoTracking()
+                .Where(r => (r.RequirePoint ?? 0) <= totalPoints && (r.MaxPoint == null || totalPoints <= r.MaxPoint))
+                .OrderByDescending(r => (r.RequirePoint ?? 0))
+                .FirstOrDefaultAsync();
+
+            if (newRank == null)
+                return Json(new { ok = false, message = "Không tìm thấy hạng phù hợp với điểm hiện tại." });
+
+            var oldRankId = user.MembershipRankId;
+
+            if (string.Equals(oldRankId, newRank.MembershipRankId, StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new
+                {
+                    ok = true,
+                    message = $"Hạng hiện tại đã đúng: {newRank.Name}",
+                    rankId = newRank.MembershipRankId,
+                    rankName = newRank.Name,
+                    totalPoints = totalPoints
+                });
+            }
+
+            // Cập nhật rank
+            user.MembershipRankId = newRank.MembershipRankId;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                return Json(new
+                {
+                    ok = true,
+                    message = $"Đã cập nhật hạng từ {oldRankId} thành {newRank.MembershipRankId} ({newRank.Name})",
+                    rankId = newRank.MembershipRankId,
+                    rankName = newRank.Name,
+                    totalPoints = totalPoints
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, message = "Lỗi cập nhật: " + ex.Message });
+            }
+        }
     }
 }
