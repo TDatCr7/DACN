@@ -133,7 +133,7 @@
                             <div class="movie-section-title">Người tham gia</div>
 
                             <label class="form-label">Đạo diễn</label>
-                            <select id="directorsSelect" name="selectedDirectors" class="form-select movie-input" multiple="multiple" required>
+                            <select id="directorsSelect" name="selectedDirectors" class="form-select movie-input" multiple="multiple">
                                 @foreach (var p in participants)
                                 {
                                     var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;
@@ -148,7 +148,7 @@
 
                             <div class="mt-4">
                                 <label class="form-label">Diễn viên</label>
-                                <select id="actorsSelect" name="selectedActors" class="form-select movie-input" multiple="multiple" required>
+                                <select id="actorsSelect" name="selectedActors" class="form-select movie-input" multiple="multiple">
                                     @foreach (var p in participants)
                                     {
                                         var name = (p.NickName ?? p.BirthName) ?? p.ParticipantsId;

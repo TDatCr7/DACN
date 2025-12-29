@@ -1118,10 +1118,8 @@
         const splash = document.getElementById("introSplash");
         if (!splash) return;
 
-        // mỗi lần load trang đều hiện
         splash.classList.remove("splash-hide");
 
-        // giữ splash ~1.6s rồi fade out
         setTimeout(() => {
             splash.classList.add("splash-hide");
         }, 1650);
