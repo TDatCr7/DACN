@@ -406,18 +406,51 @@
                                                     <i class="fa-solid fa-pen"></i>
                                                 </a>
 
-                                    <a asp-action="Delete"
-                                       asp-route-id="@item.GenresId"
-                                       class="admin-icon-btn admin-icon-btn-danger"
-                                       title="Xóa">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </a>
-                                </td>
+                                                <a asp-action="Delete"
+                                                   asp-route-id="@item.GenresId"
+                                                   class="admin-icon-btn admin-icon-btn-danger"
+                                                   title="Xóa">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+
                             </tr>
                         }
                     }
                 </tbody>
             </table>
+                    @{
+                        var prevPage = page - 1;
+                        var nextPage = page + 1;
+                    }
+
+                    @if (totalPages > 1)
+                    {
+                        <div class="genres-pager">
+                            <a class="genres-page-btn @(page <= 1 ? "is-disabled" : "")"
+                               asp-action="Index"
+                               asp-route-page="@prevPage">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </a>
+
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                <a class="genres-page-btn @(i == page ? "is-active" : "")"
+                                   asp-action="Index"
+                                   asp-route-page="@i">
+                                    @i
+                                </a>
+                            }
+
+                            <a class="genres-page-btn @(page >= totalPages ? "is-disabled" : "")"
+                               asp-action="Index"
+                               asp-route-page="@nextPage">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    }
+
         </div>
     </div>
 </div>
