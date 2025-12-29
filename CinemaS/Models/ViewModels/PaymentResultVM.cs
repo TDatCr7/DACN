@@ -18,10 +18,8 @@ namespace CinemaS.Models.ViewModels
 
         public TicketDetailVM? Detail { get; set; }
 
-        // QR Code Data
         public string? QrImageBase64 { get; set; }
 
-        // Admin Account Check
         public bool IsAdminAccount { get; set; }
     }
 

@@ -1,10 +1,4 @@
 ﻿// Controllers/Api/MobileHomeController.cs
-// FIX TRIỆT ĐỂ:
-// - DB + Web đã dùng Model.DetailDescription => Movies entity CÓ property DetailDescription
-// - API movie detail PHẢI TRẢ detailDescription = movie.DetailDescription (KHÔNG fallback summary)
-// - Nếu null/empty => trả "" để app hiện "Đang cập nhật…"
-// - Giữ các field khác như hiện tại
-
 using System;
 using System.Collections.Generic;
 using System.IO;
