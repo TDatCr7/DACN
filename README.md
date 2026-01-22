@@ -144,7 +144,7 @@ flutter run
 
 ---
 
-## ▶️ Running the Application
+
 ## ▶️ Running the Applications
 
 Ứng dụng chạy theo ASP.NET URLs đã cấu hình (mặc định HTTPS).
