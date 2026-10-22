@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace CinemaS.Controllers
 {
+    [Authorize]
     public class TicketsController : Controller
     {
         private readonly CinemaContext _context;
@@ -21,12 +22,14 @@ namespace CinemaS.Controllers
         }
 
         // GET: Tickets/Management
+        [Authorize(Roles = "Admin")]
         public IActionResult Management()
         {
             return View();
         }
 
         // GET: Tickets
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index(string searchString, DateTime? fromDate, DateTime? toDate, byte? statusFilter, int page = 1)
         {
             const int PageSize = 8;
@@ -130,6 +133,7 @@ namespace CinemaS.Controllers
 
 
         // GET: Tickets/Details/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Details(string id)
         {
             if (id == null)
@@ -148,6 +152,7 @@ namespace CinemaS.Controllers
         }
 
         // GET: Tickets/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -156,6 +161,7 @@ namespace CinemaS.Controllers
         // POST: Tickets/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("TicketId,InvoiceId,TicketTypeId,ShowTimeId,SeatId,Status,Price,CreatedBooking,Expire")] Tickets tickets)
@@ -172,6 +178,7 @@ namespace CinemaS.Controllers
         }
 
         // GET: Tickets/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(string id)
         {
             if (id == null)
@@ -190,6 +197,7 @@ namespace CinemaS.Controllers
         // POST: Tickets/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id, [Bind("TicketId,InvoiceId,TicketTypeId,ShowTimeId,SeatId,Status,Price,CreatedBooking,Expire")] Tickets tickets)
@@ -227,6 +235,7 @@ namespace CinemaS.Controllers
         }
 
         // GET: Tickets/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id)
         {
             if (id == null)
@@ -245,6 +254,7 @@ namespace CinemaS.Controllers
         }
 
         // POST: Tickets/Delete/5
+        [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)

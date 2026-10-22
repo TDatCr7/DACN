@@ -1,22 +1,24 @@
 
 #nullable disable
 
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using CinemaS.Models;
 using CinemaS.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CinemaS.Areas.Identity.Pages.Account.Manage
 {
+    [Authorize]
     public class IndexModel : PageModel
     {
         // =========================
@@ -455,11 +457,34 @@ namespace CinemaS.Areas.Identity.Pages.Account.Manage
             if (string.IsNullOrWhiteSpace(invoiceId))
                 return Content("Không có mã hóa đơn.", "text/html");
 
-            var invoice = await _context.Invoices.AsNoTracking()
+            var invoice = await _context.Invoices
+                .AsNoTracking()
                 .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
 
             if (invoice == null)
                 return Content("Hóa đơn không tồn tại.", "text/html");
+
+            var canViewAnyInvoice =
+                User.IsInRole(SD.Role_Admin)
+                || User.IsInRole(SD.Role_Employee);
+
+            if (!canViewAnyInvoice)
+            {
+                var email = User.Identity?.Name;
+
+                var ownsInvoice =
+                    !string.IsNullOrWhiteSpace(email)
+                    && await _context.Users
+                        .AsNoTracking()
+                        .AnyAsync(u =>
+                            u.Email == email
+                            && u.UserId == invoice.CustomerId);
+
+                if (!ownsInvoice)
+                {
+                    return Forbid();
+                }
+            }
 
             // ---- Load vé + snack ----
             var tickets = await _context.Tickets.AsNoTracking()

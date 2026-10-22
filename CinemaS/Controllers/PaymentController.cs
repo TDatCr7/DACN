@@ -170,6 +170,15 @@ namespace CinemaS.Controllers
                     return Json(new { success = false, message = "Không có quyền thanh toán hóa đơn này." });
             }
 
+            if (invoice.Status == (byte)1)
+            {
+                return Conflict(new
+                {
+                    success = false,
+                    message = "Hóa đơn đã được thanh toán. Vui lòng xem lại trong lịch sử."
+                });
+            }
+
             var calc = await CalcPayableAsync(invoice);
             if (!calc.Success)
                 return Json(new { success = false, message = calc.ErrorMessage });
@@ -221,9 +230,20 @@ namespace CinemaS.Controllers
             var vnpSection = _cfg.GetSection("VnPay");
             string secret = vnpSection["HashSecret"] ?? "";
 
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    "Không thể xác minh kết quả thanh toán."
+                );
+            }
+
             var vnp = new VnPayLibrary();
-            foreach (var (k, v) in Request.Query)
-                vnp.AddResponseData(k, v!);
+
+            foreach (var (key, value) in Request.Query)
+            {
+                vnp.AddResponseData(key, value!);
+            }
 
             string invoiceId = vnp.GetResponseData("vnp_TxnRef") ?? "";
             string respCode = vnp.GetResponseData("vnp_ResponseCode");
@@ -232,11 +252,59 @@ namespace CinemaS.Controllers
             string providerTxnId = vnp.GetResponseData("vnp_TransactionNo") ?? "";
             string bankCode = vnp.GetResponseData("vnp_BankCode") ?? "";
             string payDate = vnp.GetResponseData("vnp_PayDate") ?? "";
-            long vnpAmountRaw = long.TryParse(vnp.GetResponseData("vnp_Amount"), out var amt) ? amt : 0;
+
+            long vnpAmountRaw =
+                long.TryParse(vnp.GetResponseData("vnp_Amount"), out var amount)
+                    ? amount
+                    : 0;
 
             bool signatureOk = vnp.ValidateSignature(secureHash, secret);
 
-            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+            if (string.IsNullOrWhiteSpace(invoiceId)
+                || string.IsNullOrWhiteSpace(secureHash)
+                || !signatureOk)
+            {
+                return BadRequest("Kết quả thanh toán không hợp lệ.");
+            }
+
+            var invoice = await _context.Invoices
+                .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
+            if (invoice == null)
+            {
+                return NotFound("Không tìm thấy hóa đơn.");
+            }
+
+            if (invoice.Status == (byte)1)
+            {
+                return RedirectToAction(
+                    nameof(ResultById),
+                    new { invoiceId = invoice.InvoiceId }
+                );
+            }
+
+            if (respCode == "00" && txnStatus == "00")
+            {
+                var calc = await CalcPayableAsync(invoice);
+
+                if (!calc.Success || calc.PayableAmountVnd <= 0)
+                {
+                    return BadRequest(
+                        calc.ErrorMessage ?? "Không xác định được số tiền cần thanh toán."
+                    );
+                }
+
+                decimal expectedVnpAmount =
+                    (decimal)calc.PayableAmountVnd * 100m;
+
+                if (vnpAmountRaw <= 0
+                    || (decimal)vnpAmountRaw != expectedVnpAmount)
+                {
+                    return BadRequest(
+                        "Số tiền thanh toán không khớp với hóa đơn."
+                    );
+                }
+            }
 
             var vm = new PaymentResultVM
             {
@@ -631,6 +699,9 @@ namespace CinemaS.Controllers
 
             if (invoice == null)
                 return NotFound();
+
+            if (!await CanViewInvoiceAsync(invoice))
+                return Forbid();
 
             bool hasTickets = await _context.Tickets.AsNoTracking()
                 .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
@@ -1261,6 +1332,9 @@ namespace CinemaS.Controllers
             if (invoice == null)
                 return RedirectToAction("SnackHistory");
 
+            if (!await CanViewInvoiceAsync(invoice))
+                return Forbid();
+
             var details = await _context.DetailBookingSnacks.AsNoTracking()
     .Where(d => d.InvoiceId == invoiceId)
     .Join(_context.Snacks.AsNoTracking(),
@@ -1562,6 +1636,20 @@ namespace CinemaS.Controllers
                 total = fallbackTotalPrice.Value;
 
             return total;
+        }
+
+        private async Task<bool> CanViewInvoiceAsync(Invoices invoice)
+        {
+            if (User.IsInRole(SD.Role_Admin)
+                || User.IsInRole(SD.Role_Employee))
+            {
+                return true;
+            }
+
+            var currentUser = await GetCurrentUserEntityAsync();
+
+            return currentUser != null
+                && currentUser.UserId == invoice.CustomerId;
         }
 
         private async Task<CinemaS.Models.Users?> GetCurrentUserEntityAsync()

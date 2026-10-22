@@ -1086,9 +1086,28 @@
 
                     // Razor Pages handler: OnGetTicketDetailModalAsync
                     fetch(`?handler=TicketDetailModal&invoiceId=${encodeURIComponent(id)}`)
-                        .then(r => r.text())
-                        .then(html => openModal(html))
-                        .catch(() => openModal("<div>Lỗi tải chi tiết vé</div>"));
+                        .then(response => {
+                            if (response.redirected) {
+                                window.location.assign(response.url);
+                                return null;
+                            }
+
+                            if (!response.ok) {
+                                throw new Error("Unable to load invoice details.");
+                            }
+
+                            return response.text();
+                        })
+                        .then(html => {
+                            if (html !== null) {
+                                openModal(html);
+                            }
+                        })
+                        .catch(() => {
+                            openModal(
+                                "<div>Không thể tải chi tiết hóa đơn. Vui lòng thử lại sau.</div>"
+                            );
+                        });
                 });
             });
         })();
