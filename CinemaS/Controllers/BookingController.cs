@@ -217,6 +217,16 @@ namespace CinemaS.Controllers
             if (showTime == null)
                 return Json(new { success = false, message = "Suất chiếu không tồn tại!" });
 
+            if (!showTime.ShowDate.HasValue || !showTime.StartTime.HasValue)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Suất chiếu chưa có ngày giờ hợp lệ. Vui lòng chọn suất khác."
+                });
+            }
+
+           
             var distinctSeatIds = request.SeatIds
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Select(s => s.Trim())
@@ -226,17 +236,56 @@ namespace CinemaS.Controllers
             if (!distinctSeatIds.Any())
                 return Json(new { success = false, message = "Danh sách ghế không hợp lệ!" });
 
+            var hasSoldSeats = await _context.Tickets.AsNoTracking()
+    .AnyAsync(t =>
+        t.ShowTimeId == showTime.ShowTimeId &&
+        distinctSeatIds.Contains(t.SeatId) &&
+        t.Status == 2);
+
+            if (hasSoldSeats)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Có ghế đã được bán. Vui lòng tải lại và chọn ghế khác."
+                });
+            }
+
             // ✅ Get price adjustment percentage
             decimal priceAdjustmentPercent = showTime.PriceAdjustmentPercent ?? 0m;
 
             // ===== baseTotal with adjusted prices =====
             var seatTypes = await _context.Seats.AsNoTracking()
-                .Where(s => distinctSeatIds.Contains(s.SeatId) && !s.IsDeleted)
-                .Join(_context.SeatTypes.AsNoTracking(),
-                    s => s.SeatTypeId,
-                    t => t.SeatTypeId,
-                    (s, t) => new { s.SeatId, BasePrice = t.Price })
-                .ToListAsync();
+    .Where(s =>
+        distinctSeatIds.Contains(s.SeatId) &&
+        s.CinemaTheaterId == showTime.CinemaTheaterId &&
+        s.IsActive &&
+        !s.IsDeleted &&
+        !s.IsAisle)
+    .Join(
+        _context.SeatTypes.AsNoTracking(),
+        s => s.SeatTypeId,
+        t => t.SeatTypeId,
+        (s, t) => new { s.SeatId, BasePrice = t.Price })
+    .ToListAsync();
+
+            if (seatTypes.Count != distinctSeatIds.Count)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Có ghế không hợp lệ hoặc không còn khả dụng. Vui lòng tải lại và chọn ghế khác."
+                });
+            }
+
+            if (seatTypes.Any(s => (s.BasePrice ?? 0m) <= 0m))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Giá ghế chưa được thiết lập hợp lệ. Vui lòng liên hệ nhân viên."
+                });
+            }
 
             // ✅ Apply price adjustment to each seat
             decimal baseTotal = 0m;

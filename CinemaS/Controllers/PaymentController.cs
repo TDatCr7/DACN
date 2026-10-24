@@ -23,17 +23,21 @@ namespace CinemaS.Controllers
         private readonly CinemaContext _context;
         private readonly IEmailSender _emailSender;
         private readonly IQrTicketService _qrService;
+        private readonly ILogger<PaymentController> _logger;
+
 
         public PaymentController(
             IConfiguration cfg,
             CinemaContext context,
             IEmailSender emailSender,
-            IQrTicketService qrService)
-        {
+            IQrTicketService qrService,
+            ILogger<PaymentController> logger)
+         {
             _cfg = cfg;
             _context = context;
             _emailSender = emailSender;
             _qrService = qrService;
+            _logger = logger;
         }
 
         /* ===================== Promotion ===================== */
@@ -344,6 +348,23 @@ namespace CinemaS.Controllers
             {
                 using var tx = await _context.Database.BeginTransactionAsync();
 
+                async Task<IActionResult> ReturnBookingReviewAsync(string reason)
+                {
+                    await tx.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+
+                    _logger.LogWarning(
+                        "VNPAY booking requires review for invoice {InvoiceId}: {Reason}",
+                        invoice.InvoiceId,
+                        reason);
+
+                    vm.IsSuccess = false;
+                    vm.Detail = null;
+                    vm.Message = "VNPAY đã xác nhận thanh toán nhưng đơn hàng cần được kiểm tra.";
+
+                    return View("Result", vm);
+                }
+
                 invoice.Status = (byte)1;
                 invoice.UpdatedAt = DateTime.UtcNow;
                 if (paymentMethod != null)
@@ -355,17 +376,47 @@ namespace CinemaS.Controllers
                 decimal ticketSum = 0m;
                 decimal snackSum = 0m;
 
-                /* ==== ƠU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
+                /* ==== ƯU TIÊN HÓA ĐƠN ĐỒ ĂN RIÊNG ==== */
                 var snacksRawOnly = HttpContext.Session.GetString($"pending_snacks:{invoice.InvoiceId}");
                 if (!string.IsNullOrWhiteSpace(snacksRawOnly))
                 {
                     var snacksPayload = JsonSerializer.Deserialize<PendingSnacksSelection>(snacksRawOnly) ?? new PendingSnacksSelection();
+
+                    if (snacksPayload.Snacks == null || snacksPayload.Snacks.Count == 0)
+                    {
+                        return await ReturnBookingReviewAsync(
+                            "Snack-only selection is empty.");
+                    }
+
                     if (snacksPayload.Snacks?.Any() == true)
                     {
-                        var sids = snacksPayload.Snacks.Select(x => x.SnackId).Distinct().ToList();
+                        var snackLines = snacksPayload.Snacks;
+
+                        if (snackLines.Any(line =>
+                            line == null ||
+                            string.IsNullOrWhiteSpace(line.SnackId) ||
+                            line.Quantity <= 0))
+                        {
+                            return await ReturnBookingReviewAsync(
+                                "Snack selection contains invalid items or quantities.");
+                        }
+
+                        var sids = snackLines.Select(line => line.SnackId)
+                            .Distinct()
+                            .ToList();
+
                         var snackMap = await _context.Snacks.AsNoTracking()
-                            .Where(s => sids.Contains(s.SnackId))
-                            .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
+                            .Where(s => sids.Contains(s.SnackId) && s.IsActive)
+                            .ToDictionaryAsync(
+                                s => s.SnackId,
+                                s => new { Unit = s.Price ?? 0m });
+
+                        if (snackMap.Count != sids.Count ||
+                            snackMap.Values.Any(snack => snack.Unit <= 0m))
+                        {
+                            return await ReturnBookingReviewAsync(
+                                "Some snacks are unavailable or have invalid prices.");
+                        }
 
                         string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
                             .OrderByDescending(d => d.DetailBookingSnackId)
@@ -389,8 +440,8 @@ namespace CinemaS.Controllers
 
                         foreach (var line in snacksPayload.Snacks)
                         {
-                            if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
-                            int qty = Math.Max(1, line.Quantity);
+                            var s = snackMap[line.SnackId];
+                            int qty = line.Quantity;
                             decimal lineTotal = s.Unit * qty;
 
                             var newDbId = await NextDbSnackIdSafeAsync();
@@ -414,12 +465,27 @@ namespace CinemaS.Controllers
                 else if (!alreadyHasTickets)
                 {
                     var raw = HttpContext.Session.GetString($"pending:{invoice.InvoiceId}");
+
+                    if (string.IsNullOrWhiteSpace(raw))
+                    {
+                        return await ReturnBookingReviewAsync(
+                            "Pending ticket selection is missing.");
+                    }
+
                     if (!string.IsNullOrWhiteSpace(raw))
                     {
                         var payload = JsonSerializer.Deserialize<PendingSelection>(raw) ?? new PendingSelection();
 
                         var st = await _context.ShowTimes.AsNoTracking()
                             .FirstOrDefaultAsync(x => x.ShowTimeId == payload.ShowTimeId);
+
+                        if (st == null ||
+                                !st.ShowDate.HasValue ||
+                                !st.StartTime.HasValue)
+                        {
+                            return await ReturnBookingReviewAsync(
+                                "Showtime is missing or has incomplete date and time.");
+                        }
 
                         if (st != null)
                         {
@@ -429,21 +495,56 @@ namespace CinemaS.Controllers
                                 .Distinct()
                                 .ToList() ?? new List<string>();
 
+                            if (requestSeatIds.Count == 0 || requestSeatIds.Count != invoice.TotalTicket)
+                            {
+                                return await ReturnBookingReviewAsync(
+                                    "Selected seat count does not match the invoice.");
+                            }
+
                             if (requestSeatIds.Count > 0)
                             {
                                 var occupied = await _context.Tickets.AsNoTracking()
-                                    .Where(t => t.ShowTimeId == st.ShowTimeId && requestSeatIds.Contains(t.SeatId))
+                                    .Where(t =>
+                                        t.ShowTimeId == st.ShowTimeId &&
+                                        requestSeatIds.Contains(t.SeatId))
                                     .Select(t => t.SeatId)
                                     .ToListAsync();
 
-                                var occupiedSet = new HashSet<string>(occupied);
-                                var finalSeats = requestSeatIds.Where(id => !occupiedSet.Contains(id)).ToList();
+                                if (occupied.Count > 0)
+                                {
+                                    return await ReturnBookingReviewAsync(
+                                        "Some selected seats are already occupied.");
+                                }
+
+                                var finalSeats = requestSeatIds;
 
                                 var seats = await _context.Seats.AsNoTracking()
-                                    .Where(s => finalSeats.Contains(s.SeatId))
+                                    .Where(s =>
+                                        finalSeats.Contains(s.SeatId) &&
+                                        s.CinemaTheaterId == st.CinemaTheaterId &&
+                                        s.IsActive &&
+                                        !s.IsDeleted &&
+                                        !s.IsAisle)
                                     .ToListAsync();
 
-                                var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
+                                if (seats.Count != finalSeats.Count)
+                                {
+                                    return await ReturnBookingReviewAsync(
+                                        "Some selected seats are no longer valid.");
+                                }
+
+                                var seatTypes = await _context.SeatTypes.AsNoTracking()
+                                    .ToListAsync();
+
+                                var hasInvalidSeatPrices = seats.Any(seat =>
+                                    (seatTypes.FirstOrDefault(type =>
+                                        type.SeatTypeId == seat.SeatTypeId)?.Price ?? 0m) <= 0m);
+
+                                if (hasInvalidSeatPrices)
+                                {
+                                    return await ReturnBookingReviewAsync(
+                                        "Some selected seats have invalid base prices.");
+                                }
 
                                 // ✅ Get price adjustment percentage from showtime
                                 decimal priceAdjustmentPercent = st.PriceAdjustmentPercent ?? 0m;
@@ -502,10 +603,33 @@ namespace CinemaS.Controllers
 
                                 if (payload.Snacks?.Any() == true)
                                 {
-                                    var sids = payload.Snacks.Select(x => x.SnackId).Distinct().ToList();
+                                    var snackLines = payload.Snacks;
+
+                                    if (snackLines.Any(line =>
+                                        line == null ||
+                                        string.IsNullOrWhiteSpace(line.SnackId) ||
+                                        line.Quantity <= 0))
+                                    {
+                                        return await ReturnBookingReviewAsync(
+                                            "Snack selection contains invalid items or quantities.");
+                                    }
+
+                                    var sids = snackLines.Select(line => line.SnackId)
+                                        .Distinct()
+                                        .ToList();
+
                                     var snackMap = await _context.Snacks.AsNoTracking()
-                                        .Where(s => sids.Contains(s.SnackId))
-                                        .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
+                                        .Where(s => sids.Contains(s.SnackId) && s.IsActive)
+                                        .ToDictionaryAsync(
+                                            s => s.SnackId,
+                                            s => new { Unit = s.Price ?? 0m });
+
+                                    if (snackMap.Count != sids.Count ||
+                                        snackMap.Values.Any(snack => snack.Unit <= 0m))
+                                    {
+                                        return await ReturnBookingReviewAsync(
+                                            "Some snacks are unavailable or have invalid prices.");
+                                    }
 
                                     string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
                                         .OrderByDescending(d => d.DetailBookingSnackId)
@@ -529,8 +653,8 @@ namespace CinemaS.Controllers
 
                                     foreach (var line in payload.Snacks)
                                     {
-                                        if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
-                                        int qty = Math.Max(1, line.Quantity);
+                                        var s = snackMap[line.SnackId];
+                                        int qty = line.Quantity;
                                         decimal lineTotal = s.Unit * qty;
 
                                         var newDbId = await NextDbSnackIdSafeAsync();
@@ -602,57 +726,21 @@ namespace CinemaS.Controllers
                         await SendTicketEmailAsync(invoice, vm.Detail);
                     }
                 }
-                catch (DbUpdateException)
+                catch (DbUpdateException ex)
                 {
                     await tx.RollbackAsync();
+                    _context.ChangeTracker.Clear();
 
-                    using var tx2 = await _context.Database.BeginTransactionAsync();
+                    _logger.LogError(
+                        ex,
+                        "VNPAY confirmed payment but booking could not be saved for invoice {InvoiceId}.",
+                        invoice.InvoiceId);
 
-                    var tickets = await _context.Tickets
-                        .Where(t => t.InvoiceId == invoice.InvoiceId)
-                        .ToListAsync();
+                    vm.IsSuccess = false;
+                    vm.Detail = null;
+                    vm.Message = "VNPAY đã xác nhận thanh toán nhưng hệ thống chưa hoàn tất đơn hàng.";
 
-                    foreach (var t in tickets.ToList())
-                    {
-                        bool duplicateSeat = await _context.Tickets.AsNoTracking()
-                            .AnyAsync(x => x.ShowTimeId == t.ShowTimeId && x.SeatId == t.SeatId && x.InvoiceId != t.InvoiceId);
-                        if (duplicateSeat)
-                            _context.Tickets.Remove(t);
-                    }
-
-                    await _context.SaveChangesAsync();
-
-                    var recomputedBase = await GetInvoiceBaseTotalAsync(invoice.InvoiceId, invoice.TotalPrice);
-                    invoice.TotalPrice = recomputedBase;
-
-                    // cập nhật lại thời gian
-                    invoice.UpdatedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                    // ✅ FIX: vẫn phải cộng điểm + tạo PointHistories
-                    await AwardPointsForInvoiceAsync(invoice);
-
-                    await _context.SaveChangesAsync();
-                    await tx2.CommitAsync();
-
-                    vm.IsSuccess = true;
-                    vm.Message = "Thanh toán thành công (một số ghế đã được đặt trước đó và đã được loại bỏ).";
-                    vm.Detail = await BuildTicketDetailAsync(invoice.InvoiceId);
-
-                    HttpContext.Session.Remove($"pending:{invoice.InvoiceId}");
-                    HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
-
-                    // ✅ FIX: Populate discount info BEFORE sending email
-                    if (vm.Detail != null)
-                    {
-                        var di = await GetDiscountInfoAsync(invoice.InvoiceId, invoice.TotalPrice);
-                        vm.Detail.OriginalAmount = di.original;
-                        vm.Detail.DiscountAmount = di.discount;
-                        vm.Detail.PayableAmount = di.payable;
-                        vm.Detail.DiscountPercent = di.percent;
-                        vm.Detail.PromotionName = di.promoName;
-                        
-                        await SendTicketEmailAsync(invoice, vm.Detail);
-                    }
+                    return View("Result", vm);
                 }
             }
             else
@@ -1026,6 +1114,8 @@ namespace CinemaS.Controllers
                 });
             }
 
+            string? redirectUrl = null;
+
             using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -1043,13 +1133,56 @@ namespace CinemaS.Controllers
                 if (!string.IsNullOrWhiteSpace(snacksRawOnly))
                 {
                     var snacksPayload = JsonSerializer.Deserialize<PendingSnacksSelection>(snacksRawOnly) ?? new PendingSnacksSelection();
+
+                    if (snacksPayload.Snacks == null || snacksPayload.Snacks.Count == 0)
+                    {
+                        await tx.RollbackAsync();
+
+                        return Json(new
+                        {
+                            success = false,
+                            message = "Dữ liệu hóa đơn không có món ăn. Vui lòng chọn món lại."
+                        });
+                    }   
                     if (snacksPayload.Snacks?.Any() == true)
                     {
-                        var sids = snacksPayload.Snacks.Select(x => x.SnackId).Distinct().ToList();
-                        var snackMap = await _context.Snacks.AsNoTracking()
-                            .Where(s => sids.Contains(s.SnackId))
-                            .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
+                        var snackLines = snacksPayload.Snacks;
 
+                        if (snackLines.Any(line =>
+                            line == null ||
+                            string.IsNullOrWhiteSpace(line.SnackId) ||
+                            line.Quantity <= 0))
+                        {
+                            await tx.RollbackAsync();
+
+                            return Json(new
+                            {
+                                success = false,
+                                message = "Món ăn hoặc số lượng không hợp lệ. Vui lòng chọn món lại."
+                            });
+                        }
+
+                        var sids = snackLines.Select(line => line.SnackId)
+                            .Distinct()
+                            .ToList();
+
+                        var snackMap = await _context.Snacks.AsNoTracking()
+                            .Where(s => sids.Contains(s.SnackId) && s.IsActive)
+                            .ToDictionaryAsync(
+                                s => s.SnackId,
+                                s => new { Unit = s.Price ?? 0m });
+
+                        if (snackMap.Count != sids.Count ||
+                            snackMap.Values.Any(snack => snack.Unit <= 0m))
+                        {
+                            await tx.RollbackAsync();
+
+                            return Json(new
+                            {
+                                success = false,
+                                message = "Có món không còn bán hoặc giá chưa hợp lệ. Vui lòng chọn món lại."
+                            });
+                        }
                         string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
                             .OrderByDescending(d => d.DetailBookingSnackId)
                             .Select(d => d.DetailBookingSnackId)
@@ -1072,8 +1205,8 @@ namespace CinemaS.Controllers
 
                         foreach (var line in snacksPayload.Snacks)
                         {
-                            if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
-                            int qty = Math.Max(1, line.Quantity);
+                            var s = snackMap[line.SnackId];
+                            int qty = line.Quantity;
                             decimal lineTotal = s.Unit * qty;
 
                             var newDbId = await NextDbSnackIdSafeAsync();
@@ -1096,12 +1229,37 @@ namespace CinemaS.Controllers
                 else if (!alreadyHasTickets)
                 {
                     var raw = HttpContext.Session.GetString($"pending:{invoice.InvoiceId}");
+
+                    if (string.IsNullOrWhiteSpace(raw))
+                    {
+                        await tx.RollbackAsync();
+
+                        return Json(new
+                        {
+                            success = false,
+                            message = "Không còn dữ liệu đặt vé trong phiên làm việc. Vui lòng tải lại và đặt vé lại."
+                        });
+                    }
+
                     if (!string.IsNullOrWhiteSpace(raw))
                     {
                         var payload = JsonSerializer.Deserialize<PendingSelection>(raw) ?? new PendingSelection();
 
                         var st = await _context.ShowTimes.AsNoTracking()
                             .FirstOrDefaultAsync(x => x.ShowTimeId == payload.ShowTimeId);
+
+                        if (st == null ||
+                            !st.ShowDate.HasValue ||
+                            !st.StartTime.HasValue)
+                        {
+                            await tx.RollbackAsync();
+
+                            return Json(new
+                            {
+                                success = false,
+                                message = "Suất chiếu không tồn tại hoặc thiếu ngày giờ. Vui lòng đặt vé lại."
+                            });
+                        }
 
                         if (st != null)
                         {
@@ -1111,21 +1269,76 @@ namespace CinemaS.Controllers
                                 .Distinct()
                                 .ToList() ?? new List<string>();
 
+                            if (requestSeatIds.Count == 0)
+                            {
+                                await tx.RollbackAsync();
+
+                                return Json(new
+                                {
+                                    success = false,
+                                    message = "Dữ liệu đặt vé không có ghế hợp lệ. Vui lòng đặt vé lại."
+                                });
+                            }
+
                             if (requestSeatIds.Count > 0)
                             {
                                 var occupied = await _context.Tickets.AsNoTracking()
-                                    .Where(t => t.ShowTimeId == st.ShowTimeId && requestSeatIds.Contains(t.SeatId))
-                                    .Select(t => t.SeatId)
-                                    .ToListAsync();
+                                .Where(t =>
+                                    t.ShowTimeId == st.ShowTimeId &&
+                                    requestSeatIds.Contains(t.SeatId))
+                                .Select(t => t.SeatId)
+                                .ToListAsync();
 
-                                var occupiedSet = new HashSet<string>(occupied);
-                                var finalSeats = requestSeatIds.Where(id => !occupiedSet.Contains(id)).ToList();
+                                if (occupied.Count > 0)
+                                {
+                                    await tx.RollbackAsync();
+
+                                    return Json(new
+                                    {
+                                        success = false,
+                                        message = "Có ghế đã được đặt. Thanh toán chưa được ghi nhận. Vui lòng tải lại và chọn ghế khác."
+                                    });
+                                }
+
+                                var finalSeats = requestSeatIds;
 
                                 var seats = await _context.Seats.AsNoTracking()
-                                    .Where(s => finalSeats.Contains(s.SeatId))
+                                .Where(s =>
+                                    finalSeats.Contains(s.SeatId) &&
+                                    s.CinemaTheaterId == st.CinemaTheaterId &&
+                                    s.IsActive &&
+                                    !s.IsDeleted &&
+                                    !s.IsAisle)
+                                .ToListAsync();
+
+                                if (seats.Count != finalSeats.Count)
+                                {
+                                    await tx.RollbackAsync();
+
+                                    return Json(new
+                                    {
+                                        success = false,
+                                        message = "Có ghế không còn hợp lệ. Vui lòng tải lại và chọn ghế khác."
+                                    });
+                                }
+
+                                var seatTypes = await _context.SeatTypes.AsNoTracking()
                                     .ToListAsync();
 
-                                var seatTypes = await _context.SeatTypes.AsNoTracking().ToListAsync();
+                                var hasInvalidSeatPrices = seats.Any(seat =>
+                                    (seatTypes.FirstOrDefault(type =>
+                                        type.SeatTypeId == seat.SeatTypeId)?.Price ?? 0m) <= 0m);
+
+                                if (hasInvalidSeatPrices)
+                                {
+                                    await tx.RollbackAsync();
+
+                                    return Json(new
+                                    {
+                                        success = false,
+                                        message = "Giá ghế chưa được thiết lập hợp lệ. Vui lòng liên hệ người quản trị."
+                                    });
+                                }
 
                                 // ✅ Get price adjustment percentage from showtime
                                 decimal priceAdjustmentPercent = st.PriceAdjustmentPercent ?? 0m;
@@ -1184,10 +1397,43 @@ namespace CinemaS.Controllers
 
                                 if (payload.Snacks?.Any() == true)
                                 {
-                                    var sids = payload.Snacks.Select(x => x.SnackId).Distinct().ToList();
+                                    var snackLines = payload.Snacks;
+
+                                    if (snackLines.Any(line =>
+                                        line == null ||
+                                        string.IsNullOrWhiteSpace(line.SnackId) ||
+                                        line.Quantity <= 0))
+                                    {
+                                        await tx.RollbackAsync();
+
+                                        return Json(new
+                                        {
+                                            success = false,
+                                            message = "Món ăn hoặc số lượng không hợp lệ. Vui lòng chọn món lại."
+                                        });
+                                    }
+
+                                    var sids = snackLines.Select(line => line.SnackId)
+                                        .Distinct()
+                                        .ToList();
+
                                     var snackMap = await _context.Snacks.AsNoTracking()
-                                        .Where(s => sids.Contains(s.SnackId))
-                                        .ToDictionaryAsync(s => s.SnackId, s => new { Unit = (s.Price ?? 0m) });
+                                        .Where(s => sids.Contains(s.SnackId) && s.IsActive)
+                                        .ToDictionaryAsync(
+                                            s => s.SnackId,
+                                            s => new { Unit = s.Price ?? 0m });
+
+                                    if (snackMap.Count != sids.Count ||
+                                        snackMap.Values.Any(snack => snack.Unit <= 0m))
+                                    {
+                                        await tx.RollbackAsync();
+
+                                        return Json(new
+                                        {
+                                            success = false,
+                                            message = "Có món không còn bán hoặc giá chưa hợp lệ. Vui lòng chọn món lại."
+                                        });
+                                    }
 
                                     string lastDbId = await _context.DetailBookingSnacks.AsNoTracking()
                                         .OrderByDescending(d => d.DetailBookingSnackId)
@@ -1211,8 +1457,8 @@ namespace CinemaS.Controllers
 
                                     foreach (var line in payload.Snacks)
                                     {
-                                        if (!snackMap.TryGetValue(line.SnackId, out var s)) continue;
-                                        int qty = Math.Max(1, line.Quantity);
+                                        var s = snackMap[line.SnackId];
+int qty = line.Quantity;
                                         decimal lineTotal = s.Unit * qty;
 
                                         var newDbId = await NextDbSnackIdSafeAsync();
@@ -1236,22 +1482,44 @@ namespace CinemaS.Controllers
                     }
                 }
 
-                var baseTotal = ticketSum + snackSum;
-                if (baseTotal <= 0m && invoice.TotalPrice.HasValue && invoice.TotalPrice.Value > 0m)
-                    baseTotal = invoice.TotalPrice.Value;
+                var existingTicketTotal = await _context.Tickets.AsNoTracking()
+    .Where(t => t.InvoiceId == invoice.InvoiceId)
+    .SumAsync(t => t.Price ?? 0m);
 
+                var existingSnackTotal = await _context.DetailBookingSnacks.AsNoTracking()
+                    .Where(d => d.InvoiceId == invoice.InvoiceId)
+                    .SumAsync(d => d.TotalPrice ?? 0m);
+
+                var baseTotal = ticketSum + snackSum
+                    + existingTicketTotal + existingSnackTotal;
 
                 var calcPay = await CalcPayableAsync(invoice);
+
                 if (!calcPay.Success)
                 {
                     await tx.RollbackAsync();
-                    return Json(new { success = false, message = calcPay.ErrorMessage });
+
+                    return Json(new
+                    {
+                        success = false,
+                        message = calcPay.ErrorMessage
+                    });
                 }
 
-                // ✅ DB lưu giá sau giảm nếu có promo
+                if (baseTotal != calcPay.OriginalAmount ||
+                    !invoice.TotalPrice.HasValue ||
+                    ToVndLong(invoice.TotalPrice.Value) != calcPay.PayableAmountVnd)
+                {
+                    await tx.RollbackAsync();
+
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Giá hoặc khuyến mãi đã thay đổi, hoặc chi tiết đơn không khớp. Vui lòng tạo lại đơn và kiểm tra số tiền trước khi thanh toán."
+                    });
+                }
+
                 invoice.TotalPrice = (decimal)calcPay.PayableAmountVnd;
-
-
 
                 long amountLong = calcPay.PayableAmountVnd;
 
@@ -1289,31 +1557,62 @@ namespace CinemaS.Controllers
 
                 _context.PaymentTransactions.Add(cashTxn);
                 await _context.SaveChangesAsync();
+
                 await AwardPointsForInvoiceAsync(invoice);
-
                 await _context.SaveChangesAsync();
-                await tx.CommitAsync();
-
-                HttpContext.Session.Remove($"pending:{invoice.InvoiceId}");
-                HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
 
                 bool hasTickets = await _context.Tickets.AsNoTracking()
                     .AnyAsync(t => t.InvoiceId == invoice.InvoiceId);
+
                 bool hasSnacks = await _context.DetailBookingSnacks.AsNoTracking()
                     .AnyAsync(d => d.InvoiceId == invoice.InvoiceId);
 
-                var url = (!hasTickets && hasSnacks)
-                    ? Url.Action(nameof(SnackResult), "Payment", new { invoiceId = invoice.InvoiceId })!
-                    : Url.Action(nameof(ResultById), "Payment", new { invoiceId = invoice.InvoiceId })!;
+                redirectUrl = (!hasTickets && hasSnacks)
+                    ? Url.Action(
+                        nameof(SnackResult),
+                        "Payment",
+                        new { invoiceId = invoice.InvoiceId })
+                    : Url.Action(
+                        nameof(ResultById),
+                        "Payment",
+                        new { invoiceId = invoice.InvoiceId });
 
-                return Json(new { success = true, redirectUrl = url });
+                await tx.CommitAsync();
             }
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
-                var inner = ex.InnerException?.Message;
-                return Json(new { success = false, message = "Thanh toán tiền mặt lỗi: " + (inner ?? ex.Message) });
+
+                _logger.LogError(
+                    ex,
+                    "Cash payment failed for invoice {InvoiceId}.",
+                    invoice.InvoiceId);
+
+                return Json(new
+                {
+                    success = false,
+                    message = "Không thể hoàn tất thanh toán tiền mặt. Vui lòng kiểm tra trạng thái hóa đơn trước khi thử lại."
+                });
             }
+
+            try
+            {
+                HttpContext.Session.Remove($"pending:{invoice.InvoiceId}");
+                HttpContext.Session.Remove($"pending_snacks:{invoice.InvoiceId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Cash payment committed but session cleanup failed for invoice {InvoiceId}.",
+                    invoice.InvoiceId);
+            }
+
+            return Json(new
+            {
+                success = true,
+                redirectUrl
+            });
         }
 
         /* ===================== 6) Snack result / history ===================== */

@@ -381,6 +381,17 @@ namespace CinemaS.Controllers
             if (showTime == null)
                 return Json(new { success = false, message = "Suất chiếu không tồn tại!" });
 
+            if (!showTime.ShowDate.HasValue || !showTime.StartTime.HasValue)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Suất chiếu chưa có ngày giờ hợp lệ. Vui lòng chọn suất khác."
+                });
+            }
+
+            
+
             var distinctSeatIds = request.SeatIds
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Select(s => s.Trim())
@@ -428,12 +439,36 @@ namespace CinemaS.Controllers
 
             // ===== baseTotal: tính ghế với giá đã điều chỉnh =====
             var seatTypePrices = await _db.Seats.AsNoTracking()
-                .Where(s => distinctSeatIds.Contains(s.SeatId) && !s.IsDeleted)
-                .Join(_db.SeatTypes.AsNoTracking(),
-                    s => s.SeatTypeId,
-                    t => t.SeatTypeId,
-                    (s, t) => new { s.SeatId, BasePrice = t.Price })
-                .ToListAsync();
+    .Where(s =>
+        distinctSeatIds.Contains(s.SeatId) &&
+        s.CinemaTheaterId == showTime.CinemaTheaterId &&
+        s.IsActive &&
+        !s.IsDeleted &&
+        !s.IsAisle)
+    .Join(
+        _db.SeatTypes.AsNoTracking(),
+        s => s.SeatTypeId,
+        t => t.SeatTypeId,
+        (s, t) => new { s.SeatId, BasePrice = t.Price })
+    .ToListAsync();
+
+            if (seatTypePrices.Count != distinctSeatIds.Count)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Có ghế không hợp lệ hoặc không còn khả dụng. Vui lòng tải lại và chọn ghế khác."
+                });
+            }
+
+            if (seatTypePrices.Any(s => (s.BasePrice ?? 0m) <= 0m))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Giá ghế chưa được thiết lập hợp lệ. Vui lòng liên hệ nhân viên."
+                });
+            }
 
             // ✅ Apply price adjustment to each seat
             decimal baseTotal = 0m;

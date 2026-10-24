@@ -4,6 +4,16 @@
     ViewData["Title"] = "Kết quả thanh toán";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
+    var requiresReview = Model != null
+    && Model.IsValidSignature
+    && Model.VnpResponseCode == "00"
+    && Model.VnpTransactionStatus == "00"
+    && !Model.IsSuccess;
+
+    var statusMessage = requiresReview
+        ? $"VNPAY đã xác nhận thanh toán nhưng đơn hàng {Model?.OrderId} chưa hoàn tất. Vui lòng liên hệ nhân viên để kiểm tra, không thanh toán lại đơn này."
+        : Model?.Message;
+
     DateTime? paidAt = null;
     if (!string.IsNullOrWhiteSpace(Model?.PayDateRaw))
     {
@@ -186,10 +196,28 @@
         <div class="result-content">
             @if (Model != null)
             {
-                <div id="paymentStatusBadge" class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
-                    <i class="fas @(Model.IsSuccess ? "fa-check-circle" : "fa-times-circle")"></i>
-                    <span>@(Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "THANH TOÁN THẤT BẠI")</span>
+                <div id="paymentStatusBadge"
+                     class="status-badge-compact @(Model.IsSuccess ? "success" : "danger")">
+                    <i class="fas @(requiresReview
+                        ? "fa-exclamation-triangle"
+                        : Model.IsSuccess ? "fa-check-circle" : "fa-times-circle")"></i>
+
+                    <span>
+                        @(requiresReview
+            ? "ĐƠN HÀNG CẦN KIỂM TRA"
+            : Model.IsSuccess ? "THANH TOÁN THÀNH CÔNG" : "THANH TOÁN THẤT BẠI")
+                    </span>
                 </div>
+
+                @if (!string.IsNullOrWhiteSpace(statusMessage))
+                {
+                    <div class="alert @(requiresReview
+                         ? "alert-warning"
+                         : Model.IsSuccess ? "alert-success" : "alert-danger")"
+                         role="status">
+                        @statusMessage
+                    </div>
+                }
 
                 <div class="result-card">
                     <div class="card-header-custom">
